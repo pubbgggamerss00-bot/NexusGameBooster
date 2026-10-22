@@ -25,13 +25,15 @@ jobs:
   build:
     name: Build, test and lint
     runs-on: ubuntu-latest
-    # Heap is CI-only (see gradle.properties): the default 512m daemon OOMs in D8.
-    env:
-      ORG_GRADLE_PROJECT_org.gradle.jvmargs: -Xmx3g -XX:MaxMetaspaceSize=1g
-      ORG_GRADLE_PROJECT_kotlin.daemon.jvmargs: -Xmx2g
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # Heap is CI-only (see gradle.properties): the default 512m daemon OOMs in D8.
+      # org.gradle.jvmargs is a build-env property (NOT readable via ORG_GRADLE_PROJECT_*),
+      # so it is appended to gradle.properties here and never committed.
+      - name: Configure CI Gradle heap
+        run: printf '\n# CI-only heap (added by the workflow, not committed)\norg.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g\nkotlin.daemon.jvmargs=-Xmx2g\n' >> gradle.properties
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -84,6 +86,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Configure CI Gradle heap
+        run: printf '\norg.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g\nkotlin.daemon.jvmargs=-Xmx2g\n' >> gradle.properties
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
