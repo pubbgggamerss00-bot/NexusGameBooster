@@ -1,154 +1,186 @@
 package com.nexus.gamebooster.ui.screens.profiles
 
+import androidx.lifecycle.viewModelScope
 import com.nexus.gamebooster.profiles.ProfileIds
 import com.nexus.gamebooster.profiles.StaticProfileRepository
 import com.nexus.gamebooster.testing.FakeActiveProfileStore
 import com.nexus.gamebooster.testing.MainDispatcherRule
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
 /**
- * JVM tests for [ProfilesViewModel] (Phase 4 contract): optimistic selection +
- * persistence, honest save-error with rollback + working retry, legacy id normalization
- * on load, invalid ids ignored.
+ * Recreated after the sandbox environment wipe (Task 16-b missed this class;
+ * restored by Task 17 from the Task 14-d spec). IS executed for real via Gradle:
+ * `./gradlew :app:testDebugUnitTest`.
  *
- * SHARED-SCHEDULER CONTRACT: every test uses `runTest(mainDispatcherRule.testDispatcher)`
- * (see [MainDispatcherRule]) — the Phase 6 lesson about mismatched schedulers.
- *
- * These tests ARE executed for real via Gradle (`:app:testDebugUnitTest`) in this
- * sandbox — see worklog Task 14-d for the green run.
+ * All tests run under VIRTUAL TIME with the shared Main dispatcher. The init
+ * block collects the store flow forever, so cancelling `vm.viewModelScope` is
+ * the LAST statement of every test body (the Task 14-d hang rule), and state is
+ * always awaited with `uiState.first { ... }` — no sleeps anywhere.
  */
 class ProfilesViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private fun vm(store: FakeActiveProfileStore) =
-        ProfilesViewModel(StaticProfileRepository(), store)
+    private lateinit var store: FakeActiveProfileStore
+
+    @Before
+    fun setUp() {
+        store = FakeActiveProfileStore(ProfileIds.BALANCED)
+    }
+
+    private fun newViewModel(initialStore: FakeActiveProfileStore = store): ProfilesViewModel =
+        ProfilesViewModel(
+            profileRepository = StaticProfileRepository(),
+            activeProfileStore = initialStore,
+        )
+
+    /** MUST be the last statement of every test body (the init collector runs forever). */
+    private fun shutdownForTest(vm: ProfilesViewModel) {
+        vm.viewModelScope.cancel()
+    }
+
+    // ------------------------------------------------------------- init / catalog
 
     @Test
-    fun init_listsTheThreePresets_andLoadsThePersistedProfile() = runTest(mainDispatcherRule.testDispatcher) {
-        val store = FakeActiveProfileStore(ProfileIds.PERFORMANCE)
-        val viewModel = vm(store)
-        runCurrent()
+    fun init_listsTheThreePresets_andLoadsThePersistedProfileClean() = runTest(mainDispatcherRule.testDispatcher) {
+        val vm = newViewModel()
+        val state = vm.uiState.first { it.activeProfileId != null }
 
-        val state = viewModel.uiState.value
         assertEquals(
             listOf(ProfileIds.BALANCED, ProfileIds.PERFORMANCE, ProfileIds.BATTERY_SAVER),
             state.profiles.map { it.id },
         )
-        assertEquals(ProfileIds.PERFORMANCE, state.activeProfileId)
+        assertEquals(ProfileIds.BALANCED, state.activeProfileId)
         assertFalse(state.saveError)
         assertFalse(state.isSaving)
+        shutdownForTest(vm)
     }
 
     @Test
-    fun init_legacyGamingId_isNormalizedToBalanced() = runTest(mainDispatcherRule.testDispatcher) {
-        val viewModel = vm(FakeActiveProfileStore(ProfileIds.LEGACY_GAMING))
-        runCurrent()
-        assertEquals(ProfileIds.BALANCED, viewModel.uiState.value.activeProfileId)
+    fun legacyGamingId_normalizedToBalanced() = runTest(mainDispatcherRule.testDispatcher) {
+        // The fake store deliberately emits the RAW legacy value: the VM must map it.
+        val legacyStore = FakeActiveProfileStore(ProfileIds.LEGACY_GAMING)
+        val vm = newViewModel(legacyStore)
+
+        val state = vm.uiState.first { it.activeProfileId != null }
+        assertEquals(ProfileIds.BALANCED, state.activeProfileId)
+        shutdownForTest(vm)
+    }
+
+    // ------------------------------------------------------------------ selection
+
+    @Test
+    fun select_isOptimistic_thenSettlesAfterThePersistedWrite() = runTest(mainDispatcherRule.testDispatcher) {
+        val vm = newViewModel()
+        vm.uiState.first { it.activeProfileId != null }
+
+        // Main is UNCONFINED (the shared rule), so the launched persist runs eagerly.
+        // Hold it on the one-shot gate: the synchronous optimistic update (selected id
+        // + isSaving) stays visible while the write is still in flight.
+        val gate = CompletableDeferred<Unit>()
+        store.writeGate = gate
+        vm.selectProfile(ProfileIds.PERFORMANCE)
+        assertEquals(ProfileIds.PERFORMANCE, vm.uiState.value.activeProfileId)
+        assertTrue(vm.uiState.value.isSaving)
+
+        gate.complete(Unit)
+        val state = vm.uiState.first { !it.isSaving }
+        assertEquals(ProfileIds.PERFORMANCE, state.activeProfileId)
+        assertFalse(state.saveError)
+        assertEquals(1, store.writes)
+        shutdownForTest(vm)
     }
 
     @Test
-    fun selectProfile_updatesOptimistically_thenPersists() = runTest(mainDispatcherRule.testDispatcher) {
-        val store = FakeActiveProfileStore(ProfileIds.BALANCED)
-        val viewModel = vm(store)
-        runCurrent()
+    fun invalidIds_ignored_noWriteNoStateChange() = runTest(mainDispatcherRule.testDispatcher) {
+        val vm = newViewModel()
+        vm.uiState.first { it.activeProfileId != null }
 
-        viewModel.selectProfile(ProfileIds.PERFORMANCE)
-        // Optimistic: the chosen profile shows immediately, before any write completes.
-        assertEquals(ProfileIds.PERFORMANCE, viewModel.uiState.value.activeProfileId)
-        assertTrue(viewModel.uiState.value.isSaving)
+        // The legacy "gaming" id and a plain unknown id have NO preset — both ignored.
+        vm.selectProfile(ProfileIds.LEGACY_GAMING)
+        vm.selectProfile("com.unknown.profile")
 
-        advanceUntilIdle()
-        assertEquals(ProfileIds.PERFORMANCE, store.written)
-        assertFalse(viewModel.uiState.value.isSaving)
-        assertFalse(viewModel.uiState.value.saveError)
-        assertEquals(ProfileIds.PERFORMANCE, viewModel.uiState.value.activeProfileId)
+        val state = vm.uiState.value
+        assertEquals(ProfileIds.BALANCED, state.activeProfileId)
+        assertFalse(state.isSaving)
+        assertFalse(state.saveError)
+        assertEquals(0, store.writes)
+        shutdownForTest(vm)
     }
 
     @Test
-    fun selectProfile_invalidIdsAreIgnored_neverPersisted() = runTest(mainDispatcherRule.testDispatcher) {
-        val store = FakeActiveProfileStore(ProfileIds.BALANCED)
-        val viewModel = vm(store)
-        runCurrent()
+    fun persistFailure_saveErrorAndRevert_thenRetryWorks() = runTest(mainDispatcherRule.testDispatcher) {
+        val vm = newViewModel()
+        vm.uiState.first { it.activeProfileId != null }
 
-        viewModel.selectProfile(ProfileIds.LEGACY_GAMING) // no preset behind "gaming"
-        viewModel.selectProfile("turbo")
-        runCurrent()
+        store.failWrites = true
+        vm.selectProfile(ProfileIds.PERFORMANCE)
+        val failed = vm.uiState.first { it.saveError }
+        // The previous profile stays visibly active — honest revert, never a blank.
+        assertEquals(ProfileIds.BALANCED, failed.activeProfileId)
+        assertFalse(failed.isSaving)
+        assertEquals(1, store.writes)
 
-        assertEquals(null, store.written)
-        assertEquals(ProfileIds.BALANCED, viewModel.uiState.value.activeProfileId)
-        assertFalse(viewModel.uiState.value.isSaving)
+        // Retry = select again with the store healthy: error clears and it settles.
+        store.failWrites = false
+        vm.selectProfile(ProfileIds.PERFORMANCE)
+        val retried = vm.uiState.first { it.activeProfileId == ProfileIds.PERFORMANCE && !it.isSaving }
+        assertFalse(retried.saveError)
+        assertEquals(2, store.writes)
+        shutdownForTest(vm)
     }
 
     @Test
-    fun persistFailure_setsSaveError_revertsToLastPersisted_thenRetryWorks() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val store = FakeActiveProfileStore(ProfileIds.BALANCED)
-            val viewModel = vm(store)
-            runCurrent()
+    fun dismissSaveError_clearsTheFlag_onlyTheFlag() = runTest(mainDispatcherRule.testDispatcher) {
+        val vm = newViewModel()
+        vm.uiState.first { it.activeProfileId != null }
 
-            store.failWrites = true
-            viewModel.selectProfile(ProfileIds.PERFORMANCE)
-            assertEquals("optimistic selection shows first", ProfileIds.PERFORMANCE, viewModel.uiState.value.activeProfileId)
-            runCurrent() // the write fails here
+        store.failWrites = true
+        vm.selectProfile(ProfileIds.PERFORMANCE)
+        vm.uiState.first { it.saveError }
 
-            assertTrue(viewModel.uiState.value.saveError)
-            assertFalse(viewModel.uiState.value.isSaving)
-            assertEquals("visible selection reverts to the still-active persisted profile",
-                ProfileIds.BALANCED, viewModel.uiState.value.activeProfileId)
-            assertEquals(null, store.written)
+        vm.dismissSaveError()
 
-            // Retry = the user taps again (or the error card's Retry button) once the
-            // cause is gone: the same selection now succeeds and clears the error.
-            store.failWrites = false
-            viewModel.selectProfile(ProfileIds.PERFORMANCE)
-            advanceUntilIdle()
-            assertFalse(viewModel.uiState.value.saveError)
-            assertEquals(ProfileIds.PERFORMANCE, viewModel.uiState.value.activeProfileId)
-            assertEquals(ProfileIds.PERFORMANCE, store.written)
-        }
-
-    @Test
-    fun dismissSaveError_clearsTheFlagWithoutRetrying() = runTest(mainDispatcherRule.testDispatcher) {
-        val store = FakeActiveProfileStore(ProfileIds.BALANCED).apply { failWrites = true }
-        val viewModel = vm(store)
-        runCurrent()
-
-        viewModel.selectProfile(ProfileIds.PERFORMANCE)
-        runCurrent()
-        assertTrue(viewModel.uiState.value.saveError)
-
-        viewModel.dismissSaveError()
-        assertFalse(viewModel.uiState.value.saveError)
-        assertEquals(ProfileIds.BALANCED, viewModel.uiState.value.activeProfileId)
+        assertFalse(vm.uiState.value.saveError)
+        // Dismissing is NOT retrying: the reverted selection stays put.
+        assertEquals(ProfileIds.BALANCED, vm.uiState.value.activeProfileId)
+        shutdownForTest(vm)
     }
 
     @Test
-    fun persistedValueFromElsewhere_settlesOptimisticState_andClearsErrors() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            // Mirrors the Home quick-select writing through the SAME store: the Profiles
-            // VM's collector treats the incoming persisted value as settled truth.
-            val store = FakeActiveProfileStore(ProfileIds.BALANCED)
-            val viewModel = vm(store)
-            runCurrent()
+    fun externalStoreWrite_settlesTheOptimisticState() = runTest(mainDispatcherRule.testDispatcher) {
+        val vm = newViewModel()
+        vm.uiState.first { it.activeProfileId != null }
 
-            viewModel.selectProfile(ProfileIds.BATTERY_SAVER)
-            advanceUntilIdle()
-            assertEquals(ProfileIds.BATTERY_SAVER, viewModel.uiState.value.activeProfileId)
+        // Hold THIS VM's own write on the one-shot gate, then write from "outside"
+        // (e.g. the Home quick-select writing the same store): the collector must
+        // settle the optimistic state even before the VM's own write finishes.
+        val gate = CompletableDeferred<Unit>()
+        store.writeGate = gate
+        vm.selectProfile(ProfileIds.PERFORMANCE)
+        runCurrent() // let the launched write consume the gate and suspend there
 
-            // Another surface (Home) selects Performance through the same store.
-            store.setActiveProfile(ProfileIds.PERFORMANCE)
-            advanceUntilIdle()
-            assertEquals(ProfileIds.PERFORMANCE, viewModel.uiState.value.activeProfileId)
-            assertFalse(viewModel.uiState.value.saveError)
-            assertFalse(viewModel.uiState.value.isSaving)
-        }
+        store.setActiveProfile(ProfileIds.BATTERY_SAVER)
+        val settled = vm.uiState.first { it.activeProfileId == ProfileIds.BATTERY_SAVER }
+        assertFalse(settled.isSaving)
+        assertFalse(settled.saveError)
+
+        // Releasing the gate lets the VM's own (older) write land last: PERFORMANCE.
+        gate.complete(Unit)
+        val final = vm.uiState.first { it.activeProfileId == ProfileIds.PERFORMANCE && !it.isSaving }
+        assertFalse(final.saveError)
+        assertEquals(2, store.writes)
+        shutdownForTest(vm)
+    }
 }

@@ -25,6 +25,10 @@ jobs:
   build:
     name: Build, test and lint
     runs-on: ubuntu-latest
+    # Heap is CI-only (see gradle.properties): the default 512m daemon OOMs in D8.
+    env:
+      ORG_GRADLE_PROJECT_org.gradle.jvmargs: -Xmx3g -XX:MaxMetaspaceSize=1g
+      ORG_GRADLE_PROJECT_kotlin.daemon.jvmargs: -Xmx2g
     steps:
       - name: Checkout
         uses: actions/checkout@v4

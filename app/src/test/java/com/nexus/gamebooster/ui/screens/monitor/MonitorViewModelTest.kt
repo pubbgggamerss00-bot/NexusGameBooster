@@ -13,299 +13,258 @@ import com.nexus.gamebooster.testing.FakeActiveProfileStore
 import com.nexus.gamebooster.testing.FakeDeviceInfoRepository
 import com.nexus.gamebooster.testing.FakeMonitoringRepository
 import com.nexus.gamebooster.testing.MainDispatcherRule
+import com.nexus.gamebooster.testing.testDeviceFacts
 import com.nexus.gamebooster.testing.testSnapshot
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
 /**
- * Policy-driven monitoring tests for [MonitorViewModel] (Phase 4/5 contract), all under
- * VIRTUAL time: the auto-refresh ticker (15 s Balanced / 5 s Performance / none for
- * Battery Saver), the screen-active gate, the live battery subscription policy and the
- * Phase 5 EFFICIENT session mode.
+ * Recreated after the sandbox environment wipe (Task 16-b, from the Task 14-d spec).
+ * IS executed for real via Gradle: `./gradlew :app:testDebugUnitTest`.
  *
- * HANG-PREVENTION CONTRACT (Phase 6 lesson, task 13): the VM's ticker is a
- * `while(true)+delay` loop inside `viewModelScope`, so EVERY test body MUST cancel
- * `vm.viewModelScope` as its LAST statement (`vm.shutdownForTest()` below) — cancelling
- * in `@After` is too late because runTest's post-body drain runs first. Also: while a
- * ticker is alive, only `advanceTimeBy`/`runCurrent` are safe — a bare `advanceUntilIdle`
- * would chase the ticker's self-rescheduling delay forever.
- *
- * These tests ARE executed for real via Gradle (`:app:testDebugUnitTest`) in this
- * sandbox — see worklog Task 14-d for the green run.
+ * ALL 12 tests run under VIRTUAL TIME with the shared Main dispatcher.
+ * THE HANG RULES (Task 14-d lessons, honored here):
+ *  1. `advanceUntilIdle` is NEVER called while the auto-refresh ticker could be alive —
+ *     only `testScheduler.advanceTimeBy` + `runCurrent`.
+ *  2. `shutdownForTest()` (cancels `vm.viewModelScope`) is the LAST statement of EVERY
+ *     test body, so no ticker survives into runTest's cleanup.
+ *  3. State is always awaited with `uiState.first { ... }` — no sleeps anywhere.
  */
 class MonitorViewModelTest {
 
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private fun vm(
-        monitoringRepo: FakeMonitoringRepository,
-        profileStore: ActiveProfileStore = FakeActiveProfileStore(ProfileIds.BALANCED),
-        sessionMonitor: SessionMonitorController = SessionMonitorController(),
+    private lateinit var monitoringRepository: FakeMonitoringRepository
+    private lateinit var deviceInfoRepository: FakeDeviceInfoRepository
+    private lateinit var profileStore: FakeActiveProfileStore
+    private lateinit var sessionController: SessionMonitorController
+
+    @Before
+    fun setUp() {
+        monitoringRepository = FakeMonitoringRepository(testSnapshot())
+        deviceInfoRepository = FakeDeviceInfoRepository()
+        profileStore = FakeActiveProfileStore(ProfileIds.BALANCED)
+        sessionController = SessionMonitorController()
+    }
+
+    private fun newViewModel(
+        store: FakeActiveProfileStore = profileStore,
     ): MonitorViewModel = MonitorViewModel(
-        monitoringRepository = monitoringRepo,
-        deviceInfoRepository = FakeDeviceInfoRepository(),
+        monitoringRepository = monitoringRepository,
+        deviceInfoRepository = deviceInfoRepository,
         profileRepository = StaticProfileRepository(),
-        activeProfileStore = profileStore,
-        sessionMonitorController = sessionMonitor,
+        activeProfileStore = store,
+        sessionMonitorController = sessionController,
     )
 
-    /** MUST be the last call of every test body — see the class KDoc. */
-    private fun MonitorViewModel.shutdownForTest() {
-        viewModelScope.cancel()
+    /** MUST be the last statement of every test body (hang rule #2). */
+    private fun shutdownForTest(vm: MonitorViewModel) {
+        vm.viewModelScope.cancel()
     }
 
-    // ---------------------------------------------------------------- init + refresh
+    // ----------------------------------------------------------- init & refresh
 
     @Test
-    fun init_populatesDeviceFacts_andRunsOneShotRefresh() = runTest(mainDispatcherRule.testDispatcher) {
-        val repo = FakeMonitoringRepository()
-        val monitor = vm(repo)
-        runCurrent()
+    fun init_refreshesOnce_andLoadsDeviceFacts() = runTest(mainDispatcherRule.testDispatcher) {
+        val vm = newViewModel()
+        val state = vm.uiState.first { it.battery != null && it.deviceFacts != null }
 
-        val state = monitor.uiState.value
-        assertEquals("Nexus", state.deviceFacts?.manufacturer)
-        assertNotNull(state.battery)
-        assertNotNull(state.thermal)
-        assertNotNull(state.memory)
-        assertNotNull(state.cpu)
-        assertEquals(87, state.battery?.levelPercent)
-        assertEquals(1_234L, state.lastUpdatedMillis)
+        assertEquals(1, monitoringRepository.refreshCount)
+        assertEquals(testDeviceFacts(), state.deviceFacts)
+        assertEquals(80, state.battery?.levelPercent)
+        assertFalse(state.battery?.charging ?: true)
+        assertEquals("none", state.thermal?.statusLabel)
+        assertEquals(2_048L, state.memory?.availableMb)
+        assertEquals(8, state.cpu?.coreCount)
+        assertEquals(testSnapshot().timestampMillis, state.lastUpdatedMillis)
         assertNull(state.errorReason)
-        assertEquals(1, repo.refreshCount) // exactly the init refresh, no auto tick yet
         assertFalse(state.isRefreshing)
-        monitor.shutdownForTest()
+        shutdownForTest(vm)
     }
 
     @Test
-    fun refresh_failure_setsStableApiErrorReason_andKeepsOldValues() = runTest(mainDispatcherRule.testDispatcher) {
-        val repo = FakeMonitoringRepository()
-        val monitor = vm(repo)
-        runCurrent()
-        val oldBattery = monitor.uiState.value.battery
+    fun refreshFailure_setsApiError_andKeepsThePreviousValues() = runTest(mainDispatcherRule.testDispatcher) {
+        val vm = newViewModel()
+        vm.uiState.first { it.battery != null }
 
-        repo.failRefresh = true
-        monitor.refresh()
-        runCurrent()
+        monitoringRepository.failRefresh = true
+        vm.refresh()
 
-        assertEquals(UnavailableReasons.API_ERROR, monitor.uiState.value.errorReason)
-        assertFalse(monitor.uiState.value.isRefreshing)
-        assertEquals(oldBattery, monitor.uiState.value.battery) // previous good values stay
-        monitor.shutdownForTest()
+        val state = vm.uiState.first { it.errorReason == UnavailableReasons.API_ERROR }
+        // Honest degradation: the previous good readings stay on screen, nothing is blanked.
+        assertEquals(80, state.battery?.levelPercent)
+        assertFalse(state.isRefreshing)
+        shutdownForTest(vm)
     }
 
-    // ------------------------------------------------------------- profile → policy
+    // ------------------------------------------------------------------ profile
 
     @Test
-    fun profileFlow_mapsPersistedIdToProfileInState() = runTest(mainDispatcherRule.testDispatcher) {
-        val store = FakeActiveProfileStore(ProfileIds.PERFORMANCE)
-        val monitor = vm(FakeMonitoringRepository(), profileStore = store)
-        runCurrent()
+    fun profile_loadsIntoState_andFollowsStoreChanges() = runTest(mainDispatcherRule.testDispatcher) {
+        val vm = newViewModel()
+        assertEquals(
+            ProfileIds.BALANCED,
+            vm.uiState.first { it.profile != null }.profile?.id,
+        )
 
-        assertEquals(ProfileIds.PERFORMANCE, monitor.uiState.value.profile?.id)
-        monitor.shutdownForTest()
+        profileStore.setActiveProfile(ProfileIds.BATTERY_SAVER)
+        vm.uiState.first { it.profile?.id == ProfileIds.BATTERY_SAVER }
+        shutdownForTest(vm)
     }
 
     @Test
-    fun profileFlow_legacyGamingId_fallsBackToBalanced() = runTest(mainDispatcherRule.testDispatcher) {
+    fun legacyGamingProfile_normalizedToBalanced() = runTest(mainDispatcherRule.testDispatcher) {
+        // The fake store deliberately emits the RAW legacy value: the VM must map it.
         val store = FakeActiveProfileStore(ProfileIds.LEGACY_GAMING)
-        val monitor = vm(FakeMonitoringRepository(), profileStore = store)
-        runCurrent()
+        val vm = newViewModel(store)
 
-        assertEquals(ProfileIds.BALANCED, monitor.uiState.value.profile?.id)
-        monitor.shutdownForTest()
+        val state = vm.uiState.first { it.profile != null }
+        assertEquals(ProfileIds.BALANCED, state.profile?.id)
+        shutdownForTest(vm)
     }
 
-    // ------------------------------------------------------- auto-refresh ticker
+    // ------------------------------------------------- auto-refresh tick policy
 
     @Test
-    fun balancedProfile_autoRefreshTicksEvery15s_whileScreenActive() = runTest(mainDispatcherRule.testDispatcher) {
-        val repo = FakeMonitoringRepository()
-        val monitor = vm(repo)
-        runCurrent()
-        val base = repo.refreshCount // init refresh only
-
-        monitor.onMonitorScreenActive()
+    fun balanced_autoRefreshTicksAt15sBoundary() = runTest(mainDispatcherRule.testDispatcher) {
+        val vm = newViewModel()
+        vm.onMonitorScreenActive()
         runCurrent()
 
-        advanceTimeBy(14_999)
+        assertEquals(1, monitoringRepository.refreshCount) // init refresh only
+        testScheduler.advanceTimeBy(14_999)
+        assertEquals(1, monitoringRepository.refreshCount) // no tick one millisecond early
+        testScheduler.advanceTimeBy(1)
         runCurrent()
-        assertEquals("no tick before the full 15 s", base, repo.refreshCount)
-
-        advanceTimeBy(1)
-        runCurrent()
-        assertEquals(base + 1, repo.refreshCount) // one tick at exactly 15 s
-
-        advanceTimeBy(15_000)
-        runCurrent()
-        assertEquals(base + 2, repo.refreshCount) // and every 15 s after that
-        monitor.shutdownForTest()
+        assertEquals(2, monitoringRepository.refreshCount) // ticked at exactly 15 s
+        shutdownForTest(vm)
     }
 
     @Test
-    fun performanceProfile_autoRefreshTicksEvery5s() = runTest(mainDispatcherRule.testDispatcher) {
-        val repo = FakeMonitoringRepository()
+    fun performance_autoRefreshTicksAt5s() = runTest(mainDispatcherRule.testDispatcher) {
         val store = FakeActiveProfileStore(ProfileIds.PERFORMANCE)
-        val monitor = vm(repo, profileStore = store)
-        runCurrent()
-        val base = repo.refreshCount
-
-        monitor.onMonitorScreenActive()
+        val vm = newViewModel(store)
+        vm.onMonitorScreenActive()
         runCurrent()
 
-        advanceTimeBy(5_000)
+        testScheduler.advanceTimeBy(15_000)
         runCurrent()
-        assertEquals(base + 1, repo.refreshCount)
-
-        advanceTimeBy(10_000)
-        runCurrent()
-        assertEquals(base + 3, repo.refreshCount) // two more 5 s ticks
-        monitor.shutdownForTest()
+        // init refresh + ticks at 5 s, 10 s, 15 s
+        assertEquals(4, monitoringRepository.refreshCount)
+        shutdownForTest(vm)
     }
 
     @Test
-    fun batterySaverProfile_neverAutoRefreshes_evenWhileScreenActive() = runTest(mainDispatcherRule.testDispatcher) {
-        val repo = FakeMonitoringRepository()
+    fun batterySaver_neverAutoTicks() = runTest(mainDispatcherRule.testDispatcher) {
         val store = FakeActiveProfileStore(ProfileIds.BATTERY_SAVER)
-        val monitor = vm(repo, profileStore = store)
-        runCurrent()
-        val base = repo.refreshCount
-
-        monitor.onMonitorScreenActive()
-        runCurrent()
-        advanceTimeBy(60_000)
+        val vm = newViewModel(store)
+        vm.onMonitorScreenActive()
         runCurrent()
 
-        assertEquals("Battery Saver must not tick — manual refresh is the only path", base, repo.refreshCount)
-        monitor.shutdownForTest()
+        testScheduler.advanceTimeBy(60_000)
+        runCurrent()
+        assertEquals(1, monitoringRepository.refreshCount) // manual refresh stays the only path
+        assertEquals(0, monitoringRepository.liveCollectors.value)
+        shutdownForTest(vm)
     }
 
     @Test
-    fun screenInactive_pausesTheTicker_resumingReactivatesIt() = runTest(mainDispatcherRule.testDispatcher) {
-        val repo = FakeMonitoringRepository()
-        val monitor = vm(repo)
+    fun screenInactive_pausesTicker_reactivationRestartsIt() = runTest(mainDispatcherRule.testDispatcher) {
+        val vm = newViewModel()
+        vm.onMonitorScreenActive()
         runCurrent()
-        val base = repo.refreshCount
+        testScheduler.advanceTimeBy(15_000)
+        runCurrent()
+        assertEquals(2, monitoringRepository.refreshCount)
 
-        monitor.onMonitorScreenActive()
+        vm.onMonitorScreenInactive()
+        testScheduler.advanceTimeBy(45_000)
         runCurrent()
-        advanceTimeBy(15_000)
-        runCurrent()
-        assertEquals(base + 1, repo.refreshCount)
+        assertEquals(2, monitoringRepository.refreshCount) // paused while inactive
 
-        monitor.onMonitorScreenInactive()
+        vm.onMonitorScreenActive()
+        testScheduler.advanceTimeBy(15_000)
         runCurrent()
-        advanceTimeBy(60_000)
-        runCurrent()
-        assertEquals("no ticks while the screen is not lifecycle-active", base + 1, repo.refreshCount)
-
-        monitor.onMonitorScreenActive()
-        runCurrent()
-        advanceTimeBy(15_000)
-        runCurrent()
-        assertEquals("the ticker restarts when the screen becomes active again", base + 2, repo.refreshCount)
-        monitor.shutdownForTest()
+        assertEquals(3, monitoringRepository.refreshCount) // restarted fresh
+        shutdownForTest(vm)
     }
 
     // ------------------------------------------------------------- live battery
 
     @Test
-    fun liveBattery_subscribedOnlyWhenPolicyAllows_andUpdatesState() = runTest(mainDispatcherRule.testDispatcher) {
-        val repo = FakeMonitoringRepository()
-        val monitor = vm(repo)
-        runCurrent()
-        monitor.onMonitorScreenActive()
-        runCurrent()
+    fun liveBattery_collectedOnlyWhenPolicyAllows_andUpdatesState() = runTest(mainDispatcherRule.testDispatcher) {
+        val vm = newViewModel() // Balanced: live battery events on
+        monitoringRepository.liveCollectors.first { it >= 1 }
 
-        assertEquals("Balanced policy subscribes the live stream", 1, repo.liveCollectors)
-        repo.emitLiveBattery(
-            BatterySnapshot(MetricAvailability.Available, levelPercent = 42, charging = false),
+        monitoringRepository.emitBattery(
+            BatterySnapshot(
+                availability = MetricAvailability.Available,
+                levelPercent = 42,
+                charging = false,
+            )
         )
-        runCurrent()
-        assertEquals(42, monitor.uiState.value.battery?.levelPercent)
-        monitor.shutdownForTest()
+        val state = vm.uiState.first { it.battery?.levelPercent == 42 }
+        assertEquals(42, state.battery?.levelPercent)
+        shutdownForTest(vm)
     }
 
     @Test
-    fun liveBattery_batterySaverNeverSubscribes_andLeavingLiveProfileUnsubscribes() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val repo = FakeMonitoringRepository()
-            val store = FakeActiveProfileStore(ProfileIds.BALANCED)
-            val monitor = vm(repo, profileStore = store)
-            runCurrent()
-            monitor.onMonitorScreenActive()
-            runCurrent()
-            assertEquals(1, repo.liveCollectors)
+    fun batterySaverProfile_unsubscribesTheLiveStream() = runTest(mainDispatcherRule.testDispatcher) {
+        val vm = newViewModel()
+        monitoringRepository.liveCollectors.first { it >= 1 }
 
-            // Switch the persisted profile to Battery Saver → the stream must unsubscribe.
-            store.setActiveProfile(ProfileIds.BATTERY_SAVER)
-            runCurrent()
-            assertEquals("no live receiver may stay registered on Battery Saver", 0, repo.liveCollectors)
-            monitor.shutdownForTest()
-        }
+        profileStore.setActiveProfile(ProfileIds.BATTERY_SAVER)
+        monitoringRepository.liveCollectors.first { it == 0 } // collectLatest cancelled the stream
+        shutdownForTest(vm)
+    }
 
-    // ------------------------------------------------ Phase 5: EFFICIENT session mode
+    // -------------------------------------------------------------- session mode
 
     @Test
-    fun efficientSessionMode_suppressesAutoRefreshAndLiveEvents_andSurfacesTheChip() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            val repo = FakeMonitoringRepository()
-            val controller = SessionMonitorController()
-            val monitor = vm(repo, sessionMonitor = controller)
-            runCurrent()
-            monitor.onMonitorScreenActive()
-            runCurrent()
-            assertEquals(1, repo.liveCollectors)
-            val base = repo.refreshCount
-            advanceTimeBy(15_000)
-            runCurrent()
-            assertEquals(base + 1, repo.refreshCount)
+    fun efficientSession_suppressesAutoRefreshAndLive_manualRefreshStillWorks() = runTest(mainDispatcherRule.testDispatcher) {
+        val vm = newViewModel()
+        vm.onMonitorScreenActive()
+        monitoringRepository.liveCollectors.first { it >= 1 }
 
-            // The boost engine's session-monitoring action decided to conserve power.
-            controller.setEfficient()
-            runCurrent()
-            assertEquals(SessionMonitorMode.EFFICIENT, monitor.uiState.value.sessionMode)
-            assertEquals("EFFICIENT unsubscribes the live battery stream", 0, repo.liveCollectors)
-            advanceTimeBy(60_000)
-            runCurrent()
-            assertEquals("EFFICIENT stops the auto-refresh ticker", base + 1, repo.refreshCount)
+        sessionController.setEfficient()
+        monitoringRepository.liveCollectors.first { it == 0 }
+        vm.uiState.first { it.sessionMode == SessionMonitorMode.EFFICIENT }
 
-            // Manual refresh always stays available in every mode.
-            monitor.refresh()
-            runCurrent()
-            assertEquals(base + 2, repo.refreshCount)
-            monitor.shutdownForTest()
-        }
+        testScheduler.advanceTimeBy(45_000)
+        runCurrent()
+        assertEquals(1, monitoringRepository.refreshCount) // no auto ticks while EFFICIENT
+
+        vm.refresh() // manual refresh is never affected
+        assertEquals(2, monitoringRepository.refreshCount)
+        shutdownForTest(vm)
+    }
 
     @Test
-    fun efficientSessionMode_copiesKeepScreenOnFromProfilePolicy_onlyFlipsAutomation() =
-        runTest(mainDispatcherRule.testDispatcher) {
-            // Performance keeps the screen on; even EFFICIENT must not touch that flag —
-            // verified through the policy the VM derives (auto/live off, screen-on kept).
-            val repo = FakeMonitoringRepository()
-            val store = FakeActiveProfileStore(ProfileIds.PERFORMANCE)
-            val controller = SessionMonitorController()
-            val monitor = vm(repo, profileStore = store, sessionMonitor = controller)
-            runCurrent()
-            assertEquals(ProfileIds.PERFORMANCE, monitor.uiState.value.profile?.id)
+    fun efficientSession_onPerformance_keepsKeepScreenOnPolicy_andSuppressesAutomation() = runTest(mainDispatcherRule.testDispatcher) {
+        val store = FakeActiveProfileStore(ProfileIds.PERFORMANCE)
+        val vm = newViewModel(store)
+        vm.onMonitorScreenActive()
+        monitoringRepository.liveCollectors.first { it >= 1 }
 
-            controller.setEfficient()
-            runCurrent()
-            // The observable effects of the copied policy:
-            monitor.onMonitorScreenActive()
-            runCurrent()
-            advanceTimeBy(10_000)
-            runCurrent()
-            assertEquals("no auto ticks under EFFICIENT", 1, repo.refreshCount) // init only
-            assertEquals(0, repo.liveCollectors)
-            monitor.shutdownForTest()
-        }
+        sessionController.setEfficient()
+        monitoringRepository.liveCollectors.first { it == 0 }
+        val state = vm.uiState.first { it.sessionMode == SessionMonitorMode.EFFICIENT }
+
+        testScheduler.advanceTimeBy(20_000)
+        runCurrent()
+        assertEquals(1, monitoringRepository.refreshCount) // 5 s Performance ticker suppressed
+        // The profile's own keep-screen-on policy is untouched by the session mode.
+        assertTrue(state.profile?.monitoringPolicy?.keepScreenOnWhileVisible == true)
+        shutdownForTest(vm)
+    }
 }

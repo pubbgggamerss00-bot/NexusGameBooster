@@ -22,14 +22,17 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.nexus.gamebooster.ui.theme.ngbNeonBorderBrush
+import com.nexus.gamebooster.ui.theme.ngbNeonHalo
 
 /**
  * Standard content card: header row (icon + title + optional trailing slot) and a
  * content column. Used by every screen for a consistent look.
  *
- * Visual contract (Phase 7): flat (0 elevation) with a subtle 1.dp outline — sections
- * are separated by the border, not by shadows. The title is exposed to screen readers
- * as a heading so users can jump between sections.
+ * Visual contract (Phase 8): flat (0 elevation) with the neon sweep-gradient frame
+ * (green → cyan → violet) plus a faint outer halo — the showcase look, still
+ * restrained. The title is exposed to screen readers as a heading so users can
+ * jump between sections.
  */
 @Composable
 fun SectionCard(
@@ -40,12 +43,15 @@ fun SectionCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        // Halo drawn behind the card, centered on its edge (shape.large = 16.dp).
+        modifier = modifier
+            .fillMaxWidth()
+            .ngbNeonHalo(cornerRadius = 18.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        border = BorderStroke(1.25.dp, ngbNeonBorderBrush(alpha = 0.5f)),
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

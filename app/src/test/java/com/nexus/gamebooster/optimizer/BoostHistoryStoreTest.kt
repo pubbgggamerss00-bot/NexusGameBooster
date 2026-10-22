@@ -4,126 +4,135 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.nexus.gamebooster.data.SettingsRepository
 import com.nexus.gamebooster.testing.testReport
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import java.io.File
 
 /**
- * REAL file-backed DataStore tests for the [BoostHistoryStore] implementation in
- * [SettingsRepository] (Phase 5 contract): newest-first ordering, the 20-report cap,
- * corrupt-JSON tolerance, clear, and upsert-by-id.
+ * Recreated after the sandbox environment wipe (Task 16-b, from the Task 14-d spec).
+ * IS executed for real via Gradle: `./gradlew :app:testDebugUnitTest`.
  *
- * The DataStore instance is the ONLY one alive per file: each test gets a fresh
- * TemporaryFolder file and the scope is cancelled in [tearDown] before anything else
- * touches disk (the Phase 6 two-instance contract — violating it hangs/crashes DataStore).
+ * The REAL [BoostHistoryStore] implementation (SettingsRepository over a real
+ * file-backed Preferences DataStore): empty default, newest-first order, the 20-report
+ * cap, per-entry tolerant JSON decoding (corrupt entries skipped, valid ones survive),
+ * clear, and upsert-by-id.
  *
- * These tests ARE executed for real via Gradle (`:app:testDebugUnitTest`) in this
- * sandbox — see worklog Task 14-d for the green run.
+ * TWO-INSTANCE CONTRACT: one DataStore per unique file per test; the owning scope is
+ * cancelled in @After BEFORE the next file is created.
  */
 class BoostHistoryStoreTest {
 
     @get:Rule
     val tmp = TemporaryFolder()
 
-    private lateinit var scope: CoroutineScope
-    private lateinit var dataStore: DataStore<Preferences>
-    private lateinit var store: BoostHistoryStore
+    private val testDispatcher = UnconfinedTestDispatcher()
+    private lateinit var dataStoreScope: CoroutineScope
+    private var fileCounter = 0
 
     @Before
     fun setUp() {
-        scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher())
-        val file = File(tmp.newFolder(), "boost_history_test.preferences_pb")
-        dataStore = PreferenceDataStoreFactory.create(scope = scope, produceFile = { file })
-        store = SettingsRepository(dataStore)
+        dataStoreScope = CoroutineScope(testDispatcher + Job())
     }
 
     @After
     fun tearDown() {
-        scope.cancel()
+        dataStoreScope.cancel()
+    }
+
+    private fun newStore(): Pair<SettingsRepository, DataStore<Preferences>> {
+        val dir = tmp.newFolder()
+        val file = File(dir, "boost_history_${fileCounter++}.preferences_pb")
+        val dataStore: DataStore<Preferences> =
+            PreferenceDataStoreFactory.create(scope = dataStoreScope) { file }
+        return SettingsRepository(dataStore) to dataStore
     }
 
     @Test
-    fun emptyByDefault() = runTest {
+    fun emptyByDefault() = runTest(testDispatcher) {
+        val (store, _) = newStore()
         assertTrue(store.boostHistory.first().isEmpty())
     }
 
     @Test
-    fun add_retrievesNewestFirst() = runTest {
-        store.addBoostReport(testReport(id = "old", completedAtMillis = 100))
-        store.addBoostReport(testReport(id = "newest", completedAtMillis = 300))
-        store.addBoostReport(testReport(id = "middle", completedAtMillis = 200))
-        assertEquals(
-            listOf("newest", "middle", "old"),
-            store.boostHistory.first().map { it.id },
-        )
+    fun newestFirstByCompletedAt() = runTest(testDispatcher) {
+        val (store, _) = newStore()
+        store.addBoostReport(testReport("r1", BoostStatus.COMPLETED, completedAtMillis = 1_000))
+        store.addBoostReport(testReport("r2", BoostStatus.PARTIAL_SUCCESS, completedAtMillis = 2_000))
+        store.addBoostReport(testReport("r3", BoostStatus.FAILED, completedAtMillis = 3_000))
+        assertEquals(listOf("r3", "r2", "r1"), store.boostHistory.first().map { it.id })
     }
 
     @Test
-    fun capAt20_dropsTheOldestReports() = runTest {
+    fun capsAtTwentyReports_oldestDropped() = runTest(testDispatcher) {
+        val (store, _) = newStore()
         for (i in 1..22) {
-            store.addBoostReport(testReport(id = "r$i", completedAtMillis = i.toLong()))
+            store.addBoostReport(testReport("r$i", BoostStatus.COMPLETED, completedAtMillis = i * 1_000L))
         }
         val history = store.boostHistory.first()
-        assertEquals(SettingsRepository.MAX_BOOST_HISTORY, history.size)
-        // Newest-first: r22 … r3 survive, the two oldest (r1, r2) were dropped.
-        assertEquals((22 downTo 3).map { "r$it" }, history.map { it.id })
+        assertEquals(20, history.size)
+        assertEquals("r22", history.first().id)
+        assertEquals("r3", history.last().id)
+        assertFalse(history.any { it.id == "r1" || it.id == "r2" })
     }
 
     @Test
-    fun corruptJsonEntries_skippedOnRead_neverBreakTheHistory() = runTest {
-        val report = testReport(id = "r1", completedAtMillis = 100)
-        store.addBoostReport(report)
-        val rawKey = stringSetPreferencesKey("boost_history")
-        val raw = dataStore.data.first()[rawKey] ?: emptySet()
-        assertEquals(1, raw.size)
-        // Corrupt the stored set the way a broken write would: garbage + wrong-shape JSON.
+    fun corruptJsonEntriesSkipped_validReportSurvives() = runTest(testDispatcher) {
+        val (store, dataStore) = newStore()
+        val valid = testReport("valid", BoostStatus.COMPLETED, completedAtMillis = 5_000)
+        val validJson = Json.encodeToString(valid)
+
         dataStore.edit { prefs ->
-            prefs[rawKey] = raw + setOf("{not json", "}{", "{\"x\":1}")
+            prefs[stringSetPreferencesKey("boost_history")] = setOf(
+                "{not json",
+                "}{",
+                "{\"x\":1}", // valid JSON, but not a BoostReport
+                validJson,
+            )
         }
-        // Only the one real report survives; garbage entries never crash or fake a report.
-        assertEquals(listOf(report), store.boostHistory.first())
+
+        // Only the decodable report survives; the garbage never becomes a fake report.
+        assertEquals(listOf(valid), store.boostHistory.first())
+
+        // The next write re-persists the cleaned set — the garbage is gone for good.
+        store.addBoostReport(testReport("after", BoostStatus.COMPLETED, completedAtMillis = 6_000))
+        assertEquals(listOf("after", "valid"), store.boostHistory.first().map { it.id })
     }
 
     @Test
-    fun clear_removesEveryReport() = runTest {
-        store.addBoostReport(testReport(id = "r1", completedAtMillis = 1))
-        store.addBoostReport(testReport(id = "r2", completedAtMillis = 2))
-        assertEquals(2, store.boostHistory.first().size)
+    fun clearRemovesEveryReport() = runTest(testDispatcher) {
+        val (store, _) = newStore()
+        store.addBoostReport(testReport("r1", BoostStatus.COMPLETED, completedAtMillis = 1_000))
+        store.addBoostReport(testReport("r2", BoostStatus.COMPLETED, completedAtMillis = 2_000))
         store.clearBoostHistory()
         assertTrue(store.boostHistory.first().isEmpty())
     }
 
     @Test
-    fun upsert_sameIdReplacesInsteadOfDuplicating() = runTest {
-        store.addBoostReport(
-            testReport(id = "same", completedAtMillis = 100, status = BoostStatus.COMPLETED),
-        )
-        store.addBoostReport(
-            testReport(id = "other", completedAtMillis = 150, status = BoostStatus.PARTIAL_SUCCESS),
-        )
-        store.addBoostReport(
-            testReport(id = "same", completedAtMillis = 500, status = BoostStatus.CANCELLED),
-        )
+    fun upsertByReplacesSameId() = runTest(testDispatcher) {
+        val (store, _) = newStore()
+        store.addBoostReport(testReport("r1", BoostStatus.PARTIAL_SUCCESS, completedAtMillis = 1_000))
+        store.addBoostReport(testReport("r1", BoostStatus.COMPLETED, completedAtMillis = 2_000))
         val history = store.boostHistory.first()
-        assertEquals(2, history.size)
-        // The re-added report replaced its previous version and sorted to the front.
-        assertEquals("same", history.first().id)
-        assertEquals(BoostStatus.CANCELLED, history.first().status)
-        assertEquals(500L, history.first().completedAtMillis)
-        assertEquals(listOf("other"), history.drop(1).map { it.id })
+        assertEquals(1, history.size)
+        assertEquals(BoostStatus.COMPLETED, history.single().status)
+        assertEquals(2_000L, history.single().completedAtMillis)
     }
 }

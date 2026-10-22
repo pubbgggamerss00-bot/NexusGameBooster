@@ -1,6 +1,7 @@
 package com.nexus.gamebooster.ui.screens.home
 
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -40,6 +41,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -70,11 +75,64 @@ import com.nexus.gamebooster.ui.components.StatusChipVariant
 import com.nexus.gamebooster.ui.components.profileIcon
 import com.nexus.gamebooster.ui.motion.LocalNgbMotionEnabled
 import com.nexus.gamebooster.ui.motion.ngbPressScale
+import com.nexus.gamebooster.ui.theme.ngbNeonHalo
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
 
 private const val BYTES_PER_GB = 1073741824.0 // 1024^3
+
+/**
+ * Phase 8 neon-showcase hero: the generated key art with the app name and tagline
+ * overlaid on a bottom scrim — the Home header from the showcase art. The image is
+ * decorative (contentDescription = null); the visible localized texts carry the
+ * meaning for screen readers. The scrim and text colors come from the theme, so
+ * both dark variants stay readable, and the halo/clip order follows the same
+ * "glow first, clip after" pattern as BoostCard so the glow is never cut.
+ */
+@Composable
+private fun NgbHero() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 176.dp)
+            .ngbNeonHalo(cornerRadius = 20.dp)
+            .clip(RoundedCornerShape(20.dp)),
+    ) {
+        Image(
+            painter = painterResource(R.drawable.ngb_hero),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.matchParentSize(),
+        )
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color.Transparent,
+                        1f to MaterialTheme.colorScheme.background.copy(alpha = 0.88f),
+                    ),
+                ),
+        )
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .padding(16.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.app_name),
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            Text(
+                text = stringResource(R.string.home_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
 
 @Composable
 fun HomeScreen(onOpenLibrary: () -> Unit = {}) {
@@ -90,15 +148,7 @@ fun HomeScreen(onOpenLibrary: () -> Unit = {}) {
     }
 
     NgbScreenContainer {
-        Text(
-            text = stringResource(R.string.app_name),
-            style = MaterialTheme.typography.headlineSmall,
-        )
-        Text(
-            text = stringResource(R.string.home_subtitle),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        NgbHero()
         Spacer(Modifier.height(16.dp))
         DeviceCard(facts = state.deviceFacts)
         Spacer(Modifier.height(16.dp))

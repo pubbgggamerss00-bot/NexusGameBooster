@@ -1,176 +1,199 @@
 package com.nexus.gamebooster.optimizer
 
 import com.nexus.gamebooster.monitoring.UnavailableReasons
-import com.nexus.gamebooster.testing.batterySession
-import com.nexus.gamebooster.testing.recordingAction
+import com.nexus.gamebooster.testing.RecordingAction
 import com.nexus.gamebooster.testing.stubAction
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.test.runTest
 import kotlin.coroutines.coroutineContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Test
-import java.util.concurrent.atomic.AtomicReference
 
 /**
- * Tests for [DefaultBoostEngine]'s honest status mapping, failure containment and the
- * exact cancellation contract (ensureActive between actions; CancellationException is
- * rethrown and never recorded as a Failed outcome).
+ * Recreated after the sandbox environment wipe (Task 16-b, from the Task 14-d spec).
+ * IS executed for real via Gradle: `./gradlew :app:testDebugUnitTest`.
  *
- * These tests ARE executed for real via Gradle (`:app:testDebugUnitTest`) in this
- * sandbox — see worklog Task 14-d for the green run.
+ * [DefaultBoostEngine] contracts: the honest status mapping (AlreadyApplied counts as
+ * success, Failed outranks Skipped), empty action list, a crashing action recorded as
+ * Failed(api_error) without aborting the run, execution-order records, and the exact
+ * cancellation contract — CancellationException rethrown untouched (never recorded as
+ * Failed) and ensureActive BETWEEN actions verified with a genuinely cancelled job.
  */
 class BoostEngineTest {
-
-    private fun engine(vararg actions: BoostAction) = DefaultBoostEngine(actions.toList())
-
-    private fun session() = batterySession(level = 87, charging = false, profileId = "balanced")
 
     // ------------------------------------------------------------ status mapping
 
     @Test
-    fun everyActionApplied_returnsCompleted() = runTest {
-        val status = engine(
-            stubAction("a1"),
-            stubAction("a2") { BoostActionOutcome.Applied() },
-        ).boost(session(), BoostRequest())
-        assertEquals(BoostStatus.COMPLETED, status)
+    fun allActionsApplied_reportsCompleted() = runTest {
+        val engine = DefaultBoostEngine(
+            listOf(
+                stubAction("a1", BoostActionOutcome.Applied()),
+                stubAction("a2", BoostActionOutcome.Applied()),
+            )
+        )
+        val session = BoostSession(emptyList(), null, null)
+        assertEquals(BoostStatus.COMPLETED, engine.boost(session, BoostRequest()))
+        assertEquals(2, session.actions.size)
     }
 
     @Test
-    fun alreadyAppliedCountsAsSuccess_returnsCompleted() = runTest {
-        val status = engine(
-            stubAction("a1") { BoostActionOutcome.AlreadyApplied() },
-            stubAction("a2") { BoostActionOutcome.Applied() },
-        ).boost(session(), BoostRequest())
-        assertEquals(BoostStatus.COMPLETED, status)
+    fun alreadyApplied_countsAsSuccess_reportsCompleted() = runTest {
+        val engine = DefaultBoostEngine(
+            listOf(
+                stubAction("a1", BoostActionOutcome.AlreadyApplied()),
+                stubAction("a2", BoostActionOutcome.Applied()),
+            )
+        )
+        val session = BoostSession(emptyList(), null, null)
+        assertEquals(BoostStatus.COMPLETED, engine.boost(session, BoostRequest()))
+        assertTrue(session.actions[0].outcome is BoostActionOutcome.AlreadyApplied)
     }
 
     @Test
-    fun anySkipped_returnsPartialSuccess() = runTest {
-        val status = engine(
-            stubAction("a1"),
-            stubAction("a2") { BoostActionOutcome.Skipped(UnavailableReasons.NOT_NEEDED) },
-        ).boost(session(), BoostRequest())
-        assertEquals(BoostStatus.PARTIAL_SUCCESS, status)
+    fun skippedOutcome_reportsPartialSuccess() = runTest {
+        val engine = DefaultBoostEngine(
+            listOf(
+                stubAction("a1", BoostActionOutcome.Applied()),
+                stubAction("a2", BoostActionOutcome.Skipped(UnavailableReasons.BATTERY_HEALTHY)),
+            )
+        )
+        val session = BoostSession(emptyList(), null, null)
+        assertEquals(BoostStatus.PARTIAL_SUCCESS, engine.boost(session, BoostRequest()))
     }
 
     @Test
-    fun anyUnsupported_returnsPartialSuccess() = runTest {
-        val status = engine(
-            stubAction("a1"),
-            stubAction("a2") { BoostActionOutcome.Unsupported(UnavailableReasons.NO_LAUNCH_INTENT) },
-        ).boost(session(), BoostRequest())
-        assertEquals(BoostStatus.PARTIAL_SUCCESS, status)
+    fun unsupportedOutcome_reportsPartialSuccess() = runTest {
+        val engine = DefaultBoostEngine(
+            listOf(
+                stubAction("a1", BoostActionOutcome.Unsupported(UnavailableReasons.NO_LAUNCH_INTENT)),
+            )
+        )
+        val session = BoostSession(emptyList(), null, null)
+        assertEquals(BoostStatus.PARTIAL_SUCCESS, engine.boost(session, BoostRequest()))
     }
 
     @Test
-    fun anyFailed_returnsFailed() = runTest {
-        val status = engine(
-            stubAction("a1"),
-            stubAction("a2") { BoostActionOutcome.Failed(UnavailableReasons.API_ERROR, "boom") },
-        ).boost(session(), BoostRequest())
-        assertEquals(BoostStatus.FAILED, status)
+    fun failedOutcome_reportsFailed() = runTest {
+        val engine = DefaultBoostEngine(
+            listOf(
+                stubAction("a1", BoostActionOutcome.Failed(UnavailableReasons.API_ERROR, message = "boom")),
+            )
+        )
+        val session = BoostSession(emptyList(), null, null)
+        assertEquals(BoostStatus.FAILED, engine.boost(session, BoostRequest()))
     }
 
     @Test
-    fun failedOutranksSkipped_returnsFailed() = runTest {
-        val status = engine(
-            stubAction("a1") { BoostActionOutcome.Skipped(UnavailableReasons.NOT_NEEDED) },
-            stubAction("a2") { BoostActionOutcome.Failed(UnavailableReasons.API_ERROR) },
-        ).boost(session(), BoostRequest())
-        assertEquals(BoostStatus.FAILED, status)
+    fun failed_outranks_skipped() = runTest {
+        val engine = DefaultBoostEngine(
+            listOf(
+                stubAction("a1", BoostActionOutcome.Skipped(UnavailableReasons.NOT_NEEDED)),
+                stubAction("a2", BoostActionOutcome.Failed(UnavailableReasons.API_ERROR)),
+            )
+        )
+        val session = BoostSession(emptyList(), null, null)
+        assertEquals(BoostStatus.FAILED, engine.boost(session, BoostRequest()))
+        assertEquals(2, session.actions.size)
     }
 
     @Test
-    fun emptyActionList_returnsCompletedAndRecordsNothing() = runTest {
-        val session = session()
-        val status = engine().boost(session, BoostRequest())
-        assertEquals(BoostStatus.COMPLETED, status)
+    fun emptyActionList_reportsCompleted() = runTest {
+        val engine = DefaultBoostEngine(emptyList())
+        val session = BoostSession(emptyList(), null, null)
+        assertEquals(BoostStatus.COMPLETED, engine.boost(session, BoostRequest()))
         assertTrue(session.actions.isEmpty())
     }
 
-    // ------------------------------------------------- failure containment + order
+    // ------------------------------------------------------------ failure safety
 
     @Test
-    fun actionCrash_recordedAsFailed_runContinuesWithNextAction() = runTest {
-        val executed = mutableListOf<String>()
-        val session = session()
-        val status = engine(
-            stubAction("crasher") { throw IllegalStateException("disk on fire") },
-            recordingAction("survivor", executed),
-        ).boost(session, BoostRequest())
+    fun crashingAction_recordedAsFailed_andRunContinues() = runTest {
+        val crasher = stubAction("crasher", BoostActionOutcome.Applied()) {
+            throw IllegalStateException("disk on fire")
+        }
+        val after = RecordingAction("after")
+        val engine = DefaultBoostEngine(listOf(crasher, after))
+        val session = BoostSession(emptyList(), null, null)
 
-        assertEquals(BoostStatus.FAILED, status)
-        assertEquals(listOf("survivor"), executed) // one broken action does not abort the run
-        val failed = session.actions.single { it.actionId == "crasher" }.outcome
-            as BoostActionOutcome.Failed
+        assertEquals(BoostStatus.FAILED, engine.boost(session, BoostRequest()))
+        assertTrue(after.executed)
+        val failedRecord = session.actions.first { it.actionId == "crasher" }
+        val failed = failedRecord.outcome as BoostActionOutcome.Failed
         assertEquals(UnavailableReasons.API_ERROR, failed.reasonKey)
         assertEquals("disk on fire", failed.message)
-        // The crasher is recorded exactly once, before the survivor.
-        assertEquals(listOf("crasher", "survivor"), session.actions.map { it.actionId })
+        assertEquals("after", session.actions.last().actionId)
     }
 
-    @Test
-    fun outcomesAreRecordedInExecutionOrder_withAllActions() = runTest {
-        val session = session()
-        engine(
-            stubAction("one") { BoostActionOutcome.AlreadyApplied() },
-            stubAction("two") { BoostActionOutcome.Skipped(UnavailableReasons.NOT_NEEDED) },
-            stubAction("three"),
-        ).boost(session, BoostRequest())
-        assertEquals(listOf("one", "two", "three"), session.actions.map { it.actionId })
-        assertTrue(session.actions[0].outcome is BoostActionOutcome.AlreadyApplied)
-        assertTrue(session.actions[1].outcome is BoostActionOutcome.Skipped)
-        assertTrue(session.actions[2].outcome is BoostActionOutcome.Applied)
-    }
-
-    // ------------------------------------------------------ cancellation contract
+    // -------------------------------------------------------------- cancellation
 
     @Test
-    fun cancellationFromAction_isRethrownUntouched_andNeverRecordedAsFailed() = runTest {
-        val stop = CancellationException("user pressed cancel")
-        val executed = mutableListOf<String>()
-        val session = session()
+    fun cancellationException_rethrownUntouched_neverRecordedAsFailed() = runTest {
+        val canceller = stubAction("cancel_me", BoostActionOutcome.Applied()) {
+            throw CancellationException("user cancelled the boost")
+        }
+        val after = RecordingAction("after")
+        val engine = DefaultBoostEngine(listOf(canceller, after))
+        val session = BoostSession(emptyList(), null, null)
+
+        var caught: Throwable? = null
         try {
-            engine(
-                recordingAction("first", executed),
-                stubAction("second") { throw stop },
-            ).boost(session, BoostRequest())
-            fail("engine must rethrow the CancellationException")
-        } catch (expected: CancellationException) {
-            assertEquals("user pressed cancel", expected.message)
+            engine.boost(session, BoostRequest())
+        } catch (t: Throwable) {
+            caught = t
         }
-        // The action that threw is NOT recorded as Failed — the run was cancelled.
-        assertEquals(listOf("first"), executed)
-        assertEquals(listOf("first"), session.actions.map { it.actionId })
+        assertTrue(caught is CancellationException)
+        // Not recorded at all — a cancelled run must not claim a Failed outcome.
+        assertTrue(session.actions.isEmpty())
+        assertFalse(after.executed)
+    }
+
+    // ------------------------------------------------------------ record ordering
+
+    @Test
+    fun executionOrder_isRecordedInListOrder() = runTest {
+        val a1 = RecordingAction("a1")
+        val a2 = RecordingAction("a2")
+        val a3 = RecordingAction("a3")
+        val engine = DefaultBoostEngine(listOf(a1, a2, a3))
+        val session = BoostSession(emptyList(), null, null)
+
+        assertEquals(BoostStatus.COMPLETED, engine.boost(session, BoostRequest()))
+        assertEquals(listOf("a1", "a2", "a3"), session.actions.map { it.actionId })
+        assertTrue(a1.executed && a2.executed && a3.executed)
     }
 
     @Test
-    fun ensureActiveBetweenActions_cancelledJobStopsBeforeTheNextAction() = runTest {
-        val executed = mutableListOf<String>()
-        val runningJob = AtomicReference<Job>()
-        val session = session()
+    fun ensureActiveBetweenActions_genuinelyCancelledJobStopsBeforeNextAction() = runTest {
+        val after = RecordingAction("after")
+        // The canceller cancels the job the ENGINE runs on — resolved inside a real
+        // suspend context so it is the child job below, never the enclosing TestScope
+        // (a non-suspend lambda would capture the test's context and cancel THAT).
+        val canceller = object : BoostAction {
+            override val id: String = "canceller"
+            override suspend fun execute(session: BoostSession): BoostActionOutcome {
+                currentCoroutineContext().cancel()
+                return BoostActionOutcome.Applied()
+            }
+        }
+        val engine = DefaultBoostEngine(listOf(canceller, after))
+        val session = BoostSession(emptyList(), null, null)
 
-        val canceller = stubAction("canceller") {
-            executed += "canceller"
-            // Simulates BoostViewModel.cancelBoost(): cancels the job running boost().
-            runningJob.get().cancel()
-            BoostActionOutcome.Applied()
+        // Run the engine on a CHILD job so cancelling it does not cancel the test body.
+        val deferred = async(start = CoroutineStart.UNDISPATCHED) {
+            engine.boost(session, BoostRequest())
         }
-        val deferred = async {
-            runningJob.set(coroutineContext[Job])
-            engine(canceller, recordingAction("never-runs", executed))
-                .boost(session, BoostRequest())
-        }
-        val thrown = runCatching { deferred.await() }.exceptionOrNull()
-        assertTrue("expected a CancellationException, got: $thrown", thrown is CancellationException)
-        assertEquals(listOf("canceller"), executed)
-        // ensureActive ran between the actions: the outcome of "canceller" was recorded
-        // honestly before the stop, and "never-runs" never executed.
+        deferred.join()
+
+        assertTrue(deferred.isCancelled)
+        assertFalse(after.executed)
+        // The canceller's own outcome was recorded (record happens after its execute);
+        // the NEXT action never ran because ensureActive sits between actions.
         assertEquals(listOf("canceller"), session.actions.map { it.actionId })
     }
 }

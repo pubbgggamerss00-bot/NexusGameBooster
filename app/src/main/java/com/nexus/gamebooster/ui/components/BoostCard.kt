@@ -1,5 +1,6 @@
 package com.nexus.gamebooster.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -35,6 +37,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.nexus.gamebooster.R
 import com.nexus.gamebooster.ui.motion.ngbPressScale
+import com.nexus.gamebooster.ui.theme.neonGlow
+import com.nexus.gamebooster.ui.theme.ngbNeonBorderBrush
+import com.nexus.gamebooster.ui.theme.ngbNeonHalo
 
 /**
  * Hero card with the circular neon "Boost" button — now wired to the REAL Phase 5 boost
@@ -50,11 +55,15 @@ import com.nexus.gamebooster.ui.motion.ngbPressScale
  * The card stays presentation-only: the caller supplies the localized label, the accent
  * color and the enabled flag — no boost logic, no invented values.
  *
- * Phase 7 polish: the ring gets automatic, reduced-motion-aware press feedback via
- * [ngbPressScale] (the SAME interaction source is attached to the clickable), is
- * exposed to screen readers as a [Role.Button] whose merged label is the visible
- * status text, and grows vertically instead of clipping when font scaling makes the
- * status label wrap (the circle then becomes a taller stadium — height is min, not max).
+ * Phase 8 polish: the ring carries a real single-color neon glow (static paint —
+ * no animation; pre-API 28 devices get a layered-halo fallback), a radial accent
+ * wash behind the bolt and a brighter rim, and the card wears the same neon
+ * gradient frame as every other section. The ring gets automatic,
+ * reduced-motion-aware press feedback via [ngbPressScale] (the SAME interaction
+ * source is attached to the clickable), is exposed to screen readers as a
+ * [Role.Button] whose merged label is the visible status text, and grows
+ * vertically instead of clipping when font scaling makes the status label wrap
+ * (the circle then becomes a taller stadium — height is min, not max).
  */
 @Composable
 fun BoostCard(
@@ -66,10 +75,13 @@ fun BoostCard(
     inProgress: Boolean = false,
 ) {
     Card(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .ngbNeonHalo(cornerRadius = 18.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
         ),
+        border = BorderStroke(1.25.dp, ngbNeonBorderBrush(alpha = 0.5f)),
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -97,11 +109,26 @@ fun BoostCard(
                     // Min, not fixed: with font scaling the status label can wrap and
                     // the ring must grow instead of clipping its text.
                     .heightIn(min = 104.dp)
+                    // Static neon glow painted behind the ring (outermost in the
+                    // chain so the later clip never cuts it).
+                    .neonGlow(
+                        glowColor = accentColor,
+                        shape = CircleShape,
+                        blurRadius = 16.dp,
+                        glowAlpha = 0.45f,
+                    )
                     .clip(CircleShape)
-                    .background(accentColor.copy(alpha = 0.10f))
+                    .background(
+                        Brush.radialGradient(
+                            listOf(
+                                accentColor.copy(alpha = 0.22f),
+                                accentColor.copy(alpha = 0.06f),
+                            ),
+                        ),
+                    )
                     .border(
                         width = 2.dp,
-                        color = accentColor.copy(alpha = 0.55f),
+                        color = accentColor.copy(alpha = 0.8f),
                         shape = CircleShape,
                     )
                     .ngbPressScale(interactionSource)

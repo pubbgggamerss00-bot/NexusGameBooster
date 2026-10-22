@@ -1,10 +1,10 @@
 package com.nexus.gamebooster.testing
 
-import androidx.compose.ui.graphics.ImageBitmap
 import com.nexus.gamebooster.data.ActiveProfileStore
 import com.nexus.gamebooster.data.SelectedGamesStore
 import com.nexus.gamebooster.games.GameLaunchResult
 import com.nexus.gamebooster.games.GameLauncher
+import com.nexus.gamebooster.games.InstalledApp
 import com.nexus.gamebooster.games.InstalledAppQueryResult
 import com.nexus.gamebooster.games.InstalledAppSource
 import com.nexus.gamebooster.monitoring.BatterySnapshot
@@ -15,6 +15,7 @@ import com.nexus.gamebooster.monitoring.MemorySnapshot
 import com.nexus.gamebooster.monitoring.MetricAvailability
 import com.nexus.gamebooster.monitoring.MonitoringRepository
 import com.nexus.gamebooster.monitoring.MonitoringSnapshot
+import com.nexus.gamebooster.monitoring.PluggedLabels
 import com.nexus.gamebooster.monitoring.ThermalHeadroomSnapshot
 import com.nexus.gamebooster.monitoring.ThermalLabels
 import com.nexus.gamebooster.monitoring.ThermalSnapshot
@@ -23,187 +24,119 @@ import com.nexus.gamebooster.optimizer.BoostActionOutcome
 import com.nexus.gamebooster.optimizer.BoostHistoryStore
 import com.nexus.gamebooster.optimizer.BoostReport
 import com.nexus.gamebooster.profiles.ProfileIds
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onStart
 import java.io.IOException
 
 /**
- * Fakes for every seam the tested ViewModels / actions / collector depend on.
+ * Recreated after the sandbox environment wipe (Task 16-b, from the Task 14-d spec).
+ * IS executed for real via Gradle: `./gradlew :app:testDebugUnitTest`.
  *
- * They mirror the REAL interface signatures exactly (read from the main sources in this
- * repo) so a signature drift in production code fails the test COMPILE, not the test.
- * Everything is pure Kotlin — no android.* types, no Robolectric.
- *
- * These tests are executed for real via Gradle (`:app:testDebugUnitTest`) in this
- * sandbox — see worklog Task 14-d.
+ * JVM fakes for the persistence/monitoring/games seams. All of them mirror the REAL
+ * implementations' observable contracts (write → flow-emit, failWrites → throw,
+ * upsert-by-id, live-collector tracking) so the tests exercise honest seams — never
+ * Android, never DataStore, never sleeps.
  */
 
 /**
- * Fake [ActiveProfileStore]. Mirrors the real SettingsRepository behavior: a successful
- * write updates the flow (so collectors "catch up"); a failed write throws and leaves
- * the flow untouched — which is what drives ProfilesViewModel's rollback semantics.
+ * Fake [ActiveProfileStore]: mirrors the real SettingsRepository contract —
+ * a write becomes visible through the flow, a failed write throws (callers wrap in
+ * runCatching) and leaves the previous value intact. [writeGate] lets a test observe
+ * the optimistic UI state while a write is still in flight (one-shot: the next write
+ * suspends on it once, then the gate is consumed).
  */
-class FakeActiveProfileStore(
-    initial: String = ProfileIds.BALANCED,
-) : ActiveProfileStore {
+class FakeActiveProfileStore(initialId: String = ProfileIds.BALANCED) : ActiveProfileStore {
 
-    private val _profileId = MutableStateFlow(initial)
+    private val _activeProfileId = MutableStateFlow(initialId)
+    override val activeProfileId: Flow<String> = _activeProfileId
 
-    /** Last value the store flow emitted (the real store always emits normalized ids). */
-    override val activeProfileId: Flow<String> = _profileId.asStateFlow()
-
-    /** Latest successful write, for asserting what was persisted. */
-    var written: String? = null
+    /** Total number of write attempts (including gated/failed ones). */
+    var writes: Int = 0
         private set
 
-    /** When true, [setActiveProfile] throws [IOException] like a DataStore I/O failure. */
-    var failWrites = false
+    /** When true, [setActiveProfile] throws a simulated DataStore I/O failure. */
+    var failWrites: Boolean = false
+
+    /** When set, the NEXT write suspends on this gate before applying (one-shot). */
+    var writeGate: CompletableDeferred<Unit>? = null
 
     override suspend fun setActiveProfile(profileId: String) {
-        if (failWrites) throw IOException("fake disk full")
-        written = profileId
-        _profileId.value = profileId
+        writes++
+        val gate = writeGate
+        if (gate != null) {
+            writeGate = null
+            gate.await()
+        }
+        if (failWrites) throw IOException("FakeActiveProfileStore: simulated write failure")
+        _activeProfileId.value = profileId
     }
 }
 
-/** Fake [SelectedGamesStore] backing [com.nexus.gamebooster.games.GameRepository] in tests. */
+/** Fake [SelectedGamesStore]: in-memory string sets with write → flow-emit. */
 class FakeSelectedGamesStore(
     initialPackages: Set<String> = emptySet(),
-    initialManuals: Set<String> = emptySet(),
+    initialManualEntries: Set<String> = emptySet(),
 ) : SelectedGamesStore {
 
-    private val _packages = MutableStateFlow(initialPackages)
-    private val _manuals = MutableStateFlow(initialManuals)
+    private val _selectedGamePackages = MutableStateFlow(initialPackages)
+    private val _manualGameEntries = MutableStateFlow(initialManualEntries)
 
-    override val selectedGamePackages: Flow<Set<String>> = _packages.asStateFlow()
-    override val manualGameEntries: Flow<Set<String>> = _manuals.asStateFlow()
-
-    var lastPackages: Set<String>? = null
-        private set
-    var lastManuals: Set<String>? = null
-        private set
+    override val selectedGamePackages: Flow<Set<String>> = _selectedGamePackages
+    override val manualGameEntries: Flow<Set<String>> = _manualGameEntries
 
     override suspend fun setSelectedGamePackages(packages: Set<String>) {
-        lastPackages = packages
-        _packages.value = packages
+        _selectedGamePackages.value = packages
     }
 
     override suspend fun setManualGameEntries(entries: Set<String>) {
-        lastManuals = entries
-        _manuals.value = entries
+        _manualGameEntries.value = entries
     }
 }
 
-/** Default fully-available snapshot used by most tests. */
-fun testSnapshot(
-    battery: BatterySnapshot = BatterySnapshot(
-        availability = MetricAvailability.Available,
-        levelPercent = 87,
-        charging = false,
-        pluggedLabel = null,
-    ),
-    thermal: ThermalSnapshot = ThermalSnapshot(
-        availability = MetricAvailability.Available,
-        statusLabel = ThermalLabels.NONE,
-        severity = 0,
-    ),
-    headroom: ThermalHeadroomSnapshot = ThermalHeadroomSnapshot(
-        availability = MetricAvailability.Unavailable(UnavailableReasons.REQUIRES_ANDROID_11),
-        headroomSeconds = null,
-        forecastSeconds = 0,
-    ),
-    memory: MemorySnapshot = MemorySnapshot(
-        availability = MetricAvailability.Available,
-        totalMb = 8192,
-        availableMb = 2048,
-        availableBytes = 2048L * 1024,
-        totalBytes = 8192L * 1024,
-        lowMemory = false,
-        appHeapUsedMb = 42,
-        appHeapAllocatedMb = 64,
-    ),
-    cpu: CpuSnapshot = CpuSnapshot(availability = MetricAvailability.Available, coreCount = 8),
-    timestampMillis: Long = 1_234L,
-): MonitoringSnapshot = MonitoringSnapshot(
-    battery = battery,
-    thermal = thermal,
-    headroom = headroom,
-    memory = memory,
-    cpu = cpu,
-    timestampMillis = timestampMillis,
-)
-
 /**
- * Fake [MonitoringRepository]. Counts one-shot refreshes (for the Monitor auto-refresh
- * ticker tests, driven by VIRTUAL time) and tracks how many collectors are subscribed
- * to the live battery stream (subscription == a runtime-registered receiver in prod).
+ * Fake [MonitoringRepository]: serves a configurable [MonitoringSnapshot] from
+ * [refresh] (optionally throwing via [failRefresh]) and counts refreshes. The live
+ * battery stream is a [MutableSharedFlow] — [liveCollectors] tracks how many ACTIVE
+ * collections exist, so tests can await a subscription before emitting (the flow has
+ * no replay: an emission before anybody subscribes is honestly lost, exactly like the
+ * real broadcast-based cold flow).
  */
 class FakeMonitoringRepository(
-    initialSnapshot: MonitoringSnapshot = testSnapshot(),
+    var snapshot: MonitoringSnapshot = testSnapshot(),
 ) : MonitoringRepository {
 
-    /** Snapshot returned by [refresh]; swapped per test to simulate device readings. */
-    var nextSnapshot: MonitoringSnapshot = initialSnapshot
+    var failRefresh: Boolean = false
 
-    /** When true, [refresh] throws — the honest api_error path. */
-    var failRefresh = false
-
-    var refreshCount = 0
+    var refreshCount: Int = 0
         private set
 
-    private val _liveCollectors = MutableStateFlow(0)
+    val liveCollectors = MutableStateFlow(0)
 
-    /** How many live-battery collectors are currently subscribed (0 or 1 in practice). */
-    val liveCollectors: Int
-        get() = _liveCollectors.value
-
-    private val _liveBattery = MutableStateFlow<BatterySnapshot?>(null)
-
-    /** Simulates a system battery broadcast arriving while the stream is subscribed. */
-    fun emitLiveBattery(snapshot: BatterySnapshot) {
-        _liveBattery.value = snapshot
-    }
+    private val batteryFlow = MutableSharedFlow<BatterySnapshot>(extraBufferCapacity = 16)
 
     override suspend fun refresh(): MonitoringSnapshot {
         refreshCount++
-        if (failRefresh) throw IllegalStateException("fake refresh failure")
-        return nextSnapshot
+        if (failRefresh) throw IOException("FakeMonitoringRepository: simulated refresh failure")
+        return snapshot
     }
 
-    override fun batteryUpdates(): Flow<BatterySnapshot> = flow {
-        _liveCollectors.value += 1
-        try {
-            _liveBattery.filterNotNull().collect { emit(it) }
-        } finally {
-            _liveCollectors.value -= 1
-        }
-    }
+    override fun batteryUpdates(): Flow<BatterySnapshot> = batteryFlow
+        .onStart { liveCollectors.value += 1 }
+        .onCompletion { liveCollectors.value -= 1 }
+
+    /** Emits a live battery snapshot (never suspends; dropped when nobody collects). */
+    fun emitBattery(snapshot: BatterySnapshot): Boolean = batteryFlow.tryEmit(snapshot)
 }
 
-/** Fake [DeviceInfoRepository] — plain canned facts/snapshots, no Android Build reads. */
+/** Fake [DeviceInfoRepository]: fixed real-shaped facts and snapshots. */
 class FakeDeviceInfoRepository(
-    private val facts: DeviceFacts = DeviceFacts(
-        manufacturer = "Nexus",
-        model = "Booster X1",
-        deviceName = "Zed's Booster",
-        androidVersion = "15",
-        sdkLevel = 35,
-        securityPatch = "2024-10-05",
-    ),
-    private val batterySnapshot: BatterySnapshot = BatterySnapshot(
-        availability = MetricAvailability.Available,
-        levelPercent = 87,
-        charging = false,
-    ),
-    private val memorySnapshot: MemorySnapshot = MemorySnapshot(
-        availability = MetricAvailability.Available,
-        totalMb = 8192,
-        availableMb = 2048,
-    ),
+    private val facts: DeviceFacts = testDeviceFacts(),
+    private var batterySnapshot: BatterySnapshot = testSnapshot().battery,
+    private var memorySnapshot: MemorySnapshot = testSnapshot().memory,
 ) : DeviceInfoRepository {
 
     override fun deviceFacts(): DeviceFacts = facts
@@ -215,91 +148,145 @@ class FakeDeviceInfoRepository(
     override suspend fun refreshMemory(): MemorySnapshot = memorySnapshot
 }
 
+/** Fixed, real-shaped [DeviceFacts] used by the fake device-info repository. */
+fun testDeviceFacts(): DeviceFacts = DeviceFacts(
+    manufacturer = "Nexus",
+    model = "One",
+    deviceName = "Nexus One",
+    androidVersion = "15",
+    sdkLevel = 35,
+    securityPatch = "2024-01-01",
+)
+
 /**
- * Fake [GameLauncher] with a preset result per verb. [launchCalls]/[resolveCalls] record
- * exactly which package was asked for — used to prove PrepareGameLaunchAction never
- * launches and LaunchGameAction never resolves.
+ * Builds a fully-available [MonitoringSnapshot] with real-shaped values. Every
+ * parameter is overridable so a test can model unavailable metrics — a missing value
+ * never becomes a zero (honest-results contract).
+ */
+fun testSnapshot(
+    levelPercent: Int? = 80,
+    charging: Boolean = false,
+    availableMb: Long = 2_048,
+    totalMb: Long = 8_192,
+    thermalLabel: String? = ThermalLabels.NONE,
+    batteryAvailability: MetricAvailability = MetricAvailability.Available,
+    timestampMillis: Long = 1_000L,
+): MonitoringSnapshot {
+    val batteryUnavailable = batteryAvailability is MetricAvailability.Unavailable
+    return MonitoringSnapshot(
+        battery = BatterySnapshot(
+            availability = batteryAvailability,
+            levelPercent = if (batteryUnavailable) null else levelPercent,
+            charging = if (batteryUnavailable) null else charging,
+            pluggedLabel = if (!batteryUnavailable && charging) PluggedLabels.AC else null,
+        ),
+        thermal = ThermalSnapshot(
+            availability = if (thermalLabel == null) {
+                MetricAvailability.Unavailable(UnavailableReasons.REQUIRES_ANDROID_10)
+            } else {
+                MetricAvailability.Available
+            },
+            statusLabel = thermalLabel,
+            severity = if (thermalLabel == null) null else 0,
+        ),
+        headroom = ThermalHeadroomSnapshot(
+            availability = MetricAvailability.Unavailable(UnavailableReasons.HEADROOM_NOT_REPORTED),
+            headroomSeconds = null,
+            forecastSeconds = 0,
+        ),
+        memory = MemorySnapshot(
+            availability = MetricAvailability.Available,
+            totalMb = totalMb,
+            availableMb = availableMb,
+            availableBytes = availableMb * 1_048_576,
+            totalBytes = totalMb * 1_048_576,
+            lowMemory = false,
+            appHeapUsedMb = 12,
+            appHeapAllocatedMb = 64,
+        ),
+        cpu = CpuSnapshot(availability = MetricAvailability.Available, coreCount = 8),
+        timestampMillis = timestampMillis,
+    )
+}
+
+/**
+ * Fake [GameLauncher]: per-package result maps for the two verbs. [launch] and
+ * [resolve] record every call so tests can prove resolve-not-launch (and that nothing
+ * launches without explicit user consent).
  */
 class FakeGameLauncher(
-    var launchResult: GameLaunchResult = GameLaunchResult.Launched,
-    var resolveResult: GameLaunchResult = GameLaunchResult.Ready,
+    private val launchResults: Map<String, GameLaunchResult> = emptyMap(),
+    private val resolveResults: Map<String, GameLaunchResult> = emptyMap(),
 ) : GameLauncher {
 
     val launchCalls = mutableListOf<String>()
     val resolveCalls = mutableListOf<String>()
 
-    override suspend fun launch(packageName: String): GameLaunchResult {
-        launchCalls += packageName
-        return launchResult
-    }
+    override suspend fun launch(packageName: String): GameLaunchResult =
+        (launchResults[packageName] ?: GameLaunchResult.NotFound).also { launchCalls += packageName }
 
-    override suspend fun resolve(packageName: String): GameLaunchResult {
-        resolveCalls += packageName
-        return resolveResult
-    }
+    override suspend fun resolve(packageName: String): GameLaunchResult =
+        (resolveResults[packageName] ?: GameLaunchResult.NotFound).also { resolveCalls += packageName }
 }
 
-/** Fake [InstalledAppSource] — canned scan result, never touches PackageManager. */
+/** Fake [InstalledAppSource]: serves a fixed launchable-app catalog, never real scans. */
 class FakeInstalledAppSource(
-    var queryResult: InstalledAppQueryResult = InstalledAppQueryResult.Success(emptyList()),
+    private val apps: List<InstalledApp> = emptyList(),
 ) : InstalledAppSource {
 
-    override suspend fun queryLaunchableApps(): InstalledAppQueryResult = queryResult
+    override suspend fun queryLaunchableApps(): InstalledAppQueryResult =
+        InstalledAppQueryResult.Success(apps)
 
-    override suspend fun loadIcon(packageName: String): ImageBitmap? = null
+    override suspend fun loadIcon(packageName: String): Nothing? = null
 }
 
 /**
- * Fake [BoostHistoryStore]. Mirrors the REAL SettingsRepository contract: upsert by id,
- * newest-first by completedAtMillis. [added] records every raw add call so tests can
- * distinguish "persisted twice via upsert" from "stored once".
+ * Fake [BoostHistoryStore]: newest-first list backed by a [MutableStateFlow] with the
+ * same UPSERT semantics as the real SettingsRepository implementation — a report with
+ * an existing id REPLACES its previous version (used by BoostViewModel when appending
+ * user-explicit action outcomes to a persisted report).
  */
-class FakeBoostHistoryStore(
-    initial: List<BoostReport> = emptyList(),
-) : BoostHistoryStore {
+class FakeBoostHistoryStore : BoostHistoryStore {
 
-    private val _reports = MutableStateFlow(initial.sortedByDescending { it.completedAtMillis })
+    private val _history = MutableStateFlow<List<BoostReport>>(emptyList())
+    override val boostHistory: Flow<List<BoostReport>> = _history
 
-    override val boostHistory: StateFlow<List<BoostReport>> = _reports.asStateFlow()
-
-    /** Every add call in order (an upsert appears twice here, once in [reports]). */
-    val added = mutableListOf<BoostReport>()
+    /** Every [addBoostReport] call ever made (upserts included). */
+    val addedReports = mutableListOf<BoostReport>()
 
     override suspend fun addBoostReport(report: BoostReport) {
-        added += report
-        _reports.value = (listOf(report) + _reports.value.filterNot { it.id == report.id })
+        addedReports += report
+        _history.value = (listOf(report) + _history.value.filterNot { it.id == report.id })
             .sortedByDescending { it.completedAtMillis }
     }
 
     override suspend fun clearBoostHistory() {
-        _reports.value = emptyList()
+        _history.value = emptyList()
     }
 }
 
 /**
- * Fake [com.nexus.gamebooster.optimizer.actions.BoostExplicitActions]. Records which
- * explicit verb was called (and with what package) and returns [nextOutcome] — the
- * user-explicit consent contract is exercised in BoostViewModelTest.
+ * Fake [com.nexus.gamebooster.optimizer.actions.BoostExplicitActions]: returns
+ * configurable outcomes and records every call — proves the user-explicit consent
+ * seam (nothing runs unless the user tapped it).
  */
 class FakeBoostExplicitActions(
-    var nextOutcome: BoostActionOutcome = BoostActionOutcome.Applied(),
+    var batteryOutcome: BoostActionOutcome = BoostActionOutcome.Applied(),
+    var detailsOutcome: BoostActionOutcome = BoostActionOutcome.Applied(),
+    var launchOutcome: BoostActionOutcome = BoostActionOutcome.Applied(),
 ) : com.nexus.gamebooster.optimizer.actions.BoostExplicitActions {
 
-    val calls = mutableListOf<String>()
-    val packages = mutableListOf<String?>()
+    var batteryCalls: Int = 0
+        private set
+    val detailsCalls = mutableListOf<String?>()
+    val launchCalls = mutableListOf<String>()
 
     override suspend fun openBatterySettings(): BoostActionOutcome =
-        nextOutcome.also { calls += "openBatterySettings" }
+        batteryOutcome.also { batteryCalls++ }
 
     override suspend fun openGameDetails(packageName: String?): BoostActionOutcome =
-        nextOutcome.also {
-            calls += "openGameDetails"
-            packages += packageName
-        }
+        detailsOutcome.also { detailsCalls += packageName }
 
     override suspend fun launchGame(packageName: String): BoostActionOutcome =
-        nextOutcome.also {
-            calls += "launchGame"
-            packages += packageName
-        }
+        launchOutcome.also { launchCalls += packageName }
 }

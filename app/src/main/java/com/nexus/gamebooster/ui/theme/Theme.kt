@@ -7,8 +7,9 @@ import com.nexus.gamebooster.data.ThemeMode
 
 /**
  * NexusGameBooster is dark-first: only the two dark variants below exist.
- *  - DARK_NAVY: the original neon-on-dark gaming palette (#070B14 surfaces).
- *  - AMOLED_BLACK: pure #000000 background, same neon-green #00FF9D primary.
+ *  - DARK_NAVY: the Phase 8 neon-showcase palette — deep indigo-navy surfaces,
+ *    neon-green primary, violet secondary, cyan tertiary.
+ *  - AMOLED_BLACK: pure #000000 background, same neon accents.
  * Dynamic color (Material You) is intentionally disabled to keep the brand look
  * consistent. There is no light theme. The chosen [ThemeMode] is persisted in
  * DataStore and applied by NgbApp. Shapes ([NgbShapes]) and type ([NgbTypography])
@@ -17,7 +18,16 @@ import com.nexus.gamebooster.data.ThemeMode
 private val NgbColorScheme = darkColorScheme(
     primary = NgbPrimary,
     onPrimary = NgbOnPrimary,
+    primaryContainer = NgbPrimaryContainer,
+    onPrimaryContainer = NgbOnPrimaryContainer,
     secondary = NgbSecondary,
+    onSecondary = NgbOnSecondary,
+    secondaryContainer = NgbSecondaryContainer,
+    onSecondaryContainer = NgbOnSecondaryContainer,
+    tertiary = NgbTertiary,
+    onTertiary = NgbOnTertiary,
+    tertiaryContainer = NgbTertiaryContainer,
+    onTertiaryContainer = NgbOnTertiaryContainer,
     error = NgbError,
     background = NgbBackground,
     onBackground = NgbOnBackground,
@@ -40,7 +50,16 @@ private val NgbColorScheme = darkColorScheme(
 private val AmoledColorScheme = darkColorScheme(
     primary = NgbPrimary,
     onPrimary = NgbOnPrimary,
+    primaryContainer = NgbPrimaryContainer,
+    onPrimaryContainer = NgbOnPrimaryContainer,
     secondary = NgbSecondary,
+    onSecondary = NgbOnSecondary,
+    secondaryContainer = NgbSecondaryContainer,
+    onSecondaryContainer = NgbOnSecondaryContainer,
+    tertiary = NgbTertiary,
+    onTertiary = NgbOnTertiary,
+    tertiaryContainer = NgbTertiaryContainer,
+    onTertiaryContainer = NgbOnTertiaryContainer,
     error = NgbError,
     background = AmoledBackground,
     onBackground = NgbOnBackground,
@@ -48,7 +67,7 @@ private val AmoledColorScheme = darkColorScheme(
     onSurface = NgbOnBackground,
     surfaceVariant = AmoledSurfaceVariant,
     onSurfaceVariant = NgbTextMuted,
-    outline = NgbOutline,
+    outline = AmoledOutline,
     surfaceContainerLowest = AmoledSurfaceContainerLowest,
     surfaceContainerLow = AmoledSurfaceContainerLow,
     surfaceContainer = AmoledSurfaceContainer,

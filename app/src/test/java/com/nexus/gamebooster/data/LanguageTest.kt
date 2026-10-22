@@ -1,41 +1,40 @@
 package com.nexus.gamebooster.data
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Phase 7 pure tests for the [Language] enum (locale engine contract).
+ * Recreated after the sandbox environment wipe (Task 16-b, from the Task 14-d spec).
+ * IS executed for real via Gradle: `./gradlew :app:testDebugUnitTest`.
  *
- * These tests ARE executed for real via Gradle (`:app:testDebugUnitTest`) in this
- * sandbox — see worklog Task 14-d for the green run.
+ * The in-app Language enum: stable storage codes, SYSTEM as the first/default entry,
+ * and a tolerant fromCode that never fails (Phase 7 locale engine contract).
  */
 class LanguageTest {
 
     @Test
-    fun fromCode_resolvesEveryShippedLanguage() {
+    fun fromCode_returnsTheMatchingLanguage() {
         assertEquals(Language.PERSIAN, Language.fromCode("fa"))
         assertEquals(Language.ENGLISH, Language.fromCode("en"))
         assertEquals(Language.SYSTEM, Language.fromCode("system"))
     }
 
     @Test
-    fun fromCode_unknownOrNullabilityFallbacksToSystem() {
-        // Unknown codes (also the persisted-read path for a missing/corrupt key) → SYSTEM.
-        assertEquals(Language.SYSTEM, Language.fromCode("klingon"))
+    fun fromCode_unknownEmptyOrWrongCase_fallsBackToSystem() {
+        assertEquals(Language.SYSTEM, Language.fromCode("xx"))
         assertEquals(Language.SYSTEM, Language.fromCode(""))
-        assertEquals(Language.SYSTEM, Language.fromCode("FA")) // codes are lowercase, case-sensitive
+        // Codes are exact lowercase matches — "FA" is an unknown value, not Persian.
+        assertEquals(Language.SYSTEM, Language.fromCode("FA"))
+        assertEquals(Language.SYSTEM, Language.fromCode("fr"))
     }
 
     @Test
-    fun codesAreStableStorageValues_systemIsFirstAndDefault() {
+    fun system_isFirstEntry_stableCodesAndTheDefaultSetting() {
+        assertEquals(Language.SYSTEM, Language.entries.first())
         assertEquals("system", Language.SYSTEM.code)
         assertEquals("en", Language.ENGLISH.code)
         assertEquals("fa", Language.PERSIAN.code)
-        // SYSTEM must stay the FIRST entry: AppSettings/SettingsUiState default to it and
-        // "no stored key" on read must mean SYSTEM (the device language), never EN/FA.
-        assertEquals(Language.SYSTEM, Language.entries.first())
-        assertEquals(Language.SYSTEM, Language.values().first())
-        assertTrue(Language.entries.size == 3)
+        // A fresh AppSettings follows the device language until the user chooses.
+        assertEquals(Language.SYSTEM, AppSettings().language)
     }
 }

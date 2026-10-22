@@ -6,28 +6,28 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Phase 7 pure tests for [AppLocale.isRtl] — the JVM-testable RTL decision of the app
- * shell (no Android types involved).
+ * Recreated after the sandbox environment wipe (Task 16-b, from the Task 14-d spec).
+ * IS executed for real via Gradle: `./gradlew :app:testDebugUnitTest`.
  *
- * These tests ARE executed for real via Gradle (`:app:testDebugUnitTest`) in this
- * sandbox — see worklog Task 14-d for the green run.
+ * The pure, JVM-testable RTL decision of the Phase 7 locale engine: SYSTEM mirrors the
+ * device direction, the explicit choices are absolute.
  */
 class AppLocaleTest {
 
     @Test
-    fun system_mirrorsTheDeviceDirectionExactly() {
+    fun system_mirrorsTheDeviceDirection() {
         assertTrue(AppLocale.isRtl(Language.SYSTEM, systemLocaleIsRtl = true))
         assertFalse(AppLocale.isRtl(Language.SYSTEM, systemLocaleIsRtl = false))
     }
 
     @Test
-    fun english_isNeverRtl_regardlessOfDevice() {
+    fun english_isAlwaysLtr_regardlessOfTheDevice() {
         assertFalse(AppLocale.isRtl(Language.ENGLISH, systemLocaleIsRtl = true))
         assertFalse(AppLocale.isRtl(Language.ENGLISH, systemLocaleIsRtl = false))
     }
 
     @Test
-    fun persian_isAlwaysRtl_regardlessOfDevice() {
+    fun persian_isAlwaysRtl_regardlessOfTheDevice() {
         assertTrue(AppLocale.isRtl(Language.PERSIAN, systemLocaleIsRtl = true))
         assertTrue(AppLocale.isRtl(Language.PERSIAN, systemLocaleIsRtl = false))
     }

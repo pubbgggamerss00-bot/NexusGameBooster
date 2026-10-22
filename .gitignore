@@ -27,3 +27,6 @@ keystore.properties
 *.keystore
 *.jks
 local.properties
+
+# JVM heap dumps (OOM diagnostics) — never commit
+*.hprof
