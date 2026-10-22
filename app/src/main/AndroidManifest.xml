@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      Honesty contract (kept from Phase 1): this app declares ZERO permissions.
+      No INTERNET, no storage, no location, nothing. Battery / thermal / memory
+      readings use permission-free standard Android APIs only.
+
+      Phase 2 visibility strategy: to show the user the launchable apps installed
+      on the device, we declare the <queries> intent filter below (apps with a
+      MAIN/LAUNCHER intent become visible). This is the Play-policy-compliant
+      alternative to requesting visibility of every installed package — such a broad
+      permission is deliberately NOT declared. The app therefore sees ONLY launchable
+      apps, never every installed package.
+    -->
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".NexusGameBoosterApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.NexusGameBooster">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

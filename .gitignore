@@ -1,0 +1,29 @@
+# Gradle
+.gradle/
+build/
+
+# Local configuration (SDK path, signing properties)
+local.properties
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Android build artifacts
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Kotlin
+.kotlin/
+
+# OS
+.DS_Store
+
+# Release signing credentials — NEVER commit these (Phase 6).
+keystore.properties
+*.keystore
+*.jks
+local.properties

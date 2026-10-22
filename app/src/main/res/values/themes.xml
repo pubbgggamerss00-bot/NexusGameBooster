@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Plain framework Material theme (no appcompat / material-components dependency needed).
+      The real theming happens in Compose (ui/theme/Theme.kt); this only prevents a white
+      flash at startup and keeps the status bar dark/transparent for edge-to-edge.
+    -->
+    <style name="Theme.NexusGameBooster" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/ngb_launcher_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

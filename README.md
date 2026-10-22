@@ -1,0 +1,300 @@
+# NexusGameBooster (Android)
+
+[![Android CI](https://github.com/pubbgggamerss00-bot/NexusGameBooster/actions/workflows/android-build.yml/badge.svg)](https://github.com/pubbgggamerss00-bot/NexusGameBooster/actions/workflows/android-build.yml)
+
+**Phase 7 — Premium UI/UX Polish & Persian RTL.** The design system, motion layer, accessibility semantics and the locale engine are now real and verified by actual Gradle builds: **99/99 JVM tests pass across 10 classes**, `lintRelease` reports **0 errors**, and both APK artifacts build with the committed Gradle wrapper — `app-debug.apk` (18.1 MB) and `app-release.apk` (1.67 MB, R8-minified, resource-shrunk, signed, `apksigner`-verified, `fa` locale resources confirmed inside). Language selection now truly localizes every string (SYSTEM / English / فارسی, DataStore-persisted), motion respects the in-app reduce-motion toggle AND the system animator scale, and all five screens share one token-driven, direction-aware component set. versionCode 7 / versionName 0.7.0. On-device behavior still requires real hardware (no emulator exists in the generating environment — see Known limitations).
+
+NexusGameBooster is a dark-first, Compose-based Android app built around an explicit honesty contract: **it never fakes data and never claims to change your device.** Boost coordinates only this app's own behavior with typed, persisted outcomes, profiles change only this app's own monitoring behavior (and tell you what to change yourself), CPU load / GPU / FPS are explained honestly as "no permission-free Android API exists", and the app requests **zero permissions**.
+
+## Download prebuilt APKs
+
+Real APKs built from this exact source tree (versionCode 7 / versionName 0.7.0, `apksigner`-verified, `aapt2`-badged) are attached to the [**GitHub Releases**](https://github.com/pubbgggamerss00-bot/NexusGameBooster/releases) page:
+
+- `NexusGameBooster-v0.7.0-debug.apk` — debug build (18.1 MB) signed with the auto-generated debug key; installable out of the box on any API 26+ device.
+- `NexusGameBooster-v0.7.0-release.apk` — R8-minified, resource-shrunk, signed release build (1.67 MB). The signing key is pipeline **validation** material, not store material — for distribution build with your own keystore (see [Release signing](#release-signing)).
+
+Every push to `main` runs [Android CI](.github/workflows/android-build.yml): compile → 99 JVM unit tests → `lintRelease`, with the debug APK plus test/lint reports uploaded as workflow artifacts. Pushing a `v*` tag additionally builds and attaches a release APK.
+
+## Requirements
+
+- Android Studio Ladybug (or newer)
+- JDK 17
+- Android SDK Platform 35 (compileSdk / targetSdk 35), minSdk 26
+
+## Build & run
+
+1. Open this folder (`NexusGameBooster/`) in Android Studio.
+2. Let Gradle sync (it reads `gradle/libs.versions.toml` and downloads dependencies).
+3. Press **Run** on a device or emulator (API 26+).
+
+CLI alternative — the Gradle wrapper (`gradlew`, wrapper JAR) is now COMMITTED, so no pre-installed Gradle is needed:
+
+```bash
+# Prereqs: JDK 17+ and an Android SDK with platform 35 + build-tools (ANDROID_HOME set,
+# or a local.properties file with sdk.dir=/path/to/sdk — it is gitignored)
+./gradlew testDebugUnitTest   # runs all 99 JVM unit tests
+./gradlew assembleDebug       # → app/build/outputs/apk/debug/app-debug.apk
+./gradlew assembleRelease     # → app/build/outputs/apk/release/app-release.apk (see signing below)
+```
+
+Verified in the Phase 6/7 environment: Gradle 8.9, AGP 8.7.3, Kotlin 2.0.21, JDK 21, SDK platform 35 + build-tools 35.0.0.
+
+## What became real in Phase 7
+
+- **The language selector now really localizes the app.** Until Phase 6 the EN/FA selector only flipped the Compose layout direction — string resources still came from the DEVICE locale. Phase 7 adds `core/LocaleSupport.kt`: `Context.withAppLocale(language)` wraps the context via `createConfigurationContext` (locale + layout direction set together, base configuration never mutated), and `NgbApp` provides that context through `LocalContext`/`LocalConfiguration` so every `stringResource` call in the tree — including the machine-key→sentence resolvers in `core/UiMessage.kt` — resolves from the selected locale. `Language` gains `SYSTEM` (the new default: follows the device language, fa* devices get Persian RTL out of the box); explicit English/Persian choices persist in DataStore exactly as before. No new dependency, no appcompat, no activity recreation — switching is instant and flicker-free.
+- **A motion layer that respects the user.** `ui/motion/NgbMotion.kt` exposes `LocalNgbMotionEnabled` (enabled = NOT the in-app reduce-motion toggle AND system `ANIMATOR_DURATION_SCALE > 0`) and `Modifier.ngbPressScale(...)`. Navigation transitions are restrained fade+scale (200 ms) that become `None` when motion is off; profile selection animates container/border color plus a scaling check icon; the per-profile monitoring-policy section is collapsible with an animated chevron (`animateContentSize`); press feedback on buttons/cards comes from `NgbButton`/`NgbOutlinedButton` or an attached interaction source. No continuous or decorative animations exist anywhere (battery honesty).
+- **One token-driven component set.** `ui/theme/Shape.kt` (6/8/12/16/20 dp corner tokens) wired into `MaterialTheme`; `SectionCard` gained a hairline `outline` border, flat elevation and a `heading()` semantics title; `NgbScreenContainer` gives every screen the same centered 640 dp max-width scroll column; `NgbButton`/`NgbOutlinedButton` guarantee 48 dp minimum height with automatic reduced-motion-aware press scale. Library keeps LazyColumns (they cannot nest in a scroll column) but reproduces the same geometry and adopted the auto-mirroring `AutoMirrored` sort icon.
+- **Responsive + landscape.** Monitor lays Battery and Device info side-by-side at ≥ 600 dp (BoxWithConstraints); all screens center their content column on wide screens; fixed heights on text-bearing containers were replaced with min-heights so system font scaling cannot clip (e.g. the boost CTA now wraps "Partial success" instead of truncating).
+- **Accessibility.** Settings rows use `selectable(Role.RadioButton)` / `toggleable(Role.Switch)` at 48 dp with `stateDescription`; profile/game cards merge semantics and expose selection state beyond color ("Active" chip + check icon); every icon-only interactive control has a real description; a11y strings ship in BOTH languages (EN/FA 287/287 exact parity).
+- **99/99 unit tests EXECUTED and green** — the Phase 6 suite (77 tests) was recreated after the sandbox was wiped between sessions, then extended with Phase 7 cases: `Language` mapping (SYSTEM default, stable "en"/"fa" codes), `AppLocale.isRtl` purity, and language/theme/reduce-motion DataStore round-trips. Both Phase 6 test-infrastructure lessons (shared-test-dispatcher rule, ticker-drain cancellation) are designed in.
+- **Artifacts re-verified (real, measured):** `app-debug.apk` 18,060,820 bytes; `app-release.apk` 1,671,771 bytes; `lintRelease` 0 errors / 34 warnings (benign); `aapt2 badging` = versionCode 7 / 0.7.0; the release APK's locale table contains `fa`; serialization keep rules survive R8 (`BoostReport` references in the release dex).
+
+## Release signing
+
+Release credentials are NEVER committed. `app/build.gradle.kts` reads them from a
+**gitignored `keystore.properties` file at the project root** (local builds) or from
+**`NGP_*` environment variables** (CI). If neither source provides all four values, the
+signing config is simply not created and `assembleRelease` produces an UNSIGNED APK
+instead of failing. Relative `NGP_STORE_FILE` paths resolve against the project root.
+
+Generate a keystore once:
+
+```bash
+keytool -genkeypair -v -keystore release.keystore -alias nexus-game-booster \
+  -keyalg RSA -keysize 2048 -validity 10000
+```
+
+Then create `keystore.properties` (already listed in `.gitignore` — verify before committing):
+
+```properties
+NGP_STORE_FILE=release.keystore
+NGP_STORE_PASSWORD=your-store-password
+NGP_KEY_ALIAS=nexus-game-booster
+NGP_KEY_PASSWORD=your-key-password
+```
+
+Or export the same four `NGP_*` names as environment variables. Then:
+
+```bash
+./gradlew assembleRelease
+# app/build/outputs/apk/release/app-release.apk
+```
+
+For store publication, replace this locally-generated key with your own production keystore
+(Play App Signing is recommended). The Phase 6 validation used a sandbox-generated key to
+prove the full signing pipeline; that keystore and its properties file are NOT committed.
+
+## What became real in Phase 6
+
+- **First real build.** A complete Android toolchain (cmdline-tools, platform-35, build-tools 35.0.0, Gradle 8.9) was bootstrapped in the generating environment and the project compiled for the first time. The Kotlin compiler immediately surfaced real cross-file integration defects that static review had missed — all fixed:
+  - missing `SelectedGamesStore` import in `GameRepository` and a wrong `DeviceFacts` package import in `MonitorViewModel` (+ the same wrong import in `testing/BoostFakes.kt`);
+  - `BoostPhase` imported from the wrong package in `HomeScreen` (it lives in `ui.screens.home`, same package — the import was removed);
+  - JVM signature clashes between the `List<Game>` / `List<InstalledApp>` overloads of `GameRepository.search`/`sort` → resolved with `@JvmName`;
+  - missing `kotlinx.serialization.encodeToString` reified-extension import in `SettingsRepository`;
+  - a `@Composable` helper called inside `LaunchedEffect` in `LibraryScreen` → text now resolved in composable context;
+  - a non-exhaustive `when` over `GameLaunchResult` (missing `Ready`) in `LibraryViewModel` → handled with a new honest EN/FA string (`library_launch_ready`);
+  - `coroutineContext.ensureActive()` replaced with the unambiguous `currentCoroutineContext().ensureActive()` in the boost engine.
+- **77/77 unit tests EXECUTED and green** (8 classes: engine, actions, ViewModels, profiles, real-DataStore persistence). Execution found three genuine test-infrastructure bugs that review had missed, all fixed:
+  1. `MainDispatcherRule` created its own `TestScheduler` while `runTest` used another — a VM coroutine resuming after a `Dispatchers.Default` hop could stall on the unadvanced private scheduler (flaky 60 s hang). Fix: tests now call `runTest(mainDispatcherRule.testDispatcher)` so everything shares one scheduler.
+  2. `MonitorViewModelTest` hung forever: the VM's auto-refresh ticker is a `while(true) { delay(...) }` loop, so runTest's post-body drain can never go idle. Fix: every test cancels `vm.viewModelScope` INSIDE the runTest body (`@After` runs after the drain).
+  3. The corrupt-history test created a second DataStore on the same file in two illegal ways (`TemporaryFolder.newFile` throws on an existing name; two LIVE DataStore instances on one file throw `IllegalStateException`). Fix: the file object is captured once and the second instance is created only after the first scope is cancelled. Production `guardCorruption` behavior was correct — the test was wrong.
+- **Release configuration (verified by building, not assumed):** R8 minification + resource shrinking enabled (`isMinifyEnabled = true`, `isShrinkResources = true`) with the kotlinx-serialization keep rules — confirmed by an actual build AND by checking the release dex (`BoostReport$$serializer` classes present, 18 references). `lintRelease`: **0 errors**, 33 benign warnings (2× `QueryPermissionsNeeded` — the documented Phase 2 visibility strategy; dependency-update notices; plurals suggestions; 1 unused string).
+- **Signing pipeline proven end-to-end** with a sandbox-generated keystore: `keystore.properties` (gitignored) → `validateSigningRelease` → signed `app-release.apk` → `apksigner verify --print-certs` passes. No credentials in source control.
+- **Artifacts produced (real, measured):** `app-debug.apk` 18,003,672 bytes; `app-release.apk` 1,647,355 bytes (~11× smaller via R8). `aapt2 dump badging` confirms `com.nexus.gamebooster`, versionCode 6, versionName 0.6.0, minSdk 26, targetSdk 35. The merged APK carries ONE auto-injected signature-level permission (`com.nexus.gamebooster.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, added by the toolchain for runtime-registered receivers) — the manifest itself still declares ZERO user-facing permissions.
+- **Honest boundaries of this validation:** no emulator/device exists in the sandbox, so install, launch, navigation, boost-on-device, RTL-on-device and R8 runtime behavior (beyond the structural dex check) remain UNVERIFIED. No FPS/CPU/GPU improvement is claimed anywhere — the app cannot and does not measure one.
+
+## What became real in Phase 5
+
+- **A real Boost orchestration layer — no fake success.** `optimizer/BoostModels.kt` defines `BoostEngine` + `DefaultBoostEngine`, `BoostActionOutcome` (sealed, @Serializable: `Applied` / `AlreadyApplied` / `Skipped(reasonKey)` / `Unsupported(reasonKey)` / `Failed(reasonKey, message)`), `BoostActionRecord` (with real wall-clock timestamps), `BoostCheck`, `BoostStatus` (`COMPLETED` / `PARTIAL_SUCCESS` / `CANCELLED` / `FAILED`), `BoostReport` and `BoostSession`. The engine runs the auto-run actions sequentially with `ensureActive()` between actions, converts an unexpected action exception into an honest `Failed` record and CONTINUES (one broken action cannot abort the report), rethrows `CancellationException` untouched, and computes the status ONLY from actual outcomes (any Failed → FAILED; else any Skipped/Unsupported → PARTIAL_SUCCESS; else COMPLETED — AlreadyApplied counts as success).
+- **Pre-boost checks from the existing monitoring repositories.** `BoostPrecheckCollector` gathers battery level/charging, system available memory, thermal status (+ headroom where supported), the active profile and the target game via `MonitoringRepository` / `DeviceInfoRepository` / `ProfileRepository`+`ActiveProfileStore` / `GameRepository`. A missing or unsupported metric becomes a stable unavailability key — NEVER a zero — and an unavailable optional metric never blocks the boost.
+- **Only explicitly supported actions (auto-run):**
+  1. `ApplyProfileAction` — verifies the persisted profile id (legacy/unknown values are normalized and re-written through `ActiveProfileStore`) and reports the concrete in-app monitoring policy now in effect; a store error is a `Failed`, an already-valid id is an honest `AlreadyApplied`.
+  2. `SessionMonitoringAction` — real in-app power decision: battery ≤ 20 % AND discharging AND not Battery Saver → switches THIS app's monitoring to an efficient session mode (`core/SessionMonitorController`, consumed by `MonitorViewModel`); charging / healthy / Battery-Saver / unavailable-battery paths all skip with honest reasons. It never touches any system setting.
+  3. `PrepareGameLaunchAction` — resolves the target game's launcher intent WITHOUT launching (`GameLauncher.resolve`); the actual launch stays an explicit user tap from the report UI.
+- **User-explicit actions (consent = the tap itself, never auto-run):** `OpenBatterySettingsAction` (system Battery settings screen), `OpenGameDetailsAction` (system App-Info screen for the selected game), `LaunchGameAction` (launch via the existing `GameLauncher`). Intents that resolve to nothing are honest `Unsupported`; failures are `Failed`. No process kills, no CPU/GPU/thermal changes, no root, no hidden APIs, no FPS claims.
+- **Boost UX.** `BoostViewModel` + `BoostCard` + `BoostResultDialog`: idle / checking / running (restrained real indeterminate indicator — no fake percentages) / completed / partial / cancelled / failed states; duplicate-concurrent-run prevention (active-job gate); Cancel while running; Retry only for non-COMPLETED runs; per-action typed results; a detailed report (pre-check grid with unavailable chips, action list, ids and real timestamps); and a persisted **Boost history** card on Home. Unexpected exceptions land in the report, never in a crash.
+- **Persistence on the existing DataStore (no Room — deliberately).** `BoostHistoryStore` is implemented by `SettingsRepository` on the SAME `nexus_settings` DataStore: `boost_history` string-set entries hold kotlinx-serialization JSON of `BoostReport`, capped at the 20 most recent (oldest dropped), corrupt entries skipped on read, `addBoostReport` an upsert so user-explicit outcomes can extend the current report without duplicates. `kotlinx-serialization` (plugin + json) is the only new dependency set; reports contain no invented percentages and no before/after comparisons.
+- **Phase 5 tests.** `BoostEngineTest` (status mapping, ordering, exception isolation, cancellation contract), `BoostActionsTest` (per-action outcomes incl. error paths, launch never called by the prepare action, precheck unavailability ≠ zero, profile-specific Battery-Saver skip), `BoostHistoryStoreTest` (real DataStore: newest-first, cap, corrupt-skip, clear, JSON round-trip), `BoostViewModelTest` (duplicate guard, cancel → persisted CANCELLED, retry, consent gating), plus the restored Phase 4 suites — 77 tests total. **All 77 were EXECUTED and passed in Phase 6** (see above).
+
+## What became real in Phase 4
+
+- **Three performance profiles, not four.** Balanced, Performance and Battery Saver are fixed presets in `profiles/` (`ProfileRepository` is now an interface + `StaticProfileRepository` with exactly three entries). The legacy Phase 1 "Gaming" preset was removed: the id is kept only as `ProfileIds.LEGACY_GAMING` and every read path runs persisted values through `ProfileIds.normalize`, so an old stored `"gaming"` value silently migrates to **Balanced** (on DataStore read — no byte rewriting). The model (`PerformanceProfile`, `MonitoringPolicy`, `ProfileEffect`, `EffectKind`) is PURE Kotlin with zero imports, so it is directly unit-testable on the JVM; icons moved to the UI layer (`ui/components/ProfileIcons.kt`).
+- **A profile changes ONLY this app's own monitoring behavior.** Each preset carries a `MonitoringPolicy`:
+  - **Balanced** — in-app auto refresh every 15 s while the Monitor screen is open, live battery stream on, no keep-screen-on.
+  - **Performance** — faster 5 s in-app auto refresh, live battery stream on, and the Monitor screen keeps THIS app's screen on.
+  - **Battery Saver** — all in-app automation off (no auto refresh, no live battery stream); manual refresh always works on every profile.
+- **Lifecycle-aware auto-refresh ticker.** `MonitorViewModel` runs its interval ticker only while (a) the Monitor composable is at least lifecycle-STARTED (the screen attaches a `LifecycleEventObserver` that flips an explicit active flag) AND (b) the loaded policy allows in-app monitoring (`combine` + `distinctUntilChanged` + `flatMapLatest` cancel the pending delay the moment the screen is hidden or the profile changes). No timers while inactive, nothing automatic on Battery Saver, no background work.
+- **Conditional live battery.** The `batteryUpdates()` collection is keyed on the policy (`collectLatest`): Battery Saver truly unsubscribes the runtime receiver (it is never registered), and leaving a live profile stops the stream; re-enabling re-subscribes. The one-shot refresh (init + manual button) is unaffected by the profile and keeps its Phase 3 error path (`runCatching` → honest error card + Retry).
+- **Screen-on without permissions.** On Performance, the Monitor composable sets `WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON` on the Activity window inside a `DisposableEffect` and clears it the moment the composable leaves composition. It is a window flag — NOT a PowerManager wake lock, needs no permission, no manifest change, and cannot outlive the screen.
+- **Honest selection UX.** Selecting a profile persists a preference via the new `ActiveProfileStore` seam (implemented by `SettingsRepository`, DataStore key `active_profile` unchanged; `SettingsRepository` is now constructor-injected with the `DataStore<Preferences>` and built through `SettingsRepository.create(context)`). The UI updates optimistically; a failing write shows an inline error card (localized EN/FA) with Retry/Dismiss and reverts the visible selection to the persisted value — the previous profile stays active, nothing throws. Home's quick-select got the same `runCatching` treatment with a one-line error and logs the activity entry only on success.
+- **Honest profile cards.** Every preset card is split into three labeled groups: "Applied by NexusGameBooster" (what this app itself does), "Recommended — needs your action" (vendor game mode, per-game graphics settings, battery-optimization exclusion — styled muted, never labeled applied), and "Not supported (system-wide)" (CPU/GPU frequencies, process priorities, thermal limits, freeing other apps' RAM). A dedicated explanation card states why no system-wide optimization exists. The Monitor screen shows policy chips ("Auto refresh: every 5 s" / "off — manual", screen-on note) and a neutral "Loading profile…" state while the policy is not yet known.
+
+### Unit tests (JVM-only, testImplementation — never in the APK)
+
+Phase 4 adds real JUnit4 unit tests under `app/src/test/java/com/nexus/gamebooster/` (no Robolectric, no Android framework types):
+
+1. `profiles/PerformanceProfileTest.kt` — exactly 3 presets in order, default profile, legacy/unknown id normalization, ≥1 effect per group, kind↔group invariants, exact per-profile policy values, Battery Saver claiming no refresh effect.
+2. `data/SettingsRepositoryTest.kt` — REAL file-backed Preferences DataStore (JUnit `TemporaryFolder` + `PreferenceDataStoreFactory` over a test-scheduler scope): default when key absent, persistence, legacy `"gaming"` → `"balanced"` migration on read, restoration across instances (simulated app restart), corrupt file → defaults via `guardCorruption`, and `clear()` resetting the profile.
+3. `testing/MainDispatcherRule.kt` + `ui/screens/profiles/ProfilesViewModelTest.kt` — initial load from the persisted id, optimistic select + persist (fake store), invalid ids ignored, failing store → `saveError` + revert, retry clears the error, `dismissSaveError`.
+4. `ui/screens/monitor/MonitorViewModelTest.kt` — virtual-time tests (`runTest` + `advanceTimeBy` on the shared scheduler): 5 s cadence while Performance + screen active, ticker stops when the screen goes inactive or the profile switches to Battery Saver, Battery Saver never auto-refreshes while manual refresh works, live battery applied only when the policy allows it (and re-subscribing after re-enable).
+
+**These Phase 4 tests were first executed in Phase 6 and are now part of the Phase 7 suite — 99/99 pass** (recreated and extended after a sandbox wipe; see "What became real in Phase 7"). On a machine with the SDK run:
+
+```bash
+./gradlew testDebugUnitTest
+```
+
+Still suggested (not yet written): pure monitoring-mapper tests (`batteryRows`/`memoryRows`/`thermalRows`), headroom API-guard tests, HomeViewModel save-error test.
+
+## What became real in Phase 3
+
+- **Thermal headroom (Android 11+).** `monitoring/SystemReads.readThermalHeadroom` calls `PowerManager.getThermalHeadroom(0)` — the CURRENT headroom only, never a forecast. Headroom is the PowerManager abstraction for "how much sustained work the device can still take before throttling"; it is **not a temperature and not °C** and is labeled as such in the UI. When the API returns NaN or `<= 0.0` (many devices do when unsupported) the snapshot says "not reported by this device" — it never displays a fake 0.0. Devices below Android 11 get a distinct permanent-unsupported chip ("Requires Android 11 or newer"), deliberately different from the transient-failure chip.
+- **Live battery via a lifecycle-aware Flow.** `MonitoringRepository.batteryUpdates()` is a cold `callbackFlow` that registers a RUNTIME receiver for the protected `ACTION_BATTERY_CHANGED` system broadcast with `ContextCompat.RECEIVER_NOT_EXPORTED` (nothing is declared in the manifest). One shared `parseBatteryIntent` feeds both the one-shot read and the flow (single source of truth). The receiver is unregistered in `awaitClose` the moment collection is cancelled; the flow is CONFLATED so collectors only ever see the latest real snapshot. **No polling loops, no handlers, no wake locks, no manifest receiver.** The Monitor ViewModel collects it in `viewModelScope` (documented chain in its KDoc: VM cleared → scope cancelled → `awaitClose` → receiver unregistered), and the screen reads state through `collectAsStateWithLifecycle`, so nothing is observed or recomposed while the screen is stopped.
+- **Real "last updated" timestamps.** `MonitoringSnapshot.timestampMillis` is `System.currentTimeMillis()` taken when the reads complete; the Monitor shows it via `java.text.DateFormat.getDateTimeInstance()` with an honest "Never refreshed" state before the first success.
+- **Refresh error states.** The one-shot refresh is wrapped in `runCatching`; a failure sets a stable machine key (`api_error`) and the Monitor shows an honest error card with the mapped reason and a Retry button — previous good values stay on screen, nothing is blanked or invented.
+- **Pure display mappers.** `monitoring/MonitoringMappers.kt` is pure Kotlin (zero Android imports): snapshot → `MetricRowUi` rows built from stable machine keys (`MetricRowKeys`, `ChargingLabels`, `UnavailableReasons`), which the UI resolves to EN/FA text — the same pattern as `core/UiMessage`. Derived arithmetic is explicit: the memory card's "In use (calculated)" row (`total − available`, flagged `derived = true` with a visible "calculated" note) is arithmetic on real values, never presented as measured. Both the Monitor and Home screens render rows through one shared composable (`MapperMetricRow`), so no screen copies display logic.
+- **Upgraded Monitor dashboard.** Battery (live level %, charging state, power source), system memory (Available / Total / derived In-use / "This app (heap)" kept strictly separate), device info, thermal status + headroom with a unit-hint line, data freshness, prominent manual Refresh (no animations anywhere — the reduce-motion preference is respected by construction), loading and error states.
+- **The unsupported-API statement, in the UI itself.** The old "What Phase 3 adds" placeholder is replaced by an explanation card: CPU load, GPU utilization and FPS are NOT shown because Android exposes no permission-free API for other apps' CPU/GPU/FPS; measuring them would require privileged or vendor-specific APIs, which this app does not request. Nothing is estimated or simulated.
+
+### Suggested additional tests (deliberately not yet written)
+
+The Phase 3 mappers and guards remain pure/deterministic so these can be added later without Android:
+
+1. `batteryRows` — charging → key `charging`, discharging → `discharging`, missing status extra → `not_reported`; level `87` → value `"87%"`; plugged `BATTERY_PLUGGED_USB` semantics → `usb`; unavailable snapshot → one row with `availabilityKey`.
+2. `memoryRows` — MB math (`totalMem/availMem` division is upstream; here: 2048/512 → "2048 MB"/"512 MB"), derived in-use = 1536 with `derived = true`; heap row only when `appHeapUsedMb != null`.
+3. `readThermalHeadroom` API guard — SDK < 30 → `Unavailable("requires_android_11")` without touching PowerManager; NaN/0.0/−1 → `Unavailable("headroom_not_reported")`; 3.5 → `Available` with `headroomSeconds = 3.5f`, `forecastSeconds = 0`.
+4. Derived in-use arithmetic — `total − available` never negative in displayable form and never labeled as measured.
+5. Refresh error path — a repository throwing maps to `errorReason = "api_error"`, keeps previous snapshots, clears `isRefreshing`; success sets `lastUpdatedMillis` from the snapshot and clears `errorReason`.
+
+## What became real in Phase 2
+
+- **App discovery.** `games/AndroidInstalledAppSource` queries PackageManager for launchable apps. Package visibility is granted by a `<queries>` MAIN/LAUNCHER intent filter in `AndroidManifest.xml` — the Play-policy-compliant alternative to `QUERY_ALL_PACKAGES` (which is deliberately NOT requested). The app therefore sees ONLY apps that can be launched from a launcher, never every installed package.
+- **Game detection — honest by definition.** An app appears under Discover → "Games" ONLY if it declares `ApplicationInfo.CATEGORY_GAME` (available since API 26, our minSdk). `CATEGORY_UNDEFINED` means not-a-game; the deprecated `FLAG_IS_GAME` is not used. Many games do not declare the category — that is exactly why the "All apps" browse exists, where any launchable app can be added manually. The app never claims every app is a game.
+- **Launch handling.** `games/AndroidGameLauncher` resolves the MAIN/LAUNCHER intent and starts it with `FLAG_ACTIVITY_NEW_TASK`. Outcomes are a sealed type: `Launched`, `NoLaunchIntent`, `NotFound`, `Error(reason)` — each mapped to an honest localized snackbar message. Nothing is ever installed, modified or uninstalled.
+- **Persistence (DataStore Preferences).** Selected packages (`selected_games` string set) and manual entries (`manual_games` string set, `name|addedAtMillis` format) survive process death. The theme (`dark_navy` / `amoled_black`), language, reduce-motion and active profile are persisted too. No JSON/serialization dependency was added.
+- **Real device facts.** `monitoring/AndroidDeviceInfoRepository` exposes manufacturer, model, user-facing device name (Settings.Global), Android version, SDK level and security patch — all from public `Build`/`Settings` APIs. Battery now also reports the plugged power source (AC/USB/wireless) or "Not reported". Memory shows clearly-labeled **Available** and **Total** system memory (GB, one decimal) plus a separately-labeled "This app (heap)" line from this process's JVM runtime — availMem is never presented as a usage percentage.
+- **Library UI.** Two tabs (My Library / Discover), search, sort (A–Z, Z–A, recently added), real app icons loaded asynchronously via `PackageManager.getApplicationIcon` (a neutral placeholder renders when unavailable — never a fake icon), empty/loading/error states with Retry, and the Phase 1 manual-add dialog (entries now persist).
+- **Home integration.** Device info section (real Build facts), battery card with charging state + power source, the two-line memory card, a "My games: N" shortcut into the Library tab, and a recent-activity log fed by real repository events (scan completed with N apps, game added/removed/launched, profile selected).
+
+## What is real vs. not implemented
+
+**Real (standard, permission-free Android APIs — zero permissions requested at all):**
+
+- Battery level %, charging state and plugged power source — one-shot via the `ACTION_BATTERY_CHANGED` sticky broadcast AND live via the runtime-registered, `RECEIVER_NOT_EXPORTED` Flow (unregisters on cancellation).
+- Thermal status via `PowerManager.getCurrentThermalStatus()` (Android 10+; older devices honestly show "Requires Android 10 or newer").
+- Thermal headroom via `PowerManager.getThermalHeadroom(0)` (Android 11+, current headroom only; NaN/0.0 honestly reported as "not reported", never as 0.0).
+- System memory via `ActivityManager.MemoryInfo` (available / total, plus a clearly-labeled DERIVED "in use (calculated)" row), plus this app's own JVM heap, clearly separated.
+- CPU core count via `Runtime.getRuntime().availableProcessors()`.
+- Device manufacturer/model/device name/Android version/SDK level/security patch via `android.os.Build` and `Settings.Global`.
+- Launchable-app discovery, real app labels and icons, launching via `startActivity`.
+- DataStore-persisted settings: language, theme, reduce-motion, active profile, selected game packages, manual game entries.
+- Profile-driven in-app monitoring policy (Phase 4): auto-refresh cadence while the Monitor screen is lifecycle-active, live battery stream on/off, keep-screen-on window flag on the Monitor only — plus automatic migration of the legacy "gaming" id to Balanced.
+- Session uptime (wall-clock time since the app process started) and real last-updated timestamps for one-shot reads.
+
+**Intentionally NOT implemented (never faked):**
+
+- The Boost engine never changes the device — it coordinates only in-app actions (profile re-assertion, session monitoring mode for THIS app, launch preparation, user-requested settings screens) and reports their actual outcomes. Nothing device-wide is ever changed.
+- CPU load, GPU statistics, FPS — permanently not sampled: Android exposes NO permission-free API for them. The Monitor screen states this in an explanation card instead of a planned date or an invented number. Temperature is never fabricated; thermal comes only from the API 29+/30+ PowerManager APIs.
+- Custom profiles — still "not available yet".
+- Background monitoring — the battery receiver lives only while the Flow is collected by a foreground ViewModel; there is no service, no polling, and no wake lock.
+
+## Play-policy note
+
+`AndroidManifest.xml` declares **zero `<uses-permission>` elements** and does **not** request `QUERY_ALL_PACKAGES`. Package visibility is achieved exclusively through the `<queries>` MAIN/LAUNCHER intent filter. The Settings screen shows how many apps are visible ("launcher apps only") once a scan has run.
+
+## Known limitations
+
+- **Category-declared games only.** Some games do not declare `CATEGORY_GAME` and will not appear in the "Games" filter — use "All apps" to add them manually.
+- **Manual entries persist without icons or package links.** Manual entries are stored as `name|addedAtMillis`; a user-typed optional package name is session-only metadata, and manual entries never get a real icon (the neutral placeholder shows instead). Icons for installed apps always load asynchronously.
+- **"Recently added" order for restored installed entries** falls back to name order after process restart, because a string-set persistence format cannot carry timestamps (a deliberate no-dependency trade-off).
+- **Boost is in-app only by design.** The engine coordinates NexusGameBooster's own actions and never changes the system; the launch/settings actions open Android screens or the game only after an explicit user tap.
+- **Profile automation is Monitor-screen-bound by design.** The auto-refresh ticker runs only while the Monitor screen is lifecycle-active and the ViewModel is alive; it never runs in the background (no service, no work manager, no alarm). Leaving the Monitor tab stops all automatic refresh; returning resumes it.
+- **Screen-on applies to the Monitor screen only** and only under the Performance profile; it is a window flag (no permission), cleared as soon as the composable leaves composition.
+- **Battery Saver is intentionally fully manual** — no auto refresh and no live battery stream; only the one-shot refresh runs.
+- **Boost history is capped and local.** The 20 most recent reports are stored in app-private DataStore as JSON; nothing is uploaded, and clearing app data erases them.
+- **On-device behavior is UNVERIFIED (Phase 7 boundary).** The sandbox that compiled and tested the app has no emulator or physical device: installation, launch, five-screen navigation, real-device monitoring values, profile persistence across restarts, boost intent behavior, RTL rendering with real Persian fonts, TalkBack behavior, system-per-app-language interaction and R8 runtime behavior (beyond the structural dex check of the serializer classes) have NOT been exercised. Run on real hardware before publication.
+- **Release minification is build-verified, not device-verified.** R8 + resource shrinking compile and the kotlinx-serialization keep rules were confirmed present in the release dex; a first on-device smoke test of the release build (especially the boost report persistence round-trip) is still required before publishing. To disable shrinking, set `isMinifyEnabled = false` in `app/build.gradle.kts`.
+- **Unit tests were EXECUTED in Phase 6 and again in Phase 7 (99/99 pass)** in an SDK-bootstrapped environment (Gradle 8.9, AGP 8.7.3, Kotlin 2.0.21, JDK 21). The suite was recreated and extended after a sandbox wipe deleted the test sources; see "What became real in Phase 7".
+- **Thermal headroom is device-dependent.** Many devices return 0.0/NaN from `getThermalHeadroom` even on Android 11+; the app reports "This device did not report thermal headroom" instead of a value. Headroom is also a platform abstraction, not a comparable physical unit across vendors.
+- **Live battery updates are foreground-only by design.** The runtime receiver is registered only while the battery Flow is collected (Monitor ViewModel scope); while the app is on another tab the conflated state may keep receiving system broadcasts into memory, but nothing observes or recomposes, and the receiver is unregistered as soon as the ViewModel dies. There is deliberately no background monitoring.
+- No CPU load / GPU / FPS monitoring (no permission-free API exists — not a phase promise anymore); no light theme, no dynamic color (both dark variants only — the Settings appearance note says so explicitly rather than offering dead controls).
+- English + Persian strings only; Persian ships Western digits for technical units (standard for technical UIs) while prose uses Persian digits. The in-app language selector is the supported locale path — the system per-app-language settings page (API 33+) is not wired via `localeConfig`, so changing language in system settings does not override the in-app choice.
+- The Gradle wrapper (`gradlew` + wrapper JAR) IS committed since Phase 6; only `local.properties` (SDK path) and signing credentials stay local/gitignored.
+
+## Project structure
+
+```
+app/src/main/java/com/nexus/gamebooster/
+├── NexusGameBoosterApp.kt        # Application; initializes ServiceLocator
+├── MainActivity.kt               # Single activity, edge-to-edge, sets NgbApp()
+├── core/
+│   ├── ServiceLocator.kt         # Manual DI (no framework): sources, repos, engine, VM factories
+│   ├── VmFactory.kt              # Tiny ViewModelProvider.Factory using a creator lambda
+│   ├── UiMessage.kt              # UiMessage + maps stable reason/label keys to localized strings
+│   ├── LocaleSupport.kt          # Phase 7 locale engine: Context.withAppLocale (createConfiguration
+│   │                             #   Context) + AppLocale.isRtl (pure, JVM-tested)
+│   └── SessionMonitorController.kt  # NORMAL/EFFICIENT in-app session mode (Phase 5)
+├── data/
+│   ├── SettingsRepository.kt     # DataStore: language, reduce_motion, active_profile (normalized
+│   │                             #   on read — legacy "gaming" → balanced), theme, selected_games
+│   │                             #   (string set), manual_games (string set); implements
+│   │                             #   SelectedGamesStore + ActiveProfileStore; ctor takes the
+│   │                             #   DataStore (JVM-testable); production via create(context)
+│   └── DeviceIdentity.kt         # Real Build.MODEL / Build.VERSION info
+├── monitoring/
+│   ├── Models.kt                 # Snapshots + MetricAvailability (Available | Unavailable(reason))
+│   ├── SystemReads.kt            # THE single source of truth: battery (one-shot + live Flow),
+│   │                             #   thermal status (API 29+), thermal headroom (API 30+), memory, CPU
+│   ├── MonitoringRepository.kt   # Interface + MonitoringSnapshot (incl. headroom + timestamp)
+│   ├── MonitoringMappers.kt      # PURE Kotlin display mappers (MetricRowUi rows, machine keys)
+│   ├── SystemMonitoringRepository.kt  # Thin facade over SystemReads (Monitor + Home)
+│   └── DeviceInfoRepository.kt   # DeviceFacts (Build/Settings.Global) + battery()/memory()
+├── optimizer/
+│   ├── BoostModels.kt            # BoostEngine + DefaultBoostEngine, BoostActionOutcome (sealed,
+│   │                             #   @Serializable), BoostActionRecord, BoostCheck, BoostStatus,
+│   │                             #   BoostReport, BoostSession, BoostRequest, BoostHistoryStore
+│   ├── BoostPrecheckCollector.kt # Real pre-boost checks (battery/memory/thermal/profile/game);
+│   │                             #   missing metrics → unavailable keys, never zero, never blocking
+│   └── actions/                  # ApplyProfileAction, SessionMonitoringAction,
+│                                 #   PrepareGameLaunchAction (auto-run); OpenBatterySettingsAction,
+│                                 #   OpenGameDetailsAction, LaunchGameAction (user-explicit only)
+├── games/
+│   ├── InstalledApp.kt           # Pure data: discovered launchable app
+│   ├── InstalledAppSource.kt     # Interface + InstalledAppQueryResult
+│   ├── AndroidInstalledAppSource.kt  # Real PackageManager scan + icon loading (CATEGORY_GAME honesty)
+│   ├── GameLauncher.kt           # Interface + GameLaunchResult + AndroidGameLauncher (real startActivity)
+│   ├── Game.kt                   # Game model + GameScanResult
+│   └── GameRepository.kt         # Library StateFlows, DataStore persistence, search/sort, launch, events
+├── profiles/
+│   ├── PerformanceProfile.kt     # PURE model (zero imports): ProfileIds (+normalize/isValid),
+│   │                             #   EffectKind, ProfileEffect, MonitoringPolicy, PerformanceProfile
+│   └── ProfileRepository.kt      # Interface + StaticProfileRepository: exactly 3 presets
+│                                 #   (Balanced 15s / Performance 5s+screen-on / Battery Saver manual)
+│                                 #   with applied/recommended/not-supported effect lists
+├── navigation/
+│   ├── NgbDestination.kt         # 5 top-level destinations (routes + icons + labels)
+│   └── NgbApp.kt                 # Settings-driven theme + RTL wrap, Scaffold + NavigationBar + NavHost
+└── ui/
+    ├── theme/                    # Dark Navy + AMOLED Black palettes (#00FF9D primary), typography
+    ├── components/               # StatusChip, SectionCard, EmptyState, MetricRow, BoostCard,
+    │                             #   ProfileIcons (profileId → ImageVector map, UI-layer only)
+    └── screens/                  # home/, library/, monitor/, profiles/, settings/ (screen + ViewModel)
+```
+
+JVM unit tests (not in the APK; not executed in the generation environment — run `./gradlew testDebugUnitTest`):
+
+```
+app/src/test/java/com/nexus/gamebooster/
+├── testing/MainDispatcherRule.kt        # Dispatchers.setMain(UnconfinedTestDispatcher) rule
+├── profiles/PerformanceProfileTest.kt   # Preset catalog + policy invariants + legacy normalization
+├── data/SettingsRepositoryTest.kt       # Real file-backed DataStore: persistence, restart restore,
+│                                        #   "gaming"→balanced migration, corrupt-file defaults, clear()
+└── ui/screens/
+    ├── profiles/ProfilesViewModelTest.kt  # Optimistic select, saveError/revert/retry (fake store)
+    └── monitor/MonitorViewModelTest.kt    # Virtual-time ticker cadence, visibility gate,
+                                           #   Battery Saver manual-only, conditional live battery
+```
+
+## Safety & privacy statement
+
+This app requests **zero permissions** (see `AndroidManifest.xml` — also no `QUERY_ALL_PACKAGES`), performs **no network calls**, contains **no ads or analytics**, and uses **no root commands, no hidden/private APIs, no reflection into framework internals, no WRITE_SECURE_SETTINGS, and no accessibility-service tricks**. Battery, thermal (status + headroom), memory, device-fact and package-visibility reads come exclusively from standard public Android APIs that need no permission. The battery broadcast receiver is registered at runtime with `RECEIVER_NOT_EXPORTED` only while its Flow is collected — no manifest receiver, no foreground service, no wake lock. Keep-screen-on (Performance profile, Monitor screen only) is the permission-free `FLAG_KEEP_SCREEN_ON` window flag, cleared when the composable leaves composition. CPU load / GPU / FPS are intentionally unavailable — the app will never display invented numbers.

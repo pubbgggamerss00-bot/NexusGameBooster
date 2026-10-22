@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NexusGameBooster</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_home">خانه</string>
+    <string name="nav_library">بازی‌ها</string>
+    <string name="nav_monitor">مانیتور</string>
+    <string name="nav_profiles">پروفایل‌ها</string>
+    <string name="nav_settings">تنظیمات</string>
+
+    <!-- Generic actions -->
+    <string name="action_ok">تأیید</string>
+    <string name="action_cancel">انصراف</string>
+    <string name="action_close">بستن</string>
+    <string name="action_retry">تلاش دوباره</string>
+    <string name="refresh">بازخوانی</string>
+    <string name="refreshing">در حال خواندن دستگاه…</string>
+
+    <!-- Status chips -->
+    <string name="chip_ok">سالم</string>
+    <string name="chip_offline">متصل نیست</string>
+    <string name="chip_unavailable">در دسترس نیست</string>
+    <string name="chip_planned">برنامه‌ریزی‌شده</string>
+
+    <!-- Unavailable reasons (UI mapping of stable repository keys) -->
+    <string name="reason_phase_3">در فاز ۳ اضافه می‌شود</string>
+    <string name="reason_api_error">خواندن روی این دستگاه ناموفق بود</string>
+    <string name="reason_no_reading">خواندنی در دسترس نیست</string>
+    <string name="reason_requires_android_10">به اندروید ۱۰ یا جدیدتر نیاز دارد</string>
+    <string name="reason_requires_android_11">به اندروید ۱۱ یا جدیدتر نیاز دارد</string>
+    <string name="reason_headroom_not_reported">این دستگاه ظرفیت حرارتی را گزارش نکرد</string>
+    <string name="reason_scan_failed">اسکن برنامه‌های نصب‌شده ممکن نشد</string>
+    <string name="reason_already_applied">قبلاً در وضعیت موردنظر بود</string>
+    <string name="reason_not_needed">الان لازم نیست</string>
+    <string name="reason_battery_healthy">باتری سالم است</string>
+    <string name="reason_battery_unavailable">وضعیت باتری خوانده نشد</string>
+    <string name="reason_already_efficient">پروفایل ذخیره‌ساز باتری از قبل فعال است</string>
+    <string name="reason_no_game_selected">هیچ بازی قابل اجرایی انتخاب نشده است</string>
+    <string name="reason_game_not_found">بازی روی این دستگاه پیدا نشد</string>
+    <string name="reason_no_launch_intent">این برنامه صفحه‌ی قابل اجرایی ندارد</string>
+    <string name="reason_no_settings_screen">این صفحه‌ی تنظیمات روی دستگاه در دسترس نیست</string>
+
+    <!-- Home -->
+    <string name="home_subtitle">پایش واقعی، کتابخانه‌ی بازی واقعی و موتور بوست امنِ درون‌برنامه‌ای. هیچ چیز دستگاه شما را تغییر نمی‌دهد.</string>
+    <string name="home_device_info">اطلاعات دستگاه</string>
+    <string name="device_model">مدل</string>
+    <string name="device_model_value">%1$s %2$s</string>
+    <string name="device_device_name">نام دستگاه</string>
+    <string name="device_android_version">نسخه اندروید</string>
+    <string name="device_sdk">سطح API</string>
+    <string name="device_security_patch">وصله‌ی امنیتی</string>
+    <string name="home_status_title">وضعیت زنده</string>
+    <string name="status_battery">باتری</string>
+    <string name="status_thermal">دما</string>
+    <string name="status_memory">حافظه</string>
+    <string name="status_cpu">پردازنده</string>
+    <string name="metric_cpu_load">بار پردازنده</string>
+    <string name="metric_gpu">گرافیک</string>
+    <string name="metric_fps">FPS</string>
+    <string name="metric_network">شبکه</string>
+    <string name="battery_charging">در حال شارژ</string>
+    <string name="battery_discharging">روی باتری</string>
+    <string name="battery_not_reported">گزارش نشده</string>
+    <string name="battery_level">سطح باتری</string>
+    <string name="battery_charging_state">وضعیت شارژ</string>
+    <string name="battery_power_source">منبع تغذیه</string>
+    <string name="battery_plugged_ac">شارژر برق</string>
+    <string name="battery_plugged_usb">یو‌اس‌بی</string>
+    <string name="battery_plugged_wireless">بی‌سیم</string>
+    <string name="battery_level_value">%1$d%%</string>
+    <string name="memory_value">%1$d مگابایت کل، %2$d مگابایت آزاد</string>
+    <string name="memory_approx_note">مقادیر تقریبی از API استاندارد حافظه.</string>
+    <string name="memory_available">حافظه‌ی آزاد</string>
+    <string name="memory_total">حافظه‌ی کل</string>
+    <string name="memory_this_app">حافظه‌ی این برنامه (heap)</string>
+    <string name="memory_in_use_calculated">در حال استفاده (محاسبه‌شده)</string>
+    <string name="derived_value_note">از مقادیر واقعی بالا محاسبه شده است — مستقیماً اندازه‌گیری نشده.</string>
+    <string name="memory_value_gb">%1$s گیگابایت</string>
+    <string name="memory_app_value_mb">%1$d مگابایت</string>
+    <string name="cpu_cores_value">%1$d هسته</string>
+    <string name="home_library_title">بازی‌های من</string>
+    <string name="home_library_count">%1$d بازی</string>
+    <string name="home_library_empty">خالی — در کتابخانه بازی اضافه کنید</string>
+    <string name="home_library_open_hint">باز کردن کتابخانه‌ی بازی</string>
+    <string name="home_profiles_title">پروفایل کارایی</string>
+    <string name="recent_activity">فعالیت اخیر</string>
+    <string name="activity_empty">هنوز فعالیتی ثبت نشده است</string>
+
+    <!-- Boost (Phase 5 — موتور واقعی درون‌برنامه‌ای؛ گزارش فقط نتیجه‌های واقعی را نشان می‌دهد) -->
+    <string name="boost_card_title">موتور بوست</string>
+    <string name="boost_card_description">بوست امنِ خودِ این برنامه را اجرا می‌کند: پروفایل انتخابی شما را اعمال می‌کند، در باتری کم پایش این برنامه را کم‌مصرف می‌کند و آماده‌بودن اجرای بازی را بررسی می‌کند. هیچ چیزی روی دستگاه شما تغییر نمی‌کند.</string>
+    <string name="boost_button_label">بوست</string>
+    <string name="boost_checking">در حال بررسی…</string>
+    <string name="boost_running">در حال بوست…</string>
+    <string name="boost_status_completed">کامل شد</string>
+    <string name="boost_status_partial">موفقیت نسبی</string>
+    <string name="boost_status_cancelled">لغو شد</string>
+    <string name="boost_status_failed">ناموفق</string>
+    <string name="boost_retry">اجرای دوباره</string>
+    <string name="boost_report_title">نتیجه‌ی بوست</string>
+    <string name="boost_report_subtitle_completed">هر مرحله اجرا شد. این گزارش فقط اتفاق‌های واقعی را فهرست می‌کند — هیچ چیزی تخمین زده نشده است.</string>
+    <string name="boost_report_subtitle_partial">بعضی مرحله‌ها رد شدند (دلایل پایین آمده است). هیچ مرحله‌ای شکست نخورد.</string>
+    <string name="boost_report_subtitle_cancelled">بوست لغو شد. مرحله‌های انجام‌شده تا این لحظه در پایین فهرست شده‌اند.</string>
+    <string name="boost_report_subtitle_failed">حداقل یک مرحله شکست خورد. این گزارش فقط اتفاق‌های واقعی را فهرست می‌کند.</string>
+    <string name="boost_report_honesty_note">نه درصدی دارد و نه مقایسه‌ی قبل/بعد — فقط نتیجه‌های واقعی.</string>
+    <string name="boost_prechecks_title">بررسی‌های اولیه</string>
+    <string name="boost_actions_title">اقدام‌ها</string>
+    <string name="boost_actions_empty">هیچ اقدامی ثبت نشده است.</string>
+    <string name="boost_report_meta">گزارش</string>
+    <string name="boost_report_id">شناسه‌ی گزارش</string>
+    <string name="boost_report_started">شروع</string>
+    <string name="boost_report_completed">پایان</string>
+    <string name="boost_check_profile">پروفایل کارایی</string>
+    <string name="boost_check_game">بازی</string>
+    <string name="boost_check_charging_yes">در حال شارژ</string>
+    <string name="boost_check_charging_no">روی باتری</string>
+    <string name="boost_check_memory_value">%1$s مگابایت</string>
+    <string name="boost_battery_hint">باتری در زمان بوست کم بود یا خوانده نشد. می‌توانید خودتان تنظیمات باتری را باز کنید — هیچ چیزی به‌صورت خودکار تغییر نمی‌کند.</string>
+    <string name="boost_action_apply_profile">اعمال پروفایل</string>
+    <string name="boost_action_session_monitoring">پایش کم‌مصرف جلسه</string>
+    <string name="boost_action_prepare_game_launch">آماده‌سازی اجرای بازی</string>
+    <string name="boost_action_open_battery_settings">باز کردن تنظیمات باتری</string>
+    <string name="boost_action_open_game_details">باز کردن جزئیات بازی</string>
+    <string name="boost_action_launch_game">اجرای بازی</string>
+    <string name="boost_detail_ready_to_launch">آماده‌ی اجرا</string>
+    <string name="boost_open_battery_settings">تنظیمات باتری</string>
+    <string name="boost_open_game_details">جزئیات بازی</string>
+    <string name="boost_launch_game">اجرا</string>
+    <string name="boost_history_title">تاریخچه‌ی بوست</string>
+    <string name="boost_history_empty">هنوز بوستی ثبت نشده — یک اجرا انجام دهید تا گزارشش اینجا بیاید.</string>
+    <string name="boost_history_note">تاریخچه فقط روی همین دستگاه ذخیره می‌شود (۲۰ گزارش آخر). با لمس هر گزارش، فقط‌خواندنی باز می‌شود.</string>
+    <string name="boost_history_view_chip">از تاریخچه</string>
+
+    <!-- Activity log entries -->
+    <string name="activity_monitoring_refreshed">وضعیت دستگاه بازخوانی شد</string>
+    <string name="activity_boost_requested">درخواست بوست ثبت شد</string>
+    <string name="activity_boost_started">بوست شروع شد</string>
+    <string name="activity_boost_completed">بوست تمام شد: %1$s</string>
+    <string name="activity_boost_cancelled">بوست لغو شد</string>
+    <string name="activity_boost_action_recorded">گزارش بوست با اقدام شما به‌روز شد</string>
+    <string name="activity_profile_selected">پروفایل انتخاب شد: %1$s</string>
+    <string name="activity_battery_read">خواندن باتری: %1$s</string>
+    <string name="activity_scan_completed">اسکن کامل شد: %1$s برنامه پیدا شد</string>
+    <string name="activity_game_added">به کتابخانه اضافه شد: %1$s</string>
+    <string name="activity_game_removed">از کتابخانه حذف شد: %1$s</string>
+    <string name="activity_game_launched">در حال اجرا: %1$s</string>
+    <string name="activity_game_launch_failed">اجرای %1$s ممکن نشد</string>
+
+    <!-- Monitor -->
+    <string name="monitor_headline">مانیتور دستگاه</string>
+    <string name="monitor_subtitle">فقط خوانش‌های استاندارد و بدون نیاز به دسترسی نمایش داده می‌شود. بار پردازنده، گرافیک و FPS از طریق هیچ API بدون نیاز به دسترسی اندروید در دسترس نیستند — هیچ عددی جعل نمی‌شود.</string>
+    <string name="monitor_battery_note">از پخش استاندارد باتری خوانده می‌شود.</string>
+    <string name="monitor_thermal_note">وضعیت حرارتی استاندارد اندروید (اندروید ۱۰ به بالا).</string>
+    <string name="monitor_memory_note">مقادیر تقریبی از API استاندارد حافظه.</string>
+    <string name="monitor_cpu_note">تعداد هسته‌ها از زمان اجرا خوانده می‌شود. بار پردازنده بدون APIهای ممتاز در دسترس نیست.</string>
+    <string name="monitor_session">مدت جلسه</string>
+    <string name="monitor_session_note">زمان واقعی سپری‌شده از اجرای برنامه.</string>
+    <string name="thermal_headroom">ظرفیت حرارتی باقی‌مانده</string>
+    <string name="thermal_headroom_value">%1$.2f</string>
+    <string name="thermal_headroom_unit_hint">ظرفیت PowerManager — انتزاعِ خود پلتفرم است. دما نیست و بر حسب درجه نیست.</string>
+    <string name="monitor_last_updated_title">تازگی داده‌ها</string>
+    <string name="monitor_last_updated">آخرین به‌روزرسانی</string>
+    <string name="monitor_never_refreshed">هنوز بازخوانی نشده</string>
+    <string name="monitor_error_title">خواندن اطلاعات دستگاه ممکن نشد</string>
+    <string name="monitor_explanation_title">چرا بار پردازنده، گرافیک و FPS نمایش داده نمی‌شوند</string>
+    <string name="monitor_explanation_body">اندروید هیچ API بدون نیاز به دسترسی برای بار پردازنده، میزان استفاده‌ی گرافیک یا FPS برنامه‌های دیگر ارائه نمی‌کند. اندازه‌گیری آن‌ها به APIهای ممتاز یا مخصوص سازنده نیاز دارد که این برنامه درخواست نمی‌کند. هیچ چیزی تخمین زده یا شبیه‌سازی نمی‌شود.</string>
+
+    <!-- Monitor policy chips (Phase 4 — describe what THIS app itself does) -->
+    <string name="monitor_auto_refresh_every">بازخوانی خودکار: هر %1$d ثانیه</string>
+    <string name="monitor_auto_refresh_off">بازخوانی خودکار: خاموش — دستی</string>
+    <string name="monitor_keep_screen_on_chip">صفحه هنگام باز بودن این صفحه روشن می‌ماند</string>
+    <string name="monitor_policy_loading">در حال بارگذاری پروفایل…</string>
+    <string name="monitor_session_efficient_chip">تنظیم کم‌مصرف جلسه فعال است — بازخوانی خودکار خاموش</string>
+
+    <!-- Thermal status labels -->
+    <string name="thermal_none">عادی</string>
+    <string name="thermal_light">کم</string>
+    <string name="thermal_moderate">متوسط</string>
+    <string name="thermal_severe">شدید</string>
+    <string name="thermal_critical">بحرانی</string>
+    <string name="thermal_emergency">اضطراری</string>
+    <string name="thermal_shutdown">آستانه خاموشی</string>
+    <string name="thermal_unknown">نامشخص</string>
+
+    <!-- Library -->
+    <string name="library_headline">کتابخانه بازی</string>
+    <string name="library_subtitle">برنامه‌های نصب‌شده را ببینید، بازی‌هایی که بازی می‌کنید را اضافه و اجرا کنید. هیچ چیزی تغییر یا حذف نصب نمی‌شود.</string>
+    <string name="library_search_hint">جست‌وجو</string>
+    <string name="library_search_clear">پاک کردن جست‌وجو</string>
+    <string name="library_add_manual">افزودن دستی</string>
+    <string name="library_tab_my_games">کتابخانه‌ی من</string>
+    <string name="library_tab_discover">کشف</string>
+    <string name="library_scanning">در حال اسکن برنامه‌های نصب‌شده…</string>
+    <string name="library_scan_failed_title">اسکن برنامه‌ها ممکن نشد</string>
+    <string name="library_scan_failed_body">اندروید اجازه‌ی کامل شدن اسکن را در این دستگاه نداد. می‌توانید دوباره تلاش کنید یا بازی‌ها را دستی اضافه کنید.</string>
+    <string name="my_games_empty_body">هنوز بازی‌ای نیست — از بخش «کشف» بازی‌هایی که بازی می‌کنید اضافه کنید.</string>
+    <string name="library_empty_title">هنوز بازی‌ای نیست</string>
+    <string name="library_no_match_title">نتیجه‌ای نیست</string>
+    <string name="library_no_match_body">هیچ بازی‌ای در کتابخانه با «%1$s» مطابقت ندارد.</string>
+    <string name="library_launch">اجرا</string>
+    <string name="library_launching">در حال اجرا…</string>
+    <string name="library_launch_no_intent">این برنامه صفحه‌ی اجرایی ندارد — از اینجا قابل باز کردن نیست.</string>
+    <string name="library_launch_ready">آماده‌ی اجرا تأیید شد — چیزی اجرا نشد.</string>
+    <string name="library_launch_not_found">برنامه پیدا نشد — شاید حذف نصب شده باشد.</string>
+    <string name="library_launch_error">اجرا ناموفق بود: %1$s</string>
+    <string name="library_already_added">قبلاً در کتابخانه هست</string>
+    <string name="discover_filter_games">بازی‌ها</string>
+    <string name="discover_filter_all_apps">همه‌ی برنامه‌ها</string>
+    <string name="discover_caption">بازی‌ها از طریق اعلان دسته‌ی خودشان شناسایی می‌شوند — بعضی بازی‌ها این دسته را اعلام نمی‌کنند. برای دیدن همه‌ی برنامه‌های قابل اجرا و افزودن دستی، از «همه‌ی برنامه‌ها» استفاده کنید.</string>
+    <string name="discover_empty_title">چیزی پیدا نشد</string>
+    <string name="discover_empty_body">در این فیلتر برنامه‌ای با جست‌وجوی شما مطابقت ندارد.</string>
+    <string name="discover_add_cd">افزودن به کتابخانه</string>
+    <string name="discover_added_cd">اضافه شد</string>
+    <string name="sort_label">ترتیب</string>
+    <string name="sort_name_asc">نام الف–ی</string>
+    <string name="sort_name_desc">نام ی–الف</string>
+    <string name="sort_recently_added">به‌تازگی اضافه‌شده</string>
+    <string name="add_dialog_title">افزودن بازی</string>
+    <string name="add_dialog_note">برای بازی‌هایی که شناسه ممکن است نشناسد — این مورد روی همین دستگاه ذخیره می‌شود.</string>
+    <string name="add_dialog_name_label">نام بازی</string>
+    <string name="add_dialog_package_label">نام بسته (اختیاری)</string>
+    <string name="add_dialog_confirm">افزودن</string>
+    <string name="add_dialog_name_error">یک نام وارد کنید</string>
+    <string name="remove_dialog_title">حذف بازی؟</string>
+    <string name="remove_dialog_body">«%1$s» از کتابخانه حذف می‌شود. هیچ برنامه‌ای حذف نصب نمی‌شود.</string>
+    <string name="remove_confirm">حذف</string>
+    <string name="details_title">جزئیات بازی</string>
+    <string name="details_name">نام</string>
+    <string name="details_package">بسته</string>
+    <string name="details_package_none">تنظیم نشده</string>
+    <string name="details_source">منبع</string>
+    <string name="details_source_manual">افزوده‌شده دستی</string>
+    <string name="details_source_installed">روی دستگاه شناسایی شد</string>
+    <string name="details_launchable">قابل اجرا</string>
+    <string name="details_launchable_yes">بله</string>
+    <string name="details_launchable_unknown">تا اسکن بعدی نامشخص</string>
+
+    <!-- Profiles (Phase 4 — three fixed presets; selection changes ONLY this app\'s own
+         monitoring behavior and is saved as a preference) -->
+    <string name="profiles_headline">پروفایل‌ها</string>
+    <string name="profiles_subtitle">سه پروفایل ثابت. انتخاب هر کدام فقط رفتار پایشِ خودِ NexusGameBooster را تغییر می‌دهد — به‌عنوان تنظیم ذخیره می‌شود و هیچ چیزی روی سیستم اعمال نمی‌شود.</string>
+    <string name="profile_balanced_title">متعادل</string>
+    <string name="profile_balanced_description">پیش‌فرض روزمره. پایش درون‌برنامه‌ای وقتی صفحه‌ی مانیتور باز است، هر ۱۵ ثانیه بازخوانی می‌شود.</string>
+    <string name="profile_performance_title">کارایی</string>
+    <string name="profile_performance_description">برای جلسه‌های کوتاه و سنگین. سریع‌ترین بازخوانی درون‌برنامه‌ای (هر ۵ ثانیه) و روشن ماندن صفحه‌ی این برنامه وقتی مانیتور باز است.</string>
+    <string name="profile_battery_title">ذخیره‌ساز باتری</string>
+    <string name="profile_battery_description">بیشترین دوام باتری. همه‌ی امکانات خودکارِ پایش درون‌برنامه‌ای خاموش است — بازخوانی را خودتان از صفحه‌ی مانیتور انجام می‌دهید.</string>
+    <string name="profiles_current_label">پروفایل فعلی</string>
+    <string name="profiles_current_note">انتخاب پروفایل فقط رفتار پایشِ خودِ NexusGameBooster را تغییر می‌دهد — هیچ چیزی روی دستگاه شما تغییر نمی‌کند.</string>
+
+    <!-- Profile effects: applied by this app vs. user action vs. never possible -->
+    <string name="effect_applied_title">توسط خودِ NexusGameBooster اعمال می‌شود</string>
+    <string name="effect_recommended_title">پیشنهادی — نیاز به اقدام شما دارد</string>
+    <string name="effect_not_supported_title">پشتیبانی نمی‌شود (سراسری)</string>
+    <string name="effect_balanced_refresh">بازخوانی خودکارِ پایش درون‌برنامه‌ای هر ۱۵ ثانیه، وقتی صفحه‌ی مانیتور باز است</string>
+    <string name="effect_balanced_live">به‌روزرسانی زنده‌ی باتری از پخش استاندارد باتری سیستم</string>
+    <string name="effect_perf_refresh">بازخوانی سریع‌ترِ پایش درون‌برنامه‌ای هر ۵ ثانیه، وقتی صفحه‌ی مانیتور باز است</string>
+    <string name="effect_perf_live">به‌روزرسانی زنده‌ی باتری از پخش استاندارد باتری سیستم</string>
+    <string name="effect_perf_screen_on">صفحه‌ی این برنامه وقتی صفحه‌ی مانیتور باز است روشن می‌ماند (یک فلگ پنجره است — نه wake lock)</string>
+    <string name="effect_battery_manual">بازخوانی خودکار خاموش است — بازخوانی را خودتان از صفحه‌ی مانیتور انجام می‌دهید</string>
+    <string name="effect_battery_no_live">جریان رویداد زنده‌ی باتری برای مصرف کمتر متوقف شده است؛ مقادیر با بازخوانی دستی به‌روز می‌شوند</string>
+
+    <!-- Profile recommendations (user actions, never applied by this app) -->
+    <string name="rec_game_mode">اگر دستگاه شما حالت بازی سازنده (Game Mode / Game Booster) دارد، از آن استفاده کنید</string>
+    <string name="rec_battery_optimization">بازی‌هایتان را از بهینه‌سازی باتری مستثنا کنید (تنظیمات اندروید ← برنامه‌ها ← بازی ← باتری)</string>
+    <string name="rec_graphics">کیفیت گرافیک را داخل تنظیمات خودِ هر بازی انتخاب کنید</string>
+    <string name="rec_system_saver">برای جلسه‌های طولانی بازی، ذخیره‌ساز باتری سیستم را روشن کنید</string>
+    <string name="rec_close_apps">برنامه‌های پس‌زمینه‌ای که لازم ندارید را از صفحه‌ی برنامه‌های اخیر ببندید</string>
+
+    <!-- Not-supported rows (identical for every profile; honest limits, never claimed) -->
+    <string name="ns_cpu_freq">تغییر فرکانس پردازنده یا گرافیک</string>
+    <string name="ns_process_priority">اولویت‌های سراسری پردازه‌ها</string>
+    <string name="ns_thermal_limits">تغییر محدودیت‌های حرارتی</string>
+    <string name="ns_ram_boost">آزاد کردن رم برنامه‌های دیگر</string>
+
+    <string name="profiles_unsupported_title">چرا بهینه‌سازی سراسری وجود ندارد؟</string>
+    <string name="profiles_unsupported_body">اندروید به برنامه‌های عادی اجازه نمی‌دهد فرکانس پردازنده/گرافیک، اولویت پردازه‌ها یا محدودیت‌های حرارتی را تغییر دهند. NexusGameBooster فقط رفتار خودش را تغییر می‌دهد و به شما می‌گوید چه چیزی را خودتان تغییر دهید — هرگز یک پیشنهاد را به‌عنوان بهینه‌سازیِ اعمال‌شده برچسب نمی‌زند.</string>
+    <string name="profiles_footnote">* پیشنهادها نیاز به اقدام شما دارند. موارد «پشتیبانی نمی‌شود» برای برنامه‌های عادی ممکن نیستند و هرگز ادعا نمی‌شوند.</string>
+    <string name="profile_save_failed">ذخیره‌ی پروفایل انتخابی ممکن نشد. پروفایل قبلی همچنان فعال است. دوباره تلاش کنید.</string>
+    <string name="custom_profiles_title">پروفایل‌های سفارشی</string>
+    <string name="custom_profiles_empty">هنوز در دسترس نیست — برای فاز بعدی برنامه‌ریزی شده است</string>
+
+    <!-- Profile monitoring-policy details (Phase 7 — collapsible rows per profile card) -->
+    <string name="profiles_policy_title">سیاست پایش</string>
+    <string name="profiles_policy_in_app_on">پایش درون‌برنامه‌ای: روشن</string>
+    <string name="profiles_policy_in_app_off">پایش درون‌برنامه‌ای: خاموش</string>
+    <string name="profiles_policy_live_on">رویدادهای زندهٔ باتری: روشن</string>
+    <string name="profiles_policy_live_off">رویدادهای زندهٔ باتری: خاموش</string>
+    <string name="profiles_policy_keep_screen_on_off">روشن ماندن صفحه هنگام باز بودن مانیتور: خاموش</string>
+    <string name="profiles_active_chip">فعال</string>
+    <string name="profiles_policy_show">نمایش جزئیات پایش</string>
+    <string name="profiles_policy_hide">پنهان‌کردن جزئیات پایش</string>
+
+    <!-- Settings -->
+    <string name="settings_headline">تنظیمات</string>
+    <string name="settings_section_language">زبان</string>
+    <string name="settings_language_en">English</string>
+    <string name="settings_language_fa">فارسی</string>
+    <string name="settings_language_system">پیش‌فرض سیستم</string>
+    <string name="settings_language_note">گزینه‌ی «پیش‌فرض سیستم» از زبان دستگاه شما پیروی می‌کند.</string>
+    <string name="settings_a11y_selected">انتخاب‌شده</string>
+    <string name="settings_a11y_not_selected">انتخاب نشده</string>
+    <string name="settings_section_appearance">ظاهر</string>
+    <string name="settings_theme">پوسته</string>
+    <string name="settings_theme_dark_navy">سرمه‌ای تیره</string>
+    <string name="settings_theme_amoled">مشکی AMOLED</string>
+    <string name="settings_theme_note">بلافاصله اعمال و برای اجرای بعدی ذخیره می‌شود. پوسته‌ی روشن وجود ندارد.</string>
+    <string name="settings_reduce_motion">کاهش انیمیشن</string>
+    <string name="settings_reduce_motion_note">حرکت‌های غیرضروری را کاهش می‌دهد. بلافاصله ذخیره می‌شود.</string>
+    <string name="settings_section_about">درباره</string>
+    <string name="settings_version">نسخه</string>
+    <string name="settings_app_id">شناسه برنامه</string>
+    <string name="settings_permissions">دسترسی‌ها</string>
+    <string name="settings_permissions_value">هیچ — این برنامه هیچ دسترسی‌ای نمی‌خواهد</string>
+    <string name="settings_visible_apps">برنامه‌های نصب‌شده‌ی قابل دیدن برای NexusGameBooster</string>
+    <string name="settings_visible_apps_value">%1$d (فقط برنامه‌های دارای اجراگر)</string>
+    <string name="settings_reset">بازنشانی داده‌های برنامه</string>
+    <string name="settings_reset_title">بازنشانی داده‌های برنامه؟</string>
+    <string name="settings_reset_body">زبان، پوسته، کاهش انیمیشن، پروفایل انتخاب‌شده، کتابخانه‌ی بازی و تاریخچه‌ی بوست پاک می‌شود.</string>
+    <string name="settings_reset_confirm">بازنشانی</string>
+
+    <!-- Accessibility labels (Phase 7) -->
+    <string name="a11y_expanded">باز</string>
+    <string name="a11y_collapsed">بسته</string>
+    <string name="a11y_open_report">باز کردن گزارش بوست</string>
+    <string name="a11y_open_game_details">باز کردن جزئیات بازی</string>
+</resources>

@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NexusGameBooster</string>
+
+    <!-- Bottom navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_library">Games</string>
+    <string name="nav_monitor">Monitor</string>
+    <string name="nav_profiles">Profiles</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Generic actions -->
+    <string name="action_ok">OK</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_close">Close</string>
+    <string name="action_retry">Retry</string>
+    <string name="refresh">Refresh</string>
+    <string name="refreshing">Reading device…</string>
+
+    <!-- Status chips -->
+    <string name="chip_ok">OK</string>
+    <string name="chip_offline">Not connected</string>
+    <string name="chip_unavailable">Unavailable</string>
+    <string name="chip_planned">Planned</string>
+
+    <!-- Unavailable reasons (UI mapping of stable repository keys) -->
+    <string name="reason_phase_3">Coming in Phase 3</string>
+    <string name="reason_api_error">Reading failed on this device</string>
+    <string name="reason_no_reading">No reading available</string>
+    <string name="reason_requires_android_10">Requires Android 10 or newer</string>
+    <string name="reason_requires_android_11">Requires Android 11 or newer</string>
+    <string name="reason_headroom_not_reported">This device did not report thermal headroom</string>
+    <string name="reason_scan_failed">Couldn\'t scan installed apps</string>
+    <string name="reason_already_applied">Already in the wanted state</string>
+    <string name="reason_not_needed">Not needed right now</string>
+    <string name="reason_battery_healthy">Battery is healthy</string>
+    <string name="reason_battery_unavailable">Battery state could not be read</string>
+    <string name="reason_already_efficient">The Battery Saver profile is already active</string>
+    <string name="reason_no_game_selected">No launchable game is selected</string>
+    <string name="reason_game_not_found">Game not found on this device</string>
+    <string name="reason_no_launch_intent">This app has no launchable screen</string>
+    <string name="reason_no_settings_screen">The settings screen is not available on this device</string>
+
+    <!-- Home -->
+    <string name="home_subtitle">Real monitoring, a real game library and a safe in-app boost engine. Nothing here changes your device.</string>
+    <string name="home_device_info">Device information</string>
+    <string name="device_model">Model</string>
+    <string name="device_model_value">%1$s %2$s</string>
+    <string name="device_device_name">Device name</string>
+    <string name="device_android_version">Android version</string>
+    <string name="device_sdk">API level</string>
+    <string name="device_security_patch">Security patch</string>
+    <string name="home_status_title">Live status</string>
+    <string name="status_battery">Battery</string>
+    <string name="status_thermal">Thermal</string>
+    <string name="status_memory">Memory</string>
+    <string name="status_cpu">CPU</string>
+    <string name="metric_cpu_load">CPU load</string>
+    <string name="metric_gpu">GPU</string>
+    <string name="metric_fps">FPS</string>
+    <string name="metric_network">Network</string>
+    <string name="battery_charging">Charging</string>
+    <string name="battery_discharging">On battery</string>
+    <string name="battery_not_reported">Not reported</string>
+    <string name="battery_level">Battery level</string>
+    <string name="battery_charging_state">Charging state</string>
+    <string name="battery_power_source">Power source</string>
+    <string name="battery_plugged_ac">AC charger</string>
+    <string name="battery_plugged_usb">USB</string>
+    <string name="battery_plugged_wireless">Wireless</string>
+    <string name="battery_level_value">%1$d%%</string>
+    <string name="memory_value">%1$d MB total, %2$d MB free</string>
+    <string name="memory_approx_note">Approximate values from the standard memory API.</string>
+    <string name="memory_available">Available memory</string>
+    <string name="memory_total">Total memory</string>
+    <string name="memory_this_app">This app (heap)</string>
+    <string name="memory_in_use_calculated">In use (calculated)</string>
+    <string name="derived_value_note">Calculated from the real values above — not measured directly.</string>
+    <string name="memory_value_gb">%1$s GB</string>
+    <string name="memory_app_value_mb">%1$d MB</string>
+    <string name="cpu_cores_value">%1$d cores</string>
+    <string name="home_library_title">My games</string>
+    <string name="home_library_count">%1$d games</string>
+    <string name="home_library_empty">Empty — add games in Library</string>
+    <string name="home_library_open_hint">Open the game library</string>
+    <string name="home_profiles_title">Performance profile</string>
+    <string name="recent_activity">Recent activity</string>
+    <string name="activity_empty">No activity recorded yet</string>
+
+    <!-- Boost (Phase 5 — a real in-app engine; the report reflects ACTUAL outcomes only) -->
+    <string name="boost_card_title">Boost engine</string>
+    <string name="boost_card_description">Runs this app\'s own safe boost: applies your selected profile preference, switches this app to power-efficient monitoring on a low battery, and verifies your game is ready to launch. Nothing on your device is modified.</string>
+    <string name="boost_button_label">Boost</string>
+    <string name="boost_checking">Checking…</string>
+    <string name="boost_running">Boosting…</string>
+    <string name="boost_status_completed">Completed</string>
+    <string name="boost_status_partial">Partial success</string>
+    <string name="boost_status_cancelled">Cancelled</string>
+    <string name="boost_status_failed">Failed</string>
+    <string name="boost_retry">Retry</string>
+    <string name="boost_report_title">Boost result</string>
+    <string name="boost_report_subtitle_completed">Every step ran. This report lists what actually happened — nothing is estimated.</string>
+    <string name="boost_report_subtitle_partial">Some steps were skipped (reasons below). Nothing failed.</string>
+    <string name="boost_report_subtitle_cancelled">The boost was cancelled. The steps finished so far are listed below.</string>
+    <string name="boost_report_subtitle_failed">At least one step failed. This report lists what actually happened.</string>
+    <string name="boost_report_honesty_note">No percentages, no before/after — only real outcomes.</string>
+    <string name="boost_prechecks_title">Pre-checks</string>
+    <string name="boost_actions_title">Actions</string>
+    <string name="boost_actions_empty">No actions were recorded.</string>
+    <string name="boost_report_meta">Report</string>
+    <string name="boost_report_id">Report ID</string>
+    <string name="boost_report_started">Started</string>
+    <string name="boost_report_completed">Completed</string>
+    <string name="boost_check_profile">Performance profile</string>
+    <string name="boost_check_game">Game</string>
+    <string name="boost_check_charging_yes">Charging</string>
+    <string name="boost_check_charging_no">On battery</string>
+    <string name="boost_check_memory_value">%1$s MB</string>
+    <string name="boost_battery_hint">The battery was low or could not be read during the boost. You can open the battery settings yourself — nothing is changed automatically.</string>
+    <string name="boost_action_apply_profile">Apply profile</string>
+    <string name="boost_action_session_monitoring">Efficient session monitoring</string>
+    <string name="boost_action_prepare_game_launch">Prepare game launch</string>
+    <string name="boost_action_open_battery_settings">Open battery settings</string>
+    <string name="boost_action_open_game_details">Open game details</string>
+    <string name="boost_action_launch_game">Launch game</string>
+    <string name="boost_detail_ready_to_launch">Ready to launch</string>
+    <string name="boost_open_battery_settings">Battery settings</string>
+    <string name="boost_open_game_details">Game details</string>
+    <string name="boost_launch_game">Launch</string>
+    <string name="boost_history_title">Boost history</string>
+    <string name="boost_history_empty">No boosts yet — run one and its report will appear here.</string>
+    <string name="boost_history_note">History is stored locally on this device only (last 20 reports). Tapping a report opens it read-only.</string>
+    <string name="boost_history_view_chip">From history</string>
+
+    <!-- Activity log entries -->
+    <string name="activity_monitoring_refreshed">Device status refreshed</string>
+    <string name="activity_boost_requested">Boost requested</string>
+    <string name="activity_boost_started">Boost started</string>
+    <string name="activity_boost_completed">Boost finished: %1$s</string>
+    <string name="activity_boost_cancelled">Boost cancelled</string>
+    <string name="activity_boost_action_recorded">Boost report updated with your action</string>
+    <string name="activity_profile_selected">Profile selected: %1$s</string>
+    <string name="activity_battery_read">Battery read: %1$s</string>
+    <string name="activity_scan_completed">Scan completed: %1$s apps found</string>
+    <string name="activity_game_added">Added to library: %1$s</string>
+    <string name="activity_game_removed">Removed from library: %1$s</string>
+    <string name="activity_game_launched">Launching: %1$s</string>
+    <string name="activity_game_launch_failed">Couldn\'t launch %1$s</string>
+
+    <!-- Monitor -->
+    <string name="monitor_headline">Device monitor</string>
+    <string name="monitor_subtitle">Only standard, permission-free readings are shown. CPU load, GPU and FPS are not exposed by any permission-free Android API — no numbers are invented.</string>
+    <string name="monitor_battery_note">Read from the standard battery broadcast.</string>
+    <string name="monitor_thermal_note">Standard Android thermal status (Android 10+).</string>
+    <string name="monitor_memory_note">Approximate values from the standard memory API.</string>
+    <string name="monitor_cpu_note">Core count is read from the runtime. CPU load has no permission-free API.</string>
+    <string name="monitor_session">Session uptime</string>
+    <string name="monitor_session_note">Real wall-clock time since the app process started.</string>
+    <string name="thermal_headroom">Thermal headroom</string>
+    <string name="thermal_headroom_value">%1$.2f</string>
+    <string name="thermal_headroom_unit_hint">PowerManager headroom — the platform\'s own abstraction. Not a temperature and not °C.</string>
+    <string name="monitor_last_updated_title">Data freshness</string>
+    <string name="monitor_last_updated">Last updated</string>
+    <string name="monitor_never_refreshed">Never refreshed</string>
+    <string name="monitor_error_title">Couldn\'t read device data</string>
+    <string name="monitor_explanation_title">Why CPU load, GPU and FPS are not shown</string>
+    <string name="monitor_explanation_body">Android exposes no permission-free API for other apps\' CPU load, GPU utilization or FPS. Measuring them would require privileged or vendor-specific APIs, which this app does not request. Nothing is estimated or simulated.</string>
+
+    <!-- Monitor policy chips (Phase 4 — describe what THIS app itself does) -->
+    <string name="monitor_auto_refresh_every">Auto refresh: every %1$d s</string>
+    <string name="monitor_auto_refresh_off">Auto refresh: off — manual</string>
+    <string name="monitor_keep_screen_on_chip">Screen stays on while this screen is open</string>
+    <string name="monitor_policy_loading">Loading profile…</string>
+    <string name="monitor_session_efficient_chip">Battery Saver session tuning active — auto refresh off</string>
+
+    <!-- Thermal status labels -->
+    <string name="thermal_none">Normal</string>
+    <string name="thermal_light">Light</string>
+    <string name="thermal_moderate">Moderate</string>
+    <string name="thermal_severe">Severe</string>
+    <string name="thermal_critical">Critical</string>
+    <string name="thermal_emergency">Emergency</string>
+    <string name="thermal_shutdown">Shutdown threshold</string>
+    <string name="thermal_unknown">Unknown</string>
+
+    <!-- Library -->
+    <string name="library_headline">Game library</string>
+    <string name="library_subtitle">Discover installed apps, add the games you play, and launch them. Nothing is modified or uninstalled.</string>
+    <string name="library_search_hint">Search</string>
+    <string name="library_search_clear">Clear search</string>
+    <string name="library_add_manual">Add manually</string>
+    <string name="library_tab_my_games">My Library</string>
+    <string name="library_tab_discover">Discover</string>
+    <string name="library_scanning">Scanning installed apps…</string>
+    <string name="library_scan_failed_title">Couldn\'t scan your apps</string>
+    <string name="library_scan_failed_body">Android didn\'t let the scan complete on this device. You can retry, or add games manually.</string>
+    <string name="my_games_empty_body">No games yet — open Discover to add games you play.</string>
+    <string name="library_empty_title">No games yet</string>
+    <string name="library_no_match_title">No matches</string>
+    <string name="library_no_match_body">No game in your library matches “%1$s”.</string>
+    <string name="library_launch">Play</string>
+    <string name="library_launching">Launching…</string>
+    <string name="library_launch_no_intent">This app has no launchable screen — it can\'t be opened from here.</string>
+    <string name="library_launch_ready">Verified ready to launch — nothing was started.</string>
+    <string name="library_launch_not_found">App not found — it may have been uninstalled.</string>
+    <string name="library_launch_error">Launch failed: %1$s</string>
+    <string name="library_already_added">Already in your library</string>
+    <string name="discover_filter_games">Games</string>
+    <string name="discover_filter_all_apps">All apps</string>
+    <string name="discover_caption">Games are detected by their own category declaration — some games may not declare it. Use All apps to browse every launchable app and add one manually.</string>
+    <string name="discover_empty_title">Nothing found</string>
+    <string name="discover_empty_body">No app matches your search in this filter.</string>
+    <string name="discover_add_cd">Add to library</string>
+    <string name="discover_added_cd">Added</string>
+    <string name="sort_label">Sort</string>
+    <string name="sort_name_asc">Name A–Z</string>
+    <string name="sort_name_desc">Name Z–A</string>
+    <string name="sort_recently_added">Recently added</string>
+    <string name="add_dialog_title">Add game</string>
+    <string name="add_dialog_note">For games the detector may not know — the entry is saved on this device.</string>
+    <string name="add_dialog_name_label">Game name</string>
+    <string name="add_dialog_package_label">Package name (optional)</string>
+    <string name="add_dialog_confirm">Add</string>
+    <string name="add_dialog_name_error">Enter a name</string>
+    <string name="remove_dialog_title">Remove game?</string>
+    <string name="remove_dialog_body">“%1$s” will be removed from your library. Nothing is uninstalled.</string>
+    <string name="remove_confirm">Remove</string>
+    <string name="details_title">Game details</string>
+    <string name="details_name">Name</string>
+    <string name="details_package">Package</string>
+    <string name="details_package_none">Not set</string>
+    <string name="details_source">Source</string>
+    <string name="details_source_manual">Added manually</string>
+    <string name="details_source_installed">Detected on device</string>
+    <string name="details_launchable">Launchable</string>
+    <string name="details_launchable_yes">Yes</string>
+    <string name="details_launchable_unknown">Unknown until the next scan</string>
+
+    <!-- Profiles (Phase 4 — three fixed presets; selection changes ONLY this app\'s own
+         monitoring behavior and is saved as a preference) -->
+    <string name="profiles_headline">Profiles</string>
+    <string name="profiles_subtitle">Three fixed profiles. Selecting one changes only how NexusGameBooster itself monitors — it is saved as a preference and nothing is applied to the system.</string>
+    <string name="profile_balanced_title">Balanced</string>
+    <string name="profile_balanced_description">Everyday default. In-app monitoring refreshes every 15 seconds while the Monitor screen is open.</string>
+    <string name="profile_performance_title">Performance</string>
+    <string name="profile_performance_description">For short, demanding sessions. Fastest in-app refresh (every 5 seconds) and this app\'s screen stays on while the Monitor is open.</string>
+    <string name="profile_battery_title">Battery Saver</string>
+    <string name="profile_battery_description">Longest battery life. All in-app monitoring automation is off — you refresh manually on the Monitor screen.</string>
+    <string name="profiles_current_label">Current profile</string>
+    <string name="profiles_current_note">Selecting a profile changes only NexusGameBooster\'s own monitoring behavior — nothing on your device is modified.</string>
+
+    <!-- Profile effects: applied by this app vs. user action vs. never possible -->
+    <string name="effect_applied_title">Applied by NexusGameBooster</string>
+    <string name="effect_recommended_title">Recommended — needs your action</string>
+    <string name="effect_not_supported_title">Not supported (system-wide)</string>
+    <string name="effect_balanced_refresh">Automatic in-app monitoring refresh every 15 seconds while the Monitor screen is open</string>
+    <string name="effect_balanced_live">Live battery updates from the system battery broadcast</string>
+    <string name="effect_perf_refresh">Faster in-app monitoring refresh every 5 seconds while the Monitor screen is open</string>
+    <string name="effect_perf_live">Live battery updates from the system battery broadcast</string>
+    <string name="effect_perf_screen_on">Keeps this app\'s screen on while the Monitor screen is open (a window flag — not a wake lock)</string>
+    <string name="effect_battery_manual">Automatic refresh is off — you refresh manually from the Monitor screen</string>
+    <string name="effect_battery_no_live">Live battery event stream paused to save power; values update on manual refresh</string>
+
+    <!-- Profile recommendations (user actions, never applied by this app) -->
+    <string name="rec_game_mode">Use your vendor\'s Game Mode / Game Booster, if your device has one</string>
+    <string name="rec_battery_optimization">Exclude your games from battery optimization (Android Settings → Apps → game → Battery)</string>
+    <string name="rec_graphics">Choose the graphics quality inside each game\'s own settings</string>
+    <string name="rec_system_saver">Turn on the system Battery Saver for long gaming sessions</string>
+    <string name="rec_close_apps">Close background apps you don\'t need from the recent-apps screen</string>
+
+    <!-- Not-supported rows (identical for every profile; honest limits, never claimed) -->
+    <string name="ns_cpu_freq">Changing CPU or GPU frequencies</string>
+    <string name="ns_process_priority">System-wide process priorities</string>
+    <string name="ns_thermal_limits">Changing thermal limits</string>
+    <string name="ns_ram_boost">Freeing other apps\' RAM</string>
+
+    <string name="profiles_unsupported_title">Why no system-wide optimization?</string>
+    <string name="profiles_unsupported_body">Android does not let normal apps change CPU/GPU frequencies, process priorities or thermal limits. NexusGameBooster changes only its own behavior and tells you what to change yourself — it never labels a recommendation as an applied optimization.</string>
+    <string name="profiles_footnote">* Recommendations need your action. Rows under “Not supported” are impossible for normal apps and are never claimed.</string>
+    <string name="profile_save_failed">Couldn\'t save your profile choice. Your previous profile is still active. Try again.</string>
+    <string name="custom_profiles_title">Custom profiles</string>
+    <string name="custom_profiles_empty">Not available yet — planned for a later phase</string>
+
+    <!-- Profile monitoring-policy details (Phase 7 — collapsible rows per profile card) -->
+    <string name="profiles_policy_title">Monitoring policy</string>
+    <string name="profiles_policy_in_app_on">In-app monitoring: on</string>
+    <string name="profiles_policy_in_app_off">In-app monitoring: off</string>
+    <string name="profiles_policy_live_on">Live battery events: on</string>
+    <string name="profiles_policy_live_off">Live battery events: off</string>
+    <string name="profiles_policy_keep_screen_on_off">Screen stays on while Monitor is open: off</string>
+    <string name="profiles_active_chip">Active</string>
+    <string name="profiles_policy_show">Show monitoring details</string>
+    <string name="profiles_policy_hide">Hide monitoring details</string>
+
+    <!-- Settings -->
+    <string name="settings_headline">Settings</string>
+    <string name="settings_section_language">Language</string>
+    <string name="settings_language_en">English</string>
+    <string name="settings_language_fa">فارسی</string>
+    <string name="settings_language_system">System default</string>
+    <string name="settings_language_note">“System default” follows your device language.</string>
+    <string name="settings_a11y_selected">Selected</string>
+    <string name="settings_a11y_not_selected">Not selected</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_dark_navy">Dark Navy</string>
+    <string name="settings_theme_amoled">AMOLED Black</string>
+    <string name="settings_theme_note">Applied immediately and saved for the next launch. There is no light theme.</string>
+    <string name="settings_reduce_motion">Reduce motion</string>
+    <string name="settings_reduce_motion_note">Reduces non-essential motion. Saved immediately.</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_app_id">Application ID</string>
+    <string name="settings_permissions">Permissions</string>
+    <string name="settings_permissions_value">None — this app requests zero permissions</string>
+    <string name="settings_visible_apps">Installed apps visible to NexusGameBooster</string>
+    <string name="settings_visible_apps_value">%1$d (launcher apps only)</string>
+    <string name="settings_reset">Reset app data</string>
+    <string name="settings_reset_title">Reset app data?</string>
+    <string name="settings_reset_body">Clears language, theme, reduce-motion, the selected profile, your game library and the boost history.</string>
+    <string name="settings_reset_confirm">Reset</string>
+
+    <!-- Accessibility labels (Phase 7) -->
+    <string name="a11y_expanded">Expanded</string>
+    <string name="a11y_collapsed">Collapsed</string>
+    <string name="a11y_open_report">Open boost report</string>
+    <string name="a11y_open_game_details">Open game details</string>
+</resources>
