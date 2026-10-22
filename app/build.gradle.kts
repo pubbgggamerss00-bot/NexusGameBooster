@@ -17,8 +17,8 @@ android {
         applicationId = "com.nexus.gamebooster"
         minSdk = 26
         targetSdk = 35
-        versionCode = 8
-        versionName = "0.8.0"
+        versionCode = 9
+        versionName = "0.9.0-shizuku"
     }
 
     // ---------------------------------------------------------------------------
@@ -122,6 +122,10 @@ dependencies {
 
     // Boost report persistence (Phase 5): @Serializable models encoded to JSON in DataStore.
     implementation(libs.kotlinx.serialization.json)
+
+    // Phase 9 — real aggressive booster via Shizuku (ADB-level privileges, no full root).
+    implementation(libs.shizuku.api)
+    implementation(libs.shizuku.provider)
 
     // IDE preview rendering only.
     debugImplementation(libs.androidx.compose.ui.tooling)

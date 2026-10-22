@@ -64,6 +64,9 @@ object UnavailableReasons {
 
     /** The target settings screen does not exist on this device (ActivityNotFound). */
     const val NO_SETTINGS_SCREEN = "no_settings_screen"
+
+    /** Phase 9: action needs Shizuku (binder up + permission granted) and it is not ready. */
+    const val SHIZUKU_REQUIRED = "shizuku_required"
 }
 
 /** Stable keys for thermal status labels, localized by the UI layer. */

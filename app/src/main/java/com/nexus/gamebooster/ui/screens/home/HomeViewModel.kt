@@ -16,6 +16,7 @@ import com.nexus.gamebooster.monitoring.ThermalHeadroomSnapshot
 import com.nexus.gamebooster.monitoring.ThermalSnapshot
 import com.nexus.gamebooster.profiles.PerformanceProfile
 import com.nexus.gamebooster.profiles.ProfileRepository
+import com.nexus.gamebooster.shizuku.ShizukuPrivilege
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,6 +53,8 @@ data class HomeUiState(
     val gameCount: Int = 0,
     val activityLog: List<ActivityEntry> = emptyList(),
     val isRefreshing: Boolean = false,
+    /** Phase 9: live Shizuku privilege status for the Home status card. */
+    val shizukuStatus: ShizukuPrivilege.Status = ShizukuPrivilege.Status.NOT_RUNNING,
 )
 
 /**
@@ -69,6 +72,7 @@ class HomeViewModel(
     private val deviceInfoRepository: DeviceInfoRepository,
     private val gameRepository: GameRepository,
     private val profileRepository: ProfileRepository,
+    private val shizukuPrivilege: ShizukuPrivilege,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState(profiles = profileRepository.profiles))
@@ -98,7 +102,25 @@ class HomeViewModel(
             }
         }
 
+        // Phase 9: live Shizuku status (binder + permission).
+        viewModelScope.launch {
+            shizukuPrivilege.status.collect { status ->
+                _uiState.update { it.copy(shizukuStatus = status) }
+            }
+        }
+
         refresh()
+    }
+
+    /** Opens the Shizuku permission dialog when binder is up and permission is missing. */
+    fun requestShizukuPermission() {
+        shizukuPrivilege.requestPermission()
+        shizukuPrivilege.refreshStatus()
+    }
+
+    /** Re-check binder / permission (e.g. after user returns from Shizuku app). */
+    fun refreshShizukuStatus() {
+        shizukuPrivilege.refreshStatus()
     }
 
     /** One-shot read of the monitoring repository (button or first entry into the screen). */

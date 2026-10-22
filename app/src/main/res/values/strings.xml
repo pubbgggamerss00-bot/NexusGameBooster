@@ -325,4 +325,22 @@
     <string name="a11y_collapsed">Collapsed</string>
     <string name="a11y_open_report">Open boost report</string>
     <string name="a11y_open_game_details">Open game details</string>
+
+    <!-- Phase 9 — Shizuku real booster -->
+    <string name="reason_shizuku_required">Requires Shizuku (start Shizuku and grant permission)</string>
+    <string name="boost_action_force_stop_background">Force-stop background apps</string>
+    <string name="boost_action_protect_game">Protect game from battery limits</string>
+    <string name="boost_action_free_memory">Free system caches</string>
+    <string name="boost_action_compile_game">Compile game (ART speed-profile)</string>
+    <string name="boost_action_system_tweaks">Disable animations</string>
+    <string name="shizuku_status_not_running">Shizuku is not running</string>
+    <string name="shizuku_status_permission_required">Shizuku permission required</string>
+    <string name="shizuku_status_ready">Shizuku ready — real boost available</string>
+    <string name="shizuku_request_permission">Grant Shizuku permission</string>
+
+    <string name="shizuku_card_title">Shizuku privilege</string>
+    <string name="shizuku_refresh_status">Check again</string>
+    <string name="boost_detail_none_to_stop">Nothing to stop — background is already clear</string>
+    <string name="boost_detail_partial_protect">Game protection partially applied</string>
+    <string name="boost_detail_stopped_apps">Stopped %1$d background apps</string>
 </resources>

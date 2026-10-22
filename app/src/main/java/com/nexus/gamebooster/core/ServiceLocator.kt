@@ -17,10 +17,16 @@ import com.nexus.gamebooster.optimizer.BoostPrecheckCollector
 import com.nexus.gamebooster.optimizer.actions.AndroidBoostExplicitActions
 import com.nexus.gamebooster.optimizer.actions.ApplyProfileAction
 import com.nexus.gamebooster.optimizer.actions.BoostExplicitActions
+import com.nexus.gamebooster.optimizer.actions.CompileGameAction
+import com.nexus.gamebooster.optimizer.actions.ForceStopBackgroundAction
+import com.nexus.gamebooster.optimizer.actions.FreeMemoryAction
 import com.nexus.gamebooster.optimizer.actions.PrepareGameLaunchAction
+import com.nexus.gamebooster.optimizer.actions.ProtectGameAction
 import com.nexus.gamebooster.optimizer.actions.SessionMonitoringAction
+import com.nexus.gamebooster.optimizer.actions.SystemTweaksAction
 import com.nexus.gamebooster.profiles.ProfileRepository
 import com.nexus.gamebooster.profiles.StaticProfileRepository
+import com.nexus.gamebooster.shizuku.ShizukuPrivilege
 import com.nexus.gamebooster.ui.screens.home.BoostViewModel
 import com.nexus.gamebooster.ui.screens.home.HomeViewModel
 import com.nexus.gamebooster.ui.screens.library.LibraryViewModel
@@ -71,6 +77,11 @@ object ServiceLocator {
      */
     val sessionMonitorController = SessionMonitorController()
 
+    /**
+     * Phase 9 — Shizuku bridge. Started in [init]; status is observable for the UI.
+     */
+    val shizukuPrivilege = ShizukuPrivilege()
+
     /** User-explicit boost actions (battery settings / game details / launch) — app context based. */
     val boostExplicitActions: BoostExplicitActions by lazy {
         AndroidBoostExplicitActions(appContext, gameLauncher)
@@ -91,18 +102,33 @@ object ServiceLocator {
         )
         monitoringRepository = SystemMonitoringRepository(appContext)
         profileRepository = StaticProfileRepository()
+        shizukuPrivilege.start()
     }
 
     /**
-     * Builds the boost engine for ONE run. The auto-run actions are fixed EXCEPT the
-     * game-launch preparation, which carries the request-scoped game package chosen by
-     * the BoostViewModel. The user-explicit actions ([BoostExplicitActions]) are
-     * deliberately NOT part of this list — they run only on explicit user taps.
+     * Builds the boost engine for ONE run.
+     *
+     * Phase 9 order (aggressive):
+     *  1. Apply in-app profile (legacy)
+     *  2. Session monitoring mode (legacy, in-app only)
+     *  3. Force-stop background launchables (Shizuku)
+     *  4. Protect target game from battery/Doze (Shizuku)
+     *  5. Trim system caches (Shizuku)
+     *  6. ART compile target game (Shizuku)
+     *  7. Disable animation scales (Shizuku)
+     *  8. Prepare launch (resolve only — actual launch stays user-explicit)
+     *
+     * Actions that need Shizuku return Unsupported when it is not ready — never fake success.
      */
     fun boostEngine(gamePackageName: String?): BoostEngine = DefaultBoostEngine(
         autoActions = listOf(
             ApplyProfileAction(profileRepository, settingsRepository),
             SessionMonitoringAction(sessionMonitorController),
+            ForceStopBackgroundAction(appContext, shizukuPrivilege, gamePackageName),
+            ProtectGameAction(shizukuPrivilege, gamePackageName),
+            FreeMemoryAction(shizukuPrivilege),
+            CompileGameAction(shizukuPrivilege, gamePackageName),
+            SystemTweaksAction(shizukuPrivilege),
             PrepareGameLaunchAction(gameLauncher, gamePackageName),
         ),
     )
@@ -116,6 +142,7 @@ object ServiceLocator {
             deviceInfoRepository = deviceInfoRepository,
             gameRepository = gameRepository,
             profileRepository = profileRepository,
+            shizukuPrivilege = shizukuPrivilege,
         )
 
     fun boostViewModel(): BoostViewModel =

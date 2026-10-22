@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.DeviceThermostat
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Memory
+import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.Tune
@@ -34,6 +35,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.DisposableEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -66,6 +71,7 @@ import com.nexus.gamebooster.monitoring.thermalRows
 import com.nexus.gamebooster.optimizer.BoostReport
 import com.nexus.gamebooster.optimizer.BoostStatus
 import com.nexus.gamebooster.profiles.PerformanceProfile
+import com.nexus.gamebooster.shizuku.ShizukuPrivilege
 import com.nexus.gamebooster.ui.components.BoostCard
 import com.nexus.gamebooster.ui.components.MapperMetricRow
 import com.nexus.gamebooster.ui.components.MetricRow
@@ -147,10 +153,28 @@ fun HomeScreen(onOpenLibrary: () -> Unit = {}) {
         boostVm.logEvents.collect { event -> vm.onBoostLogEvent(event) }
     }
 
+    // Re-check Shizuku when user returns from the Shizuku manager app.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                vm.refreshShizukuStatus()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     NgbScreenContainer {
         NgbHero()
         Spacer(Modifier.height(16.dp))
         DeviceCard(facts = state.deviceFacts)
+        Spacer(Modifier.height(16.dp))
+        ShizukuStatusCard(
+            status = state.shizukuStatus,
+            onRequestPermission = vm::requestShizukuPermission,
+            onRefresh = vm::refreshShizukuStatus,
+        )
         Spacer(Modifier.height(16.dp))
         BoostCard(
             label = boostButtonLabel(boostState),
@@ -223,6 +247,56 @@ private fun boostButtonColor(state: BoostUiState) = when (state.status) {
     BoostStatus.CANCELLED -> MaterialTheme.colorScheme.onSurfaceVariant
     BoostStatus.FAILED -> MaterialTheme.colorScheme.error
     null -> MaterialTheme.colorScheme.primary
+}
+
+/**
+ * Phase 9: honest Shizuku status card.
+ * - NOT_RUNNING → tell user to start Shizuku
+ * - PERMISSION_REQUIRED → button to request grant
+ * - READY → confirm real boost is available
+ */
+@Composable
+private fun ShizukuStatusCard(
+    status: ShizukuPrivilege.Status,
+    onRequestPermission: () -> Unit,
+    onRefresh: () -> Unit,
+) {
+    val (titleRes, color) = when (status) {
+        ShizukuPrivilege.Status.READY ->
+            R.string.shizuku_status_ready to MaterialTheme.colorScheme.primary
+        ShizukuPrivilege.Status.PERMISSION_REQUIRED ->
+            R.string.shizuku_status_permission_required to MaterialTheme.colorScheme.secondary
+        ShizukuPrivilege.Status.NOT_RUNNING ->
+            R.string.shizuku_status_not_running to MaterialTheme.colorScheme.error
+    }
+    SectionCard(
+        title = stringResource(R.string.shizuku_card_title),
+        icon = Icons.Outlined.Security,
+    ) {
+        Text(
+            text = stringResource(titleRes),
+            style = MaterialTheme.typography.bodyMedium,
+            color = color,
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            when (status) {
+                ShizukuPrivilege.Status.PERMISSION_REQUIRED -> {
+                    TextButton(onClick = onRequestPermission) {
+                        Text(stringResource(R.string.shizuku_request_permission))
+                    }
+                }
+                ShizukuPrivilege.Status.NOT_RUNNING -> {
+                    TextButton(onClick = onRefresh) {
+                        Text(stringResource(R.string.shizuku_refresh_status))
+                    }
+                }
+                ShizukuPrivilege.Status.READY -> {
+                    // No action needed — status text already confirms readiness.
+                }
+            }
+        }
+    }
 }
 
 @Composable

@@ -21,6 +21,13 @@ object BoostActionIds {
     const val OPEN_BATTERY_SETTINGS = "open_battery_settings"
     const val OPEN_GAME_DETAILS = "open_game_details"
     const val LAUNCH_GAME = "launch_game"
+
+    // Phase 9 — real aggressive actions (require Shizuku)
+    const val FORCE_STOP_BACKGROUND = "force_stop_background"
+    const val PROTECT_GAME = "protect_game"
+    const val FREE_MEMORY = "free_memory"
+    const val COMPILE_GAME = "compile_game"
+    const val SYSTEM_TWEAKS = "system_tweaks"
 }
 
 /**

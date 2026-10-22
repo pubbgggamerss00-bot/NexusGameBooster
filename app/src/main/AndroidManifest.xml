@@ -2,16 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!--
-      Honesty contract (kept from Phase 1): this app declares ZERO permissions.
-      No INTERNET, no storage, no location, nothing. Battery / thermal / memory
-      readings use permission-free standard Android APIs only.
-
-      Phase 2 visibility strategy: to show the user the launchable apps installed
-      on the device, we declare the <queries> intent filter below (apps with a
-      MAIN/LAUNCHER intent become visible). This is the Play-policy-compliant
-      alternative to requesting visibility of every installed package — such a broad
-      permission is deliberately NOT declared. The app therefore sees ONLY launchable
-      apps, never every installed package.
+      Phase 9: Still zero *dangerous* runtime permissions.
+      Shizuku provides elevated APIs via its own binder; the provider below is
+      required by the Shizuku library so the manager can grant this app access.
+      Package visibility still limited to LAUNCHER apps (no QUERY_ALL_PACKAGES).
     -->
 
     <queries>
@@ -19,6 +13,8 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
+        <!-- So we can detect whether the Shizuku manager is installed -->
+        <package android:name="moe.shizuku.privileged.api" />
     </queries>
 
     <application
@@ -29,6 +25,15 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.NexusGameBooster">
+
+        <!-- Required by Shizuku library (provider for permission grants). -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:multiprocess="false"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
 
         <activity
             android:name=".MainActivity"

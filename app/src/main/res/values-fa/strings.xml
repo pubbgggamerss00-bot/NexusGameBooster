@@ -325,4 +325,22 @@
     <string name="a11y_collapsed">بسته</string>
     <string name="a11y_open_report">باز کردن گزارش بوست</string>
     <string name="a11y_open_game_details">باز کردن جزئیات بازی</string>
+
+    <!-- Phase 9 — Shizuku real booster -->
+    <string name="reason_shizuku_required">نیاز به شیزوکو (شیزوکو را روشن کنید و مجوز بدهید)</string>
+    <string name="boost_action_force_stop_background">بستن اجباری برنامه‌های پس‌زمینه</string>
+    <string name="boost_action_protect_game">محافظت بازی از محدودیت باتری</string>
+    <string name="boost_action_free_memory">آزادسازی کش سیستم</string>
+    <string name="boost_action_compile_game">کامپایل بازی (ART speed-profile)</string>
+    <string name="boost_action_system_tweaks">خاموش کردن انیمیشن‌ها</string>
+    <string name="shizuku_status_not_running">شیزوکو در حال اجرا نیست</string>
+    <string name="shizuku_status_permission_required">مجوز شیزوکو لازم است</string>
+    <string name="shizuku_status_ready">شیزوکو آماده — بوست واقعی فعال است</string>
+    <string name="shizuku_request_permission">اعطای مجوز شیزوکو</string>
+
+    <string name="shizuku_card_title">دسترسی شیزوکو</string>
+    <string name="shizuku_refresh_status">بررسی مجدد</string>
+    <string name="boost_detail_none_to_stop">چیزی برای بستن نیست — پس‌زمینه از قبل خالی است</string>
+    <string name="boost_detail_partial_protect">محافظت بازی به‌صورت نیمه‌کاره اعمال شد</string>
+    <string name="boost_detail_stopped_apps">%1$d برنامه پس‌زمینه بسته شد</string>
 </resources>

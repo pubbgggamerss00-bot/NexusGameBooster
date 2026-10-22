@@ -13,6 +13,7 @@ import com.nexus.gamebooster.optimizer.BoostActionIds
 import com.nexus.gamebooster.optimizer.BoostCheckKeys
 import com.nexus.gamebooster.optimizer.BoostCheckValues
 import com.nexus.gamebooster.optimizer.BoostDetailKeys
+import com.nexus.gamebooster.optimizer.actions.BoostDetailKeysExtra
 
 /**
  * A pending transient UI message (snackbar). [messageRes] is a string resource and
@@ -66,6 +67,7 @@ fun unavailableReasonLabel(reason: String): String = when (reason) {
     UnavailableReasons.GAME_NOT_FOUND -> stringResource(R.string.reason_game_not_found)
     UnavailableReasons.NO_LAUNCH_INTENT -> stringResource(R.string.reason_no_launch_intent)
     UnavailableReasons.NO_SETTINGS_SCREEN -> stringResource(R.string.reason_no_settings_screen)
+    UnavailableReasons.SHIZUKU_REQUIRED -> stringResource(R.string.reason_shizuku_required)
     else -> reason // Unknown key: show the raw value rather than inventing an explanation.
 }
 
@@ -167,13 +169,31 @@ fun boostActionLabel(actionId: String): String = when (actionId) {
     BoostActionIds.OPEN_BATTERY_SETTINGS -> stringResource(R.string.boost_action_open_battery_settings)
     BoostActionIds.OPEN_GAME_DETAILS -> stringResource(R.string.boost_action_open_game_details)
     BoostActionIds.LAUNCH_GAME -> stringResource(R.string.boost_action_launch_game)
+    BoostActionIds.FORCE_STOP_BACKGROUND -> stringResource(R.string.boost_action_force_stop_background)
+    BoostActionIds.PROTECT_GAME -> stringResource(R.string.boost_action_protect_game)
+    BoostActionIds.FREE_MEMORY -> stringResource(R.string.boost_action_free_memory)
+    BoostActionIds.COMPILE_GAME -> stringResource(R.string.boost_action_compile_game)
+    BoostActionIds.SYSTEM_TWEAKS -> stringResource(R.string.boost_action_system_tweaks)
     else -> actionId
 }
 
-/** Localized detail text for a [BoostDetailKeys] key; null/unknown → null (nothing extra shown). */
+/**
+ * Localized detail text for a [BoostDetailKeys] / Phase-9 detail key;
+ * null/unknown → null (nothing extra shown — never an invented explanation).
+ */
 @Composable
-fun boostDetailLabel(detailKey: String?): String? = when (detailKey) {
-    BoostDetailKeys.READY_TO_LAUNCH -> stringResource(R.string.boost_detail_ready_to_launch)
-    null -> null
+fun boostDetailLabel(detailKey: String?): String? = when {
+    detailKey == null -> null
+    detailKey == BoostDetailKeys.READY_TO_LAUNCH ->
+        stringResource(R.string.boost_detail_ready_to_launch)
+    detailKey == BoostDetailKeysExtra.NONE_TO_STOP ->
+        stringResource(R.string.boost_detail_none_to_stop)
+    detailKey == BoostDetailKeysExtra.PARTIAL_PROTECT ->
+        stringResource(R.string.boost_detail_partial_protect)
+    // Phase 9 ForceStopBackgroundAction encodes the real stop count as "stopped_<n>".
+    detailKey.startsWith("stopped_") ->
+        detailKey.removePrefix("stopped_").toIntOrNull()?.let { count ->
+            stringResource(R.string.boost_detail_stopped_apps, count)
+        }
     else -> null
 }
