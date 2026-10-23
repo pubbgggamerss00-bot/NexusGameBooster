@@ -5,9 +5,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.NetworkCheck
 import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.NetworkCheck
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material.icons.outlined.SportsEsports
@@ -48,6 +50,12 @@ enum class NgbDestination(
         route = "profiles",
         outlinedIcon = Icons.Outlined.Tune,
         filledIcon = Icons.Filled.Tune,
+    ),
+    Ping(
+        labelRes = R.string.nav_ping,
+        route = "ping",
+        outlinedIcon = Icons.Outlined.NetworkCheck,
+        filledIcon = Icons.Filled.NetworkCheck,
     ),
     Settings(
         labelRes = R.string.nav_settings,

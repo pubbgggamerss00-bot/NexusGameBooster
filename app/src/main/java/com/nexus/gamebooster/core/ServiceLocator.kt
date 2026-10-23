@@ -136,7 +136,7 @@ object ServiceLocator {
         autoActions = listOf(
             ApplyProfileAction(profileRepository, settingsRepository),
             SessionMonitoringAction(sessionMonitorController),
-            ForceStopBackgroundAction(appContext, shizukuPrivilege, gamePackageName),
+            ForceStopBackgroundAction(shizukuPrivilege, gamePackageName),
             ProtectGameAction(shizukuPrivilege, gamePackageName, settingsRepository),
             FreeMemoryAction(shizukuPrivilege),
             CompileGameAction(shizukuPrivilege, gamePackageName, changeLedger = settingsRepository),

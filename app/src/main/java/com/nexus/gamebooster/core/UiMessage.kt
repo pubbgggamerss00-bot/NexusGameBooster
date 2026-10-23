@@ -68,6 +68,8 @@ fun unavailableReasonLabel(reason: String): String = when (reason) {
     UnavailableReasons.NO_LAUNCH_INTENT -> stringResource(R.string.reason_no_launch_intent)
     UnavailableReasons.NO_SETTINGS_SCREEN -> stringResource(R.string.reason_no_settings_screen)
     UnavailableReasons.SHIZUKU_REQUIRED -> stringResource(R.string.reason_shizuku_required)
+    UnavailableReasons.ACTION_DISABLED_FOR_SAFETY ->
+        stringResource(R.string.reason_action_disabled_for_safety)
     else -> reason // Unknown key: show the raw value rather than inventing an explanation.
 }
 

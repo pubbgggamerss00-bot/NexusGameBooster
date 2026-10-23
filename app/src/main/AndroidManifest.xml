@@ -2,11 +2,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!--
-      Phase 9: Still zero *dangerous* runtime permissions.
-      Shizuku provides elevated APIs via its own binder; the provider below is
-      required by the Shizuku library so the manager can grant this app access.
+      Phase 10.5 (network tools): the app's FIRST non-dangerous uses-permissions.
+      INTERNET: DNS latency test + WireGuard tunnel + DNS-forwarding VPN.
+      FOREGROUND_SERVICE(_SPECIAL_USE): the DNS-only VPN runs as a specialUse
+      foreground service (declared subtype "DNS-only VPN tunnel"). There are still
+      zero *dangerous* runtime permissions — nothing is asked at install time
+      beyond these normal-grade entries.
+
+      Phase 9: Shizuku provides elevated APIs via its own binder; the provider below
+      is required by the Shizuku library so the manager can grant this app access.
       Package visibility still limited to LAUNCHER apps (no QUERY_ALL_PACKAGES).
     -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <queries>
         <intent>
@@ -20,6 +29,8 @@
     <application
         android:name=".NexusGameBoosterApp"
         android:allowBackup="true"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -43,6 +54,25 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+          Phase 10.5: DNS-only VPN (Ping Good tab → Change DNS).
+          Routes ONLY 10.111.0.2/32 into the tunnel; ordinary traffic never enters.
+          BIND_VPN_SERVICE is held by the system, not requested from the user;
+          the user consents through the standard VpnService.prepare dialog.
+        -->
+        <service
+            android:name=".network.DnsForwardingVpnService"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:exported="true"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="DNS-only VPN tunnel" />
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

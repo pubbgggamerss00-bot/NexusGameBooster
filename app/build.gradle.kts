@@ -17,8 +17,8 @@ android {
         applicationId = "com.nexus.gamebooster"
         minSdk = 26
         targetSdk = 35
-        versionCode = 11
-        versionName = "0.10.0-restore"
+        versionCode = 12
+        versionName = "0.10.0-network-tools"
     }
 
     // ---------------------------------------------------------------------------
@@ -79,6 +79,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Phase 10.5: WireGuard tunnel + network code uses java.time-like APIs on minSdk 26.
+        isCoreLibraryDesugaringEnabled = true
     }
     kotlinOptions {
         jvmTarget = "17"
@@ -126,6 +128,10 @@ dependencies {
     // Phase 9 — real aggressive booster via Shizuku (ADB-level privileges, no full root).
     implementation(libs.shizuku.api)
     implementation(libs.shizuku.provider)
+
+    // Phase 10.5 — network tools: official embeddable WireGuard tunnel (GoBackend)
+    implementation(libs.wireguard.tunnel)
+    coreLibraryDesugaring(libs.core.library.desugaring)
 
     // IDE preview rendering only.
     debugImplementation(libs.androidx.compose.ui.tooling)

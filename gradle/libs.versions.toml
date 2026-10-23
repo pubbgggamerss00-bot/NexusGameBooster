@@ -12,6 +12,10 @@ junit = "4.13.2"
 coroutinesTest = "1.8.1"
 # Shizuku — privileged ADB-level APIs without full root (Phase 9 real booster)
 shizuku = "13.1.5"
+# WireGuard embeddable tunnel library (Phase 10.5 network tools) — Apache-2.0,
+# see THIRD_PARTY_NOTICES.md. Version pinned as shipped by the 0.10.0 zip.
+wireguardTunnel = "1.0.20260102"
+desugar = "2.1.4"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -31,6 +35,10 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 # Shizuku (Phase 9): elevated shell / system APIs for real game boost
 shizuku-api = { group = "dev.rikka.shizuku", name = "api", version.ref = "shizuku" }
 shizuku-provider = { group = "dev.rikka.shizuku", name = "provider", version.ref = "shizuku" }
+
+# Phase 10.5 — network tools: official WireGuard tunnel (GoBackend) + core library desugaring
+wireguard-tunnel = { group = "com.wireguard.android", name = "tunnel", version.ref = "wireguardTunnel" }
+core-library-desugaring = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugar" }
 
 # Unit-test only (JVM). These never enter the APK.
 junit = { group = "junit", name = "junit", version.ref = "junit" }

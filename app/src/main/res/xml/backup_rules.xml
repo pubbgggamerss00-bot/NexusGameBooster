@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <exclude domain="file" path="wireguard-profiles/" />
+    <exclude domain="file" path="wireguard-profile.conf" />
+    <exclude domain="file" path="wireguard-profile.conf.tmp" />
+</full-backup-content>

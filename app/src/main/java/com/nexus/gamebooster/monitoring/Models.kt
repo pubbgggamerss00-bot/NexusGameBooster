@@ -67,6 +67,9 @@ object UnavailableReasons {
 
     /** Phase 9: action needs Shizuku (binder up + permission granted) and it is not ready. */
     const val SHIZUKU_REQUIRED = "shizuku_required"
+
+    /** Phase 10.5 (from the 0.10.0 zip): aggressive action disabled until an explicit per-app consent screen exists. */
+    const val ACTION_DISABLED_FOR_SAFETY = "action_disabled_for_safety"
 }
 
 /** Stable keys for thermal status labels, localized by the UI layer. */

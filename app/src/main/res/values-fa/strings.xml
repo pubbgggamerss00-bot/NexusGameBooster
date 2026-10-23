@@ -349,7 +349,7 @@
     <string name="shizuku_msg_need_start">اپ شیزوکو باز می‌شود. آنجا Start را بزنید (اشکال‌زدایی بی‌سیم یا USB)، سپس برگردید — مجوز به‌صورت خودکار درخواست می‌شود.</string>
     <string name="shizuku_msg_open_shizuku_button">باز کردن اپ شیزوکو</string>
     <string name="shizuku_guide_inactive">شیزوکو فعال نیست. روی فعال‌سازی بزنید: اگر نصب نباشد به گوگل‌پلی می‌روید؛ اگر نصب باشد اپ شیزوکو باز می‌شود تا Start کنید.</string>
-    <string name="shizuku_guide_permission">شیزوکو در حال اجراست. مجوز بدهید تا بوست کامل (بستن پس‌زمینه، محافظت بازی، کامپایل، آزادسازی رم) فعال شود.</string>
+    <string name="shizuku_guide_permission">شیزوکو در حال اجراست. مجوز بدهید تا بوست (محافظت بازی، کامپایل، آزادسازی رم، تنظیم انیمیشن‌ها) فعال شود.</string>
     <string name="boost_detail_none_to_stop">چیزی برای بستن نیست — پس‌زمینه از قبل خالی است</string>
     <string name="boost_detail_partial_protect">محافظت بازی به‌صورت نیمه‌کاره اعمال شد</string>
     <string name="boost_detail_stopped_apps">%1$d برنامه پس‌زمینه بسته شد</string>
@@ -391,4 +391,48 @@
     <string name="settings_restore_reason_shizuku_required">شیزوکو لازم است</string>
     <string name="settings_restore_note">بستن برنامه‌های پس‌زمینه و آزادسازی حافظه پنهان موقتی است — سیستم خودش آن‌ها را برمی‌گرداند، بنابراین در این فهرست نیستند.</string>
     <string name="settings_restore_reset_note">«بازنشانی داده‌های برنامه» در پایین، این فهرست را نیز فراموش می‌کند.</string>
+
+    <!-- Phase 10.5 — network tools (Ping Good tab): reason + WireGuard + DNS changer -->
+    <string name="reason_action_disabled_for_safety">برای حفظ ایمنی غیرفعال است؛ تا زمانی که صفحهٔ بررسی و تأیید جداگانهٔ برنامه‌ها اضافه شود.</string>
+
+    <!-- Network tools: WireGuard + DNS Changer -->
+    <string name="nav_ping">پینگ خوب</string>
+    <string name="ping_title">پینگ خوب</string>
+    <string name="ping_subtitle">ابزارهای واقعی اتصال شبکه</string>
+    <string name="ping_tab_wireguard">وایرگارد</string>
+    <string name="ping_tab_dns">تغییر DNS</string>
+    <string name="ping_vpn_conflict">اندروید هم‌زمان فقط یک VPN را فعال نگه می‌دارد. پیش از ادامه، VPN دیگر را قطع کنید.</string>
+    <string name="wg_title">VPN وایرگارد</string>
+    <string name="wg_desc">فایل تنظیمات واقعی ‎.conf‎ وایرگارد را وارد کنید و با موتور رسمی تونل وایرگارد متصل شوید.</string>
+    <string name="wg_import">واردکردن فایل ‎.conf‎</string>
+    <string name="wg_no_profile">هنوز پروفایل وایرگاردی وارد نشده است.</string>
+    <string name="wg_profile_ready">پروفایل وایرگارد وارد و اعتبارسنجی شد</string>
+    <string name="wg_connect">اتصال تونل</string>
+    <string name="wg_disconnect">قطع اتصال تونل</string>
+    <string name="wg_connected">متصل</string>
+    <string name="wg_disconnected">قطع‌شده</string>
+    <string name="wg_working">در حال انجام…</string>
+    <string name="wg_import_success">تنظیمات وارد و اعتبارسنجی شد.</string>
+    <string name="wg_import_error">واردکردن تنظیمات ناموفق بود: %1$s</string>
+    <string name="wg_connect_error">اتصال وایرگارد ناموفق بود: %1$s</string>
+    <string name="wg_connect_success">تونل وایرگارد فعال است.</string>
+    <string name="wg_disconnect_success">تونل وایرگارد قطع شد.</string>
+    <string name="dns_title">تغییر DNS</string>
+    <string name="dns_desc">سرورهای پیش‌فرض DNS را با اینترنت فعلی آزمایش کنید، یکی را انتخاب و سپس متصل شوید.</string>
+    <string name="dns_test_all">تست همه DNSها</string>
+    <string name="dns_testing">در حال آزمایش DNSها…</string>
+    <string name="dns_select_hint">آزمایش را اجرا و یک DNS انتخاب کنید تا دکمه اتصال فعال شود.</string>
+    <string name="dns_connect">اتصال DNS</string>
+    <string name="dns_disconnect">قطع اتصال DNS</string>
+    <string name="dns_latency">%1$d میلی‌ثانیه</string>
+    <string name="dns_failed">ناموفق / پایان مهلت</string>
+    <string name="dns_connected">تونل DNS متصل است</string>
+    <string name="dns_disconnected">تونل DNS قطع شد</string>
+    <string name="dns_test_error">آزمایش ناموفق بود: %1$s</string>
+    <string name="dns_provider_detail">سرور: %1$s</string>
+    <string name="dns_note">این آزمایش زمان پاسخ DNS را می‌سنجد، نه پینگ داخل بازی. تونل فعلی فقط DNS روی IPv4/UDP را هدایت می‌کند؛ DNS رمزگذاری‌شدهٔ برنامه‌ها یا Private DNS اندروید ممکن است از این مسیر عبور نکند. برای DNS روی TCP/IPv6 هنوز پشتیبانی کامل وجود ندارد.</string>
+    <string name="dns_vpn_session">تغییر DNS در Nexus</string>
+    <string name="dns_vpn_channel">اتصال DNS</string>
+    <string name="dns_vpn_notification_title">تغییر DNS در Nexus فعال است</string>
+    <string name="dns_vpn_notification_text">درخواست‌های DNS از سرور انتخاب‌شده عبور می‌کنند.</string>
 </resources>

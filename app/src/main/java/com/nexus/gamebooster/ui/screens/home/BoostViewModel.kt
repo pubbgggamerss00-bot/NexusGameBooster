@@ -147,10 +147,12 @@ class BoostViewModel(
             }
             log(R.string.activity_boost_started)
 
-            // Target game: the first library entry that has a launchable package.
-            // Nothing here changes the library — it only picks the boost's focus.
+            // Never pick an arbitrary game. Boost only when the library has exactly
+            // one launchable package; otherwise avoid running game-specific actions
+            // against a random app. A future selector can pass the chosen package here.
             val games = gameRepository.games.value
-            val targetGame = games.firstOrNull { it.packageName != null }
+            val launchableGames = games.filter { !it.packageName.isNullOrBlank() && it.launchable }
+            val targetGame = launchableGames.singleOrNull()
             targetPackageName = targetGame?.packageName
             val request = BoostRequest(gameId = targetGame?.id, gameName = targetGame?.name)
 

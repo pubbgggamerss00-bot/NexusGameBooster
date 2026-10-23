@@ -247,6 +247,10 @@ class BoostViewModelTest {
     @Test
     fun retry_afterCompleted_isBlocked() = runTest(mainDispatcherRule.testDispatcher) {
         awaitLibrarySeeded()
+        // Phase 10.5 (network-tools update): the boost targets the library's single
+        // LAUNCHABLE game — the catalog must be hydrated first (same pattern as the
+        // other real-engine test below), otherwise launchable is still false.
+        gameRepository.refreshInstalledApps()
         val vm = newViewModel()
         vm.startBoost()
         vm.uiState.first { it.phase == BoostPhase.FINISHED }

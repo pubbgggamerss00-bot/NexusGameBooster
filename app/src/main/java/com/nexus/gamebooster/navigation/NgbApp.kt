@@ -38,6 +38,7 @@ import com.nexus.gamebooster.ui.motion.LocalNgbMotionEnabled
 import com.nexus.gamebooster.ui.screens.home.HomeScreen
 import com.nexus.gamebooster.ui.screens.library.LibraryScreen
 import com.nexus.gamebooster.ui.screens.monitor.MonitorScreen
+import com.nexus.gamebooster.ui.screens.network.PingGoodScreen
 import com.nexus.gamebooster.ui.screens.profiles.ProfilesScreen
 import com.nexus.gamebooster.ui.screens.settings.SettingsScreen
 import com.nexus.gamebooster.ui.theme.NexusBoosterTheme
@@ -164,6 +165,7 @@ private fun NgbRoot() {
             composable(NgbDestination.Library.route) { LibraryScreen() }
             composable(NgbDestination.Monitor.route) { MonitorScreen() }
             composable(NgbDestination.Profiles.route) { ProfilesScreen() }
+            composable(NgbDestination.Ping.route) { PingGoodScreen() }
             composable(NgbDestination.Settings.route) { SettingsScreen() }
         }
     }

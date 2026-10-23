@@ -349,7 +349,7 @@
     <string name="shizuku_msg_need_start">Opening Shizuku. Tap Start there (Wireless debugging or USB), then return here — permission will be requested automatically.</string>
     <string name="shizuku_msg_open_shizuku_button">Open Shizuku app</string>
     <string name="shizuku_guide_inactive">Shizuku is not active. Tap Activate: if Shizuku is missing you will go to Google Play to install it; if it is installed the Shizuku app opens so you can Start the service.</string>
-    <string name="shizuku_guide_permission">Shizuku is running. Grant permission so this app can use full boost (force-stop, protect game, compile, free RAM).</string>
+    <string name="shizuku_guide_permission">Shizuku is running. Grant permission so this app can use boost (protect game, compile, free RAM, animation tweaks).</string>
     <string name="boost_detail_none_to_stop">Nothing to stop — background is already clear</string>
     <string name="boost_detail_partial_protect">Game protection partially applied</string>
     <string name="boost_detail_stopped_apps">Stopped %1$d background apps</string>
@@ -391,4 +391,48 @@
     <string name="settings_restore_reason_shizuku_required">Shizuku required</string>
     <string name="settings_restore_note">Force-stopped apps and freed caches are temporary — the system brings them back on its own, so they are not listed here.</string>
     <string name="settings_restore_reset_note">“Reset app data” below also forgets this record list.</string>
+
+    <!-- Phase 10.5 — network tools (Ping Good tab): reason + WireGuard + DNS changer -->
+    <string name="reason_action_disabled_for_safety">Disabled for safety until you review and approve apps individually.</string>
+
+    <!-- Network tools: WireGuard + DNS Changer -->
+    <string name="nav_ping">Ping tools</string>
+    <string name="ping_title">Better ping</string>
+    <string name="ping_subtitle">Real network tools</string>
+    <string name="ping_tab_wireguard">WireGuard</string>
+    <string name="ping_tab_dns">DNS Changer</string>
+    <string name="ping_vpn_conflict">Android allows one active VPN at a time. Disconnect the other VPN before continuing.</string>
+    <string name="wg_title">WireGuard VPN</string>
+    <string name="wg_desc">Import a real WireGuard .conf profile, then connect through the official WireGuard tunnel engine.</string>
+    <string name="wg_import">Import .conf file</string>
+    <string name="wg_no_profile">No WireGuard profile imported yet.</string>
+    <string name="wg_profile_ready">WireGuard profile imported and validated</string>
+    <string name="wg_connect">Connect tunnel</string>
+    <string name="wg_disconnect">Disconnect tunnel</string>
+    <string name="wg_connected">Connected</string>
+    <string name="wg_disconnected">Disconnected</string>
+    <string name="wg_working">Working…</string>
+    <string name="wg_import_success">Configuration imported and validated.</string>
+    <string name="wg_import_error">Could not import configuration: %1$s</string>
+    <string name="wg_connect_error">WireGuard connection failed: %1$s</string>
+    <string name="wg_connect_success">WireGuard tunnel is active.</string>
+    <string name="wg_disconnect_success">WireGuard tunnel disconnected.</string>
+    <string name="dns_title">DNS Changer</string>
+    <string name="dns_desc">Test default DNS servers on your current internet connection, choose one, then connect.</string>
+    <string name="dns_test_all">Test all DNS servers</string>
+    <string name="dns_testing">Testing DNS servers…</string>
+    <string name="dns_select_hint">Run the test and select a DNS server to enable Connect.</string>
+    <string name="dns_connect">Connect DNS</string>
+    <string name="dns_disconnect">Disconnect DNS</string>
+    <string name="dns_latency">%1$d ms</string>
+    <string name="dns_failed">Failed / timeout</string>
+    <string name="dns_connected">DNS tunnel connected</string>
+    <string name="dns_disconnected">DNS tunnel disconnected</string>
+    <string name="dns_test_error">Test failed: %1$s</string>
+    <string name="dns_provider_detail">Resolver: %1$s</string>
+    <string name="dns_note">The test measures DNS response time, not in-game ping. The current tunnel routes IPv4/UDP DNS only; app-encrypted DNS or Android Private DNS may bypass it. TCP/IPv6 DNS is not fully supported yet.</string>
+    <string name="dns_vpn_session">Nexus DNS Changer</string>
+    <string name="dns_vpn_channel">DNS connection</string>
+    <string name="dns_vpn_notification_title">Nexus DNS Changer is active</string>
+    <string name="dns_vpn_notification_text">Routing DNS requests through the selected resolver.</string>
 </resources>
