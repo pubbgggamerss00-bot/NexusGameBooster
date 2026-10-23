@@ -1,8 +1,12 @@
 Nexus Game Booster — new version!
 
 What's new:
-• A "Check for updates" button in Settings — one tap shows whether you are on the latest version.
-• If a new version exists, you see what's new in plain language (no technical jargon).
-• One "Download & install" button gets the new version for you — no browser, no file manager, everything happens inside the app.
-• Android shows its own one-tap confirmation before installing (that's a system rule every app must follow).
-• The update check goes straight to GitHub releases — no accounts, no servers of ours.
+• The app now connects to your Nexus panel: sign in once with your access key and everything syncs automatically.
+• Your panel's DNS list appears in the DNS changer — pick one and connect, no test needed first.
+• WireGuard profiles from your panel are imported and kept up to date for you.
+• A manual refresh button plus automatic refresh every five minutes on the Ping Good screen.
+• If the server can't be reached, one tap retries — you won't be signed out.
+
+Important: this version is signed with a new key, so you must uninstall the old version once before installing this one. That step also resets in-app data.
+
+Still inside the app: the "Check for updates" button in Settings, plain-language release notes, and one-tap download & install — everything stays in the app.

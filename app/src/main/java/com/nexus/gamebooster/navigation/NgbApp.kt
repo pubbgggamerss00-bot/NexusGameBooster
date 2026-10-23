@@ -8,16 +8,23 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -39,6 +46,8 @@ import com.nexus.gamebooster.ui.screens.home.HomeScreen
 import com.nexus.gamebooster.ui.screens.library.LibraryScreen
 import com.nexus.gamebooster.ui.screens.monitor.MonitorScreen
 import com.nexus.gamebooster.ui.screens.network.PingGoodScreen
+import com.nexus.gamebooster.ui.screens.network.LicenseGateScreen
+import com.nexus.gamebooster.network.NexusApiClient
 import com.nexus.gamebooster.ui.screens.profiles.ProfilesScreen
 import com.nexus.gamebooster.ui.screens.settings.SettingsScreen
 import com.nexus.gamebooster.ui.theme.NexusBoosterTheme
@@ -95,6 +104,44 @@ fun NgbApp() {
 
 @Composable
 private fun NgbRoot() {
+    val context = LocalContext.current
+    val sessionInvalid by NexusApiClient.sessionInvalid.collectAsStateWithLifecycle()
+    // 0=checking, 1=login, 2=app, 3=retry (saved session kept, server unreachable)
+    var gateState by remember { mutableIntStateOf(0) }
+    var checkTick by remember { mutableIntStateOf(0) }
+    LaunchedEffect(sessionInvalid) {
+        if (sessionInvalid) gateState = 1
+    }
+    LaunchedEffect(checkTick) {
+        if (!NexusApiClient.hasSession(context)) {
+            gateState = 1
+        } else {
+            gateState = 0
+            try {
+                NexusApiClient.sync(context)
+                gateState = 2
+            } catch (e: SecurityException) {
+                // Auth failure: sync() already cleared the session and flagged it invalid.
+                gateState = 1
+            } catch (_: Exception) {
+                // Server/network unreachable: keep the saved session and offer a retry.
+                gateState = 3
+            }
+        }
+    }
+    when (gateState) {
+        0 -> Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) { CircularProgressIndicator() }
+        1 -> LicenseGateScreen(onActivated = { gateState = 2 })
+        2 -> NgbMainContent()
+        else -> LicenseGateScreen(showRetry = true, onActivated = { gateState = 2 }, onRetry = { checkTick++ })
+    }
+}
+
+@Composable
+private fun NgbMainContent() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route

@@ -72,6 +72,36 @@ object WireGuardController {
         }
     }
 
+    /** Imports a server-provided profile using a stable ID, updating it on each sync. */
+    suspend fun importConfigText(context: Context, remoteId: String, displayName: String, text: String): Result<WireGuardProfile> = withContext(Dispatchers.IO) {
+        runCatching {
+            require(text.length in 1..128_000) { "Configuration file is empty or too large" }
+            Config.parse(ByteArrayInputStream(text.toByteArray(Charsets.UTF_8)))
+            val safeId = "remote-" + remoteId.replace(Regex("[^A-Za-z0-9_-]"), "_").take(100)
+            val dir = profileDir(context)
+            val target = configFile(context, safeId)
+            val temp = File(dir, "$safeId.conf.tmp")
+            temp.writeText(text, Charsets.UTF_8)
+            require(temp.renameTo(target) || (temp.copyTo(target, overwrite = true).exists().also { temp.delete() })) { "Could not save configuration securely" }
+            nameFile(context, safeId).writeText(displayName.replace(Regex("[\\r\\n\\t]"), " ").trim().take(64).ifBlank { "WireGuard profile" }, Charsets.UTF_8)
+            WireGuardProfile(safeId, displayName)
+        }
+    }
+
+    /** Removes remote-managed profiles that are no longer active on the server. */
+    suspend fun removeRemoteProfilesNotIn(context: Context, activeServerIds: Set<String>) = withContext(Dispatchers.IO) {
+        val keep = activeServerIds.map { "remote-" + it.replace(Regex("[^A-Za-z0-9_-]"), "_").take(100) }.toSet()
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val selected = prefs.getString(SELECTED_ID, "").orEmpty()
+        profileDir(context).listFiles().orEmpty().filter { it.isFile && it.extension == "conf" && it.nameWithoutExtension.startsWith("remote-") && it.nameWithoutExtension !in keep }.forEach { file ->
+            val profileId = file.nameWithoutExtension
+            if (selected == profileId && isConnected(context)) disconnect(context)
+            file.delete()
+            nameFile(context, profileId).delete()
+            if (selected == profileId) prefs.edit().remove(SELECTED_ID).apply()
+        }
+    }
+
     suspend fun connect(context: Context, profileId: String): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             require(profileId.isNotBlank()) { "Select a WireGuard profile first" }

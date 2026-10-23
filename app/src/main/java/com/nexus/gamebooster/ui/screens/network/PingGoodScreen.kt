@@ -44,10 +44,13 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.nexus.gamebooster.R
 import com.nexus.gamebooster.network.DnsForwardingVpnService
+import com.nexus.gamebooster.network.DnsResolver
 import com.nexus.gamebooster.network.DnsResolverTester
 import com.nexus.gamebooster.network.DnsTestResult
 import com.nexus.gamebooster.network.WireGuardController
 import com.nexus.gamebooster.network.WireGuardProfile
+import com.nexus.gamebooster.network.NexusApiClient
+import org.json.JSONObject
 import com.nexus.gamebooster.ui.theme.ngbNeonHalo
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -66,6 +69,8 @@ fun PingGoodScreen() {
     var results by remember { mutableStateOf(emptyList<DnsTestResult>()) }
     var hasTested by rememberSaveable { mutableStateOf(false) }
     var selectedDns by rememberSaveable { mutableStateOf("") }
+    var remoteDns by remember { mutableStateOf(readRemoteDns(context)) }
+    var syncMessage by remember { mutableStateOf<String?>(null) }
     var pendingDns by remember { mutableStateOf("") }
     var profilePendingDelete by remember { mutableStateOf<WireGuardProfile?>(null) }
     val pulse = rememberInfiniteTransition(label = "gamingHeaderPulse")
@@ -135,6 +140,18 @@ fun PingGoodScreen() {
         selectedProfileId = WireGuardController.selectedProfileId(context)
         wgConnected = WireGuardController.isConnected(context)
         dnsConnected = DnsForwardingVpnService.isRunning
+        remoteDns = readRemoteDns(context)
+        // Poll every five minutes while this screen is active.
+        while (true) {
+            try {
+                val data = NexusApiClient.sync(context)
+                remoteDns = readDns(context, data)
+                profiles = WireGuardController.listProfiles(context)
+                selectedProfileId = WireGuardController.selectedProfileId(context)
+                syncMessage = context.getString(R.string.sync_ok_summary, remoteDns.size, data.optJSONArray("wireguard")?.length() ?: 0)
+            } catch (e: Exception) { syncMessage = e.message ?: context.getString(R.string.api_error_sync_failed) }
+            delay(5 * 60 * 1000L)
+        }
     }
 
     profilePendingDelete?.let { profile ->
@@ -168,6 +185,27 @@ fun PingGoodScreen() {
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.ping_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text(stringResource(R.string.ping_subtitle), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
+            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.sync_panel_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(syncMessage ?: stringResource(R.string.sync_initial), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                OutlinedButton(onClick = {
+                    scope.launch {
+                        busy = true
+                        try {
+                            val data = NexusApiClient.sync(context)
+                            remoteDns = readDns(context, data)
+                            profiles = WireGuardController.listProfiles(context)
+                            selectedProfileId = WireGuardController.selectedProfileId(context)
+                            syncMessage = context.getString(R.string.sync_manual_ok)
+                        } catch (e: Exception) { syncMessage = e.message ?: context.getString(R.string.api_error_sync_failed) }
+                        busy = false
+                    }
+                }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                    if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text(stringResource(R.string.sync_manual_action))
+                }
             }
         }
         TabRow(selectedTabIndex = tab) {
@@ -265,6 +303,10 @@ fun PingGoodScreen() {
                 } else results.forEachIndexed { index, result ->
                     DnsResolverCard(result.resolver.name, result.resolver.address, result.resolver.detail, result.latencyMs, selectedDns == result.resolver.address, result.successful, if (result.successful) index + 1 else null) { selectedDns = result.resolver.address }
                 }
+                if (remoteDns.isNotEmpty()) {
+                    Text(stringResource(R.string.dns_remote_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    remoteDns.forEach { resolver -> DnsResolverCard(resolver.name, resolver.address, resolver.detail, null, selectedDns == resolver.address, true) { selectedDns = resolver.address } }
+                }
                 Text(stringResource(R.string.dns_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Button(onClick = {
                     if (dnsConnected) {
@@ -290,7 +332,7 @@ fun PingGoodScreen() {
                             startDnsTunnel(selectedDns)
                         }
                     }
-                }, enabled = !busy && (dnsConnected || (hasTested && selectedDns.isNotBlank() && results.any { it.resolver.address == selectedDns && it.successful })) && (dnsConnected || !wgConnected), modifier = Modifier.fillMaxWidth()) {
+                }, enabled = !busy && (dnsConnected || (selectedDns.isNotBlank() && (remoteDns.any { it.address == selectedDns } || (hasTested && results.any { it.resolver.address == selectedDns && it.successful })) && (dnsConnected || !wgConnected))), modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(if (dnsConnected) R.string.dns_disconnect else R.string.dns_connect))
                 }
                 if (wgConnected) Text(stringResource(R.string.ping_vpn_conflict), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
@@ -322,5 +364,20 @@ private fun DnsResolverCard(name: String, address: String, detail: String, laten
             } else if (rank == null) Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant)
             else Text(stringResource(R.string.dns_failed), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
         }
+    }
+}
+
+private fun readRemoteDns(context: android.content.Context): List<DnsResolver> =
+    NexusApiClient.cachedSync(context)?.let { readDns(context, it) }.orEmpty()
+
+private fun readDns(context: android.content.Context, data: JSONObject): List<DnsResolver> {
+    val array = data.optJSONArray("dns") ?: return emptyList()
+    return (0 until array.length()).mapNotNull { index ->
+        val item = array.optJSONObject(index) ?: return@mapNotNull null
+        val address = item.optString("address")
+        if (address.isBlank()) null else DnsResolver(
+            item.optString("name", context.getString(R.string.dns_remote_default_name)), address,
+            listOf(item.optString("category"), item.optString("description")).filter { it.isNotBlank() }.joinToString(" · ")
+        )
     }
 }
