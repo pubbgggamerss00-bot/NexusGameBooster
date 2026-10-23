@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.dp
 
 /**
  * True when press/transition motion is allowed. NgbApp provides it from the persisted
@@ -18,17 +19,21 @@ import androidx.compose.ui.graphics.graphicsLayer
  */
 val LocalNgbMotionEnabled = staticCompositionLocalOf { true }
 
-/** Pressed scale factor — deliberately subtle; never an overshooting spring. */
-private const val PRESSED_SCALE = 0.97f
+/** Pressed scale factor — the kit's exact value (.985); never an overshooting spring. */
+private const val PRESSED_SCALE = 0.985f
 
-/** Duration of the press-scale animation in milliseconds. */
+/** Pressed vertical drop — the kit's translateY(2px) sink on press. */
+private val PRESSED_LIFT = 2.dp
+
+/** Duration of the press animation in milliseconds. */
 private const val PRESS_ANIMATION_MILLIS = 150
 
 /**
- * Restrained press feedback: scales the element to 97% while pressed and back to 100%
- * on release, via a plain [tween] (no spring overshoot). Attach the SAME
- * [MutableInteractionSource] to the underlying clickable/pressable component so the
- * press state is observed — see NgbButton/NgbOutlinedButton for the wired versions.
+ * Kit press feedback ("NEON ARENA v1", Phase 11.4): the element sinks 2 dp and
+ * scales to 98.5% while pressed and returns on release, via a plain [tween]
+ * (no spring overshoot). Attach the SAME [MutableInteractionSource] to the
+ * underlying clickable/pressable component so the press state is observed —
+ * see NgbButton/NgbConnectButton/NgbSecondaryButton for the wired versions.
  *
  * When [enabled] is false (Reduce motion on, or system animations off) the receiver is
  * returned UNCHANGED: no animation, no graphicsLayer, no visual difference.
@@ -48,5 +53,6 @@ fun Modifier.ngbPressScale(
     return graphicsLayer {
         scaleX = scale
         scaleY = scale
+        translationY = if (pressed) PRESSED_LIFT.toPx() else 0f
     }
 }

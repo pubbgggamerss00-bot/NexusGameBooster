@@ -1,10 +1,10 @@
 Nexus Game Booster — new version!
 
 What's new:
-• The license screen is now simpler than ever: the app always talks to the official Nexus server and only asks for your access key — the server address field is completely gone.
-• Wrong key shows in red, successful activation in green.
+• A live license countdown now sits on the Home screen: days, hours, minutes and seconds remaining on your access key, with a glowing ring that shows how much of the term is left. Green = active; red = expired or 3 days or less remaining. The app reads the REAL expiry time from the server — nothing is guessed on the device.
+• The whole app wears the new NEON ARENA look from the design kit: cut-corner buttons, state-colored tunnel buttons (grey = locked, green = ready, striped = connecting, red = connected/tap to cut), glowing status chips and the retuned deep-navy palette.
+• Updating from 0.11.3 installs directly — no uninstall needed (same signature).
 
-IMPORTANT — read before updating:
-• This update changes the app's signing key (the old one was lost and cannot be recovered). Because of that, the app CANNOT install over the old version directly.
-• How to update: uninstall the old Nexus Game Booster first, then install the new APK, then enter your access key once — that's it.
-• After this one-time change, future updates will install directly again, no uninstall needed.
+Note for the server admin: deploy the updated Worker file (cloudflare-worker/nexus-gamebooster-api.js in the repository) so the server provides the license timestamps. Existing sessions pick the expiry up automatically on the next sync; brand-new activations require the updated Worker first.
+
+Still inside the app: the "Check for updates" button in Settings, plain-language release notes, and one-tap download & install.

@@ -27,11 +27,16 @@ object NexusApiClient {
     private const val TOKEN = "session_token"
     private const val DEVICE = "device_id"
     private const val SYNC = "last_sync_json"
+    private const val LICENSE_CREATED_AT = "license_created_at"
+    private const val LICENSE_EXPIRES_AT = "license_expires_at"
 
     fun token(context: Context) = prefs(context).getString(TOKEN, "").orEmpty()
     fun apiBase(context: Context): String = DEFAULT_BASE_URL
     fun hasSession(context: Context) = token(context).isNotBlank()
     fun cachedSync(context: Context): JSONObject? = runCatching { JSONObject(prefs(context).getString(SYNC, null) ?: "{}") }.getOrNull()
+    /** License timestamps are Unix epoch seconds supplied by the authoritative API. */
+    fun licenseCreatedAt(context: Context): Long = prefs(context).getLong(LICENSE_CREATED_AT, 0L)
+    fun licenseExpiresAt(context: Context): Long = prefs(context).getLong(LICENSE_EXPIRES_AT, 0L)
     fun clearSession(context: Context) { prefs(context).edit().remove(TOKEN).remove(SYNC).apply() }
 
     suspend fun activate(context: Context, baseUrl: String, key: String): JSONObject = withContext(Dispatchers.IO) {
@@ -42,7 +47,15 @@ object NexusApiClient {
         if (response.optBoolean("valid").not()) error(response.optString("message", context.getString(R.string.api_error_key_rejected)))
         val token = response.optString("token")
         require(token.isNotBlank()) { context.getString(R.string.api_error_no_token) }
-        prefs(context).edit().remove(API_BASE).putString(TOKEN, token).apply()
+        val createdAt = response.optLong("createdAt", 0L)
+        val expiresAt = response.optLong("expiresAt", 0L)
+        require(expiresAt > 0L) { context.getString(R.string.api_error_no_expiry) }
+        prefs(context).edit()
+            .remove(API_BASE)
+            .putString(TOKEN, token)
+            .putLong(LICENSE_CREATED_AT, createdAt)
+            .putLong(LICENSE_EXPIRES_AT, expiresAt)
+            .apply()
         sessionInvalid.value = false
         sync(context)
         response
@@ -61,7 +74,13 @@ object NexusApiClient {
         }
         if (!result.optBoolean("ok")) error(result.optString("message", context.getString(R.string.api_error_sync_failed)))
         sessionInvalid.value = false
-        prefs(context).edit().putString(SYNC, result.toString()).apply()
+        val expiry = result.optLong("licenseExpiresAt", 0L)
+        val created = result.optLong("licenseCreatedAt", 0L)
+        prefs(context).edit().apply {
+            putString(SYNC, result.toString())
+            if (expiry > 0L) putLong(LICENSE_EXPIRES_AT, expiry)
+            if (created > 0L) putLong(LICENSE_CREATED_AT, created)
+        }.apply()
         // Import active remote WireGuard configs into the app's private profile directory.
         val configs = result.optJSONArray("wireguard")
         val activeIds = mutableSetOf<String>()

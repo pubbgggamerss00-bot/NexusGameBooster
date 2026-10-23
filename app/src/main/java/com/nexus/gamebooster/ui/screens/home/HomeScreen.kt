@@ -74,6 +74,7 @@ import com.nexus.gamebooster.profiles.PerformanceProfile
 import com.nexus.gamebooster.shizuku.ShizukuPrivilege
 import com.nexus.gamebooster.ui.components.BoostCard
 import com.nexus.gamebooster.ui.components.MapperMetricRow
+import com.nexus.gamebooster.ui.components.LicenseCountdownCard
 import com.nexus.gamebooster.ui.components.MetricRow
 import com.nexus.gamebooster.ui.components.NgbScreenContainer
 import com.nexus.gamebooster.ui.components.SectionCard
@@ -175,6 +176,8 @@ fun HomeScreen(onOpenLibrary: () -> Unit = {}) {
     val context = androidx.compose.ui.platform.LocalContext.current
     NgbScreenContainer {
         NgbHero()
+        Spacer(Modifier.height(16.dp))
+        LicenseCountdownCard()
         Spacer(Modifier.height(20.dp))
         ShizukuStatusCard(
             status = state.shizukuStatus,

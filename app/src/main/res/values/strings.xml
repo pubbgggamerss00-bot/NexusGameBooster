@@ -488,4 +488,16 @@
     <string name="sync_manual_action">\u27f3 Refresh now</string>
     <string name="dns_remote_title">DNS entries from the panel</string>
     <string name="dns_remote_default_name">Panel DNS</string>
+    <string name="api_error_no_expiry">The server did not provide the license expiry time. Update the API Worker and try again.</string>
+    <string name="license_countdown_active">LICENSE ACTIVE</string>
+    <string name="license_countdown_days">Days</string>
+    <string name="license_countdown_expired">LICENSE EXPIRED</string>
+    <string name="license_countdown_hours">Hours</string>
+    <string name="license_countdown_minutes">Minutes</string>
+    <string name="license_countdown_seconds">Seconds</string>
+    <string name="license_countdown_title">License time remaining</string>
+    <string name="license_countdown_unknown">Sync to retrieve license expiry</string>
+    <string name="license_countdown_warning">EXPIRING SOON</string>
+    <string name="sync_dns_count">%1$d DNS servers synced</string>
+    <string name="sync_config_count">%1$d WireGuard configs synced</string>
 </resources>

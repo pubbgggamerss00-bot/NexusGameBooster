@@ -51,6 +51,14 @@ import com.nexus.gamebooster.network.WireGuardController
 import com.nexus.gamebooster.network.WireGuardProfile
 import com.nexus.gamebooster.network.NexusApiClient
 import org.json.JSONObject
+import com.nexus.gamebooster.ui.components.NgbButton
+import com.nexus.gamebooster.ui.components.NgbConnectButton
+import com.nexus.gamebooster.ui.components.NgbConnectState
+import com.nexus.gamebooster.ui.components.NgbMiniChip
+import com.nexus.gamebooster.ui.components.NgbSecondaryButton
+import com.nexus.gamebooster.ui.components.NgbSectionHeader
+import com.nexus.gamebooster.ui.components.StatusChip
+import com.nexus.gamebooster.ui.components.StatusChipVariant
 import com.nexus.gamebooster.ui.theme.ngbNeonHalo
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -62,6 +70,10 @@ fun PingGoodScreen() {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var message by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    // Tunnel-only busy flags — the connect CTAs must show CONNECTING only for
+    // their own operation, never for a background sync/import/test.
+    var wgWorking by remember { mutableStateOf(false) }
+    var dnsWorking by remember { mutableStateOf(false) }
     var profiles by remember { mutableStateOf(WireGuardController.listProfiles(context)) }
     var selectedProfileId by rememberSaveable { mutableStateOf(WireGuardController.selectedProfileId(context)) }
     var wgConnected by remember { mutableStateOf(WireGuardController.isConnected(context)) }
@@ -89,26 +101,29 @@ fun PingGoodScreen() {
             scope.launch {
                 delay(500)
                 dnsConnected = DnsForwardingVpnService.isRunning
+                dnsWorking = false
                 message = if (dnsConnected) context.getString(R.string.dns_connected)
                 else context.getString(R.string.dns_test_error, "Could not start the DNS tunnel")
             }
         } catch (e: Exception) {
             dnsConnected = false
+            dnsWorking = false
             message = context.getString(R.string.dns_test_error, e.message ?: "Could not start the DNS tunnel")
         }
     }
 
     fun connectWireGuard() {
         if (dnsConnected || DnsForwardingVpnService.isRunning) {
+            wgWorking = false
             message = context.getString(R.string.ping_vpn_conflict); return
         }
-        busy = true; message = context.getString(R.string.wg_working)
+        wgWorking = true; message = context.getString(R.string.wg_working)
         scope.launch {
             val result = WireGuardController.connect(context, selectedProfileId)
             wgConnected = result.isSuccess
             message = if (result.isSuccess) context.getString(R.string.wg_connect_success)
             else context.getString(R.string.wg_connect_error, result.exceptionOrNull()?.message ?: "Unknown error")
-            busy = false
+            wgWorking = false
         }
     }
 
@@ -127,12 +142,12 @@ fun PingGoodScreen() {
     }
     val wgPermission = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) connectWireGuard()
-        else message = context.getString(R.string.ping_vpn_conflict)
+        else { wgWorking = false; message = context.getString(R.string.ping_vpn_conflict) }
     }
     val dnsPermission = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK && pendingDns.isNotBlank()) {
             startDnsTunnel(pendingDns)
-        } else message = context.getString(R.string.ping_vpn_conflict)
+        } else { dnsWorking = false; message = context.getString(R.string.ping_vpn_conflict) }
     }
 
     LaunchedEffect(Unit) {
@@ -177,6 +192,22 @@ fun PingGoodScreen() {
         )
     }
 
+    // Kit CTA state machines — mirror the mockup's five states 1:1.
+    val wgState = when {
+        wgWorking -> NgbConnectState.CONNECTING
+        wgConnected -> NgbConnectState.CONNECTED
+        selectedProfileId.isBlank() -> NgbConnectState.LOCKED
+        else -> NgbConnectState.READY
+    }
+    val dnsEligible = selectedDns.isNotBlank() &&
+        (remoteDns.any { it.address == selectedDns } || (hasTested && results.any { it.resolver.address == selectedDns && it.successful }))
+    val dnsState = when {
+        dnsWorking -> NgbConnectState.CONNECTING
+        dnsConnected -> NgbConnectState.CONNECTED
+        !dnsEligible || wgConnected -> NgbConnectState.LOCKED
+        else -> NgbConnectState.READY
+    }
+
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(52.dp).graphicsLayer { scaleX = pulseScale; scaleY = pulseScale }) {
@@ -189,9 +220,13 @@ fun PingGoodScreen() {
         }
         Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.sync_panel_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                NgbSectionHeader(stringResource(R.string.sync_panel_title))
                 Text(syncMessage ?: stringResource(R.string.sync_initial), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                OutlinedButton(onClick = {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    NgbMiniChip(stringResource(R.string.sync_dns_count, remoteDns.size))
+                    NgbMiniChip(stringResource(R.string.sync_config_count, profiles.size))
+                }
+                NgbSecondaryButton(onClick = {
                     scope.launch {
                         busy = true
                         try {
@@ -204,7 +239,7 @@ fun PingGoodScreen() {
                         busy = false
                     }
                 }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
-                    if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text(stringResource(R.string.sync_manual_action))
+                    if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text(stringResource(R.string.sync_manual_action), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -219,12 +254,12 @@ fun PingGoodScreen() {
         AnimatedVisibility(visible = tab == 0, enter = fadeIn(tween(220)) + slideInVertically(tween(220)) { it / 12 }, exit = fadeOut(tween(120)) + slideOutVertically(tween(120)) { -it / 24 }) {
             Card(modifier = Modifier.fillMaxWidth().ngbNeonHalo(20.dp, width = 3.dp, alpha = 0.18f), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), shape = RoundedCornerShape(20.dp)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Icon(Icons.Filled.Security, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(stringResource(R.string.wg_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Text(stringResource(if (wgConnected) R.string.wg_connected else R.string.wg_disconnected), color = if (wgConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                        NgbSectionHeader(stringResource(R.string.wg_title))
+                        StatusChip(
+                            text = stringResource(if (wgConnected) R.string.wg_connected else R.string.wg_disconnected),
+                            variant = if (wgConnected) StatusChipVariant.OK_GLOW else StatusChipVariant.ALERT,
+                        )
                     }
                     Text(stringResource(R.string.wg_desc), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     HorizontalDivider()
@@ -249,24 +284,34 @@ fun PingGoodScreen() {
                             }
                         }
                     }
-                    OutlinedButton(onClick = { importLauncher.launch(arrayOf("*/*")) }, enabled = !busy && !wgConnected, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.wg_import)) }
-                    Button(onClick = {
-                        if (wgConnected) {
-                            busy = true
-                            scope.launch {
-                                val result = WireGuardController.disconnect(context)
-                                wgConnected = false
-                                message = if (result.isSuccess) context.getString(R.string.wg_disconnect_success) else context.getString(R.string.wg_connect_error, result.exceptionOrNull()?.message ?: "Unknown error")
-                                busy = false
-                            }
-                        } else if (dnsConnected || DnsForwardingVpnService.isRunning) message = context.getString(R.string.ping_vpn_conflict)
-                        else {
-                            val prepare = VpnService.prepare(context)
-                            if (prepare != null) wgPermission.launch(prepare) else connectWireGuard()
-                        }
-                    }, enabled = !busy && (wgConnected || selectedProfileId.isNotBlank()), modifier = Modifier.fillMaxWidth()) {
-                        if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Text(stringResource(if (wgConnected) R.string.wg_disconnect else R.string.wg_connect))
+                    NgbSecondaryButton(onClick = { importLauncher.launch(arrayOf("*/*")) }, enabled = !busy && !wgConnected, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.wg_import), fontWeight = FontWeight.Bold)
                     }
+                    NgbConnectButton(
+                        state = wgState,
+                        onClick = {
+                            if (wgConnected) {
+                                wgWorking = true
+                                scope.launch {
+                                    val result = WireGuardController.disconnect(context)
+                                    wgConnected = false
+                                    wgWorking = false
+                                    message = if (result.isSuccess) context.getString(R.string.wg_disconnect_success) else context.getString(R.string.wg_connect_error, result.exceptionOrNull()?.message ?: "Unknown error")
+                                }
+                            } else if (dnsConnected || DnsForwardingVpnService.isRunning) message = context.getString(R.string.ping_vpn_conflict)
+                            else {
+                                val prepare = VpnService.prepare(context)
+                                if (prepare != null) wgPermission.launch(prepare) else connectWireGuard()
+                            }
+                        },
+                        label = stringResource(when (wgState) {
+                            NgbConnectState.CONNECTING -> R.string.wg_working
+                            NgbConnectState.CONNECTED -> R.string.wg_disconnect
+                            else -> R.string.wg_connect
+                        }),
+                        icon = Icons.Filled.Security,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                     Text(stringResource(R.string.ping_vpn_conflict), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -275,15 +320,15 @@ fun PingGoodScreen() {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Card(modifier = Modifier.fillMaxWidth().ngbNeonHalo(20.dp, width = 3.dp, alpha = 0.18f), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), shape = RoundedCornerShape(20.dp)) {
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Icon(Icons.Filled.Cloud, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(stringResource(R.string.dns_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                                Text(stringResource(if (dnsConnected) R.string.dns_connected else R.string.dns_disconnected), color = if (dnsConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                            NgbSectionHeader(stringResource(R.string.dns_title))
+                            StatusChip(
+                                text = stringResource(if (dnsConnected) R.string.dns_connected else R.string.dns_disconnected),
+                                variant = if (dnsConnected) StatusChipVariant.OK_GLOW else StatusChipVariant.ALERT,
+                            )
                         }
                         Text(stringResource(R.string.dns_desc), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Button(onClick = {
+                        NgbButton(onClick = {
                             busy = true; message = context.getString(R.string.dns_testing)
                             scope.launch {
                                 results = DnsResolverTester.testAll()
@@ -308,33 +353,42 @@ fun PingGoodScreen() {
                     remoteDns.forEach { resolver -> DnsResolverCard(resolver.name, resolver.address, resolver.detail, null, selectedDns == resolver.address, true) { selectedDns = resolver.address } }
                 }
                 Text(stringResource(R.string.dns_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Button(onClick = {
-                    if (dnsConnected) {
-                        busy = true
-                        context.startService(Intent(context, DnsForwardingVpnService::class.java).setAction(DnsForwardingVpnService.ACTION_STOP))
-                        message = context.getString(R.string.dns_testing)
-                        scope.launch {
-                            var attempts = 0
-                            while (DnsForwardingVpnService.isRunning && attempts < 30) {
-                                delay(100)
-                                attempts++
+                NgbConnectButton(
+                    state = dnsState,
+                    onClick = {
+                        if (dnsConnected) {
+                            dnsWorking = true
+                            context.startService(Intent(context, DnsForwardingVpnService::class.java).setAction(DnsForwardingVpnService.ACTION_STOP))
+                            message = context.getString(R.string.dns_testing)
+                            scope.launch {
+                                var attempts = 0
+                                while (DnsForwardingVpnService.isRunning && attempts < 30) {
+                                    delay(100)
+                                    attempts++
+                                }
+                                dnsConnected = DnsForwardingVpnService.isRunning
+                                dnsWorking = false
+                                message = if (dnsConnected) context.getString(R.string.dns_test_error, context.getString(R.string.dns_stop_stuck))
+                                    else context.getString(R.string.dns_disconnected)
                             }
-                            dnsConnected = DnsForwardingVpnService.isRunning
-                            busy = false
-                            message = if (dnsConnected) context.getString(R.string.dns_test_error, context.getString(R.string.dns_stop_stuck))
-                                else context.getString(R.string.dns_disconnected)
+                        } else if (wgConnected) message = context.getString(R.string.ping_vpn_conflict)
+                        else {
+                            dnsWorking = true
+                            pendingDns = selectedDns
+                            val prepare = VpnService.prepare(context)
+                            if (prepare != null) dnsPermission.launch(prepare) else {
+                                startDnsTunnel(selectedDns)
+                            }
                         }
-                    } else if (wgConnected) message = context.getString(R.string.ping_vpn_conflict)
-                    else {
-                        pendingDns = selectedDns
-                        val prepare = VpnService.prepare(context)
-                        if (prepare != null) dnsPermission.launch(prepare) else {
-                            startDnsTunnel(selectedDns)
-                        }
-                    }
-                }, enabled = !busy && (dnsConnected || (selectedDns.isNotBlank() && (remoteDns.any { it.address == selectedDns } || (hasTested && results.any { it.resolver.address == selectedDns && it.successful })) && (dnsConnected || !wgConnected))), modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(if (dnsConnected) R.string.dns_disconnect else R.string.dns_connect))
-                }
+                    },
+                    label = stringResource(when (dnsState) {
+                        NgbConnectState.CONNECTING -> R.string.wg_working
+                        NgbConnectState.CONNECTED -> R.string.dns_disconnect
+                        else -> R.string.dns_connect
+                    }),
+                    icon = Icons.Filled.Speed,
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 if (wgConnected) Text(stringResource(R.string.ping_vpn_conflict), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
         }

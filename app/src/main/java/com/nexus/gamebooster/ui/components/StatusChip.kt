@@ -1,6 +1,12 @@
 package com.nexus.gamebooster.ui.components
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,12 +19,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.nexus.gamebooster.monitoring.UnavailableReasons
+import com.nexus.gamebooster.ui.motion.LocalNgbMotionEnabled
+import com.nexus.gamebooster.ui.theme.NgbErrorSoft
+import com.nexus.gamebooster.ui.theme.NgbPrimaryBright
+import com.nexus.gamebooster.ui.theme.NgbWarningSoft
+import com.nexus.gamebooster.ui.theme.neonGlow
 
 /**
  * Semantic chip variants used across status rows.
@@ -26,20 +39,24 @@ import com.nexus.gamebooster.monitoring.UnavailableReasons
  *  - OK: reading succeeded / action applied.
  *  - OK_MUTED: success WITHOUT new work (e.g. an already-applied boost action) — the
  *    same green family as OK, muted so "nothing was done this time" stays visible.
+ *  - OK_GLOW: the kit's ".st-on" chip — active/connected, glowing dot + border.
+ *  - PENDING: the kit's ".st-con" chip — work in progress / handshake (amber, blinking dot).
+ *  - ALERT: the kit's ".st-off" chip — disconnected / needs attention (soft red).
  *  - OFFLINE: source not connected (reserved for potential future live sources).
  *  - UNAVAILABLE: reading genuinely failed right now (transient — a retry can help).
  *  - UNSUPPORTED: the API is permanently unavailable on this OS version (a muted,
  *    neutral style — different from the warning-style UNAVAILABLE).
  *  - PLANNED: feature is planned for a later phase (never a fake value).
  */
-enum class StatusChipVariant { OK, OK_MUTED, OFFLINE, UNAVAILABLE, UNSUPPORTED, PLANNED }
+enum class StatusChipVariant { OK, OK_MUTED, OK_GLOW, PENDING, ALERT, OFFLINE, UNAVAILABLE, UNSUPPORTED, PLANNED }
+
+private data class ChipStyle(val container: Color, val content: Color, val border: Color, val blink: Boolean, val glow: Boolean)
 
 /**
- * Small pill with a colored dot + label.
- *  - OK: reading succeeded.
- *  - OFFLINE: source not connected (reserved for Phase 2/3 live sources).
- *  - UNAVAILABLE: reading genuinely failed / not readable.
- *  - PLANNED: feature is planned for a later phase (never a fake value).
+ * Small pill with a colored dot + label, restyled to the kit: every variant
+ * carries a 1 dp tinted border, and the kit's active/pending chips get the
+ * glowing/blinking dot (both animations respect [LocalNgbMotionEnabled] —
+ * reduced motion renders the same chips fully static).
  */
 @Composable
 fun StatusChip(
@@ -48,50 +65,67 @@ fun StatusChip(
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val container: Color
-    val content: Color
-    when (variant) {
-        StatusChipVariant.OK -> {
-            container = scheme.primary.copy(alpha = 0.14f)
-            content = scheme.primary
-        }
-        StatusChipVariant.OK_MUTED -> {
-            container = scheme.primary.copy(alpha = 0.07f)
-            content = scheme.primary.copy(alpha = 0.55f)
-        }
-        StatusChipVariant.OFFLINE -> {
-            container = scheme.secondary.copy(alpha = 0.16f)
-            content = scheme.secondary
-        }
-        StatusChipVariant.UNAVAILABLE -> {
-            container = scheme.error.copy(alpha = 0.12f)
-            content = scheme.error
-        }
-        StatusChipVariant.UNSUPPORTED -> {
-            container = scheme.onSurface.copy(alpha = 0.08f)
-            content = scheme.onSurfaceVariant
-        }
-        StatusChipVariant.PLANNED -> {
-            container = scheme.onSurface.copy(alpha = 0.08f)
-            content = scheme.onSurfaceVariant
-        }
+    val motion = LocalNgbMotionEnabled.current
+    val style = when (variant) {
+        StatusChipVariant.OK -> ChipStyle(scheme.primary.copy(alpha = 0.14f), scheme.primary, scheme.primary.copy(alpha = 0.55f), blink = false, glow = false)
+        StatusChipVariant.OK_MUTED -> ChipStyle(scheme.primary.copy(alpha = 0.07f), scheme.primary.copy(alpha = 0.55f), scheme.primary.copy(alpha = 0.30f), blink = false, glow = false)
+        StatusChipVariant.OK_GLOW -> ChipStyle(Color(0xFF27F58A).copy(alpha = 0.12f), NgbPrimaryBright, Color(0xFF27F58A).copy(alpha = 0.55f), blink = true, glow = true)
+        StatusChipVariant.PENDING -> ChipStyle(Color(0xFFFFB020).copy(alpha = 0.12f), NgbWarningSoft, Color(0xFFFFB020).copy(alpha = 0.50f), blink = true, glow = false)
+        StatusChipVariant.ALERT -> ChipStyle(Color(0xFFFF4D6D).copy(alpha = 0.12f), NgbErrorSoft, Color(0xFFFF4D6D).copy(alpha = 0.50f), blink = false, glow = false)
+        StatusChipVariant.OFFLINE -> ChipStyle(scheme.secondary.copy(alpha = 0.16f), scheme.secondary, scheme.secondary.copy(alpha = 0.50f), blink = false, glow = false)
+        StatusChipVariant.UNAVAILABLE -> ChipStyle(scheme.error.copy(alpha = 0.12f), scheme.error, scheme.error.copy(alpha = 0.50f), blink = false, glow = false)
+        StatusChipVariant.UNSUPPORTED -> ChipStyle(scheme.onSurface.copy(alpha = 0.08f), scheme.onSurfaceVariant, scheme.onSurfaceVariant.copy(alpha = 0.40f), blink = false, glow = false)
+        StatusChipVariant.PLANNED -> ChipStyle(scheme.onSurface.copy(alpha = 0.08f), scheme.onSurfaceVariant, scheme.onSurfaceVariant.copy(alpha = 0.40f), blink = false, glow = false)
+    }
+
+    // Kit blink keyframes (opacity 1 → .3 → 1): 1.6 s for the active green dot,
+    // 0.7 s for the pending amber dot.
+    val dotAlpha: Float
+    if (motion && style.blink) {
+        val t = rememberInfiniteTransition(label = "ngbChipBlink")
+        val a by t.animateFloat(
+            initialValue = 1f, targetValue = 0.3f,
+            animationSpec = infiniteRepeatable(
+                tween(if (variant == StatusChipVariant.OK_GLOW) 800 else 350),
+                RepeatMode.Reverse,
+            ),
+            label = "ngbChipBlinkAlpha",
+        )
+        dotAlpha = a
+    } else {
+        dotAlpha = 1f
+    }
+
+    val chipShape = RoundedCornerShape(percent = 50)
+    val base = if (style.glow && motion) {
+        modifier.neonGlow(
+            glowColor = Color(0xFF27F58A),
+            shape = chipShape,
+            blurRadius = 14.dp,
+            glowAlpha = 0.28f,
+        )
+    } else {
+        modifier
     }
 
     Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(percent = 50),
-        color = container,
-        contentColor = content,
+        modifier = base,
+        shape = chipShape,
+        color = style.container,
+        contentColor = style.content,
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            modifier = Modifier
+                .border(1.dp, style.border, RoundedCornerShape(percent = 50))
+                .padding(horizontal = 10.dp, vertical = 4.dp),
         ) {
             Box(
                 modifier = Modifier
                     .size(6.dp)
+                    .alpha(dotAlpha)
                     .clip(CircleShape)
-                    .background(content),
+                    .background(style.content),
             )
             Spacer(Modifier.width(6.dp))
             Text(text = text, style = MaterialTheme.typography.labelSmall)

@@ -488,4 +488,16 @@
     <string name="sync_manual_action">⟳ به‌روزرسانی دستی</string>
     <string name="dns_remote_title">DNSهای ارسال‌شده از پنل</string>
     <string name="dns_remote_default_name">DNS سرور</string>
+    <string name="api_error_no_expiry">زمان انقضای کلید از سرور دریافت نشد. API را به‌روزرسانی و دوباره تلاش کنید.</string>
+    <string name="license_countdown_active">کلید فعال است</string>
+    <string name="license_countdown_days">روز</string>
+    <string name="license_countdown_expired">اعتبار کلید تمام شده</string>
+    <string name="license_countdown_hours">ساعت</string>
+    <string name="license_countdown_minutes">دقیقه</string>
+    <string name="license_countdown_seconds">ثانیه</string>
+    <string name="license_countdown_title">زمان باقی‌مانده اعتبار کلید</string>
+    <string name="license_countdown_unknown">برای دریافت زمان انقضا، همگام‌سازی کنید</string>
+    <string name="license_countdown_warning">در آستانه انقضا</string>
+    <string name="sync_dns_count">%1$d دی‌ان‌اس همگام شد</string>
+    <string name="sync_config_count">%1$d کانفیگ وایرگارد همگام شد</string>
 </resources>
