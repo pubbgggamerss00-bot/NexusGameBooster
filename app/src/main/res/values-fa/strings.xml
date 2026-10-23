@@ -404,6 +404,13 @@
     <string name="ping_vpn_conflict">اندروید هم‌زمان فقط یک VPN را فعال نگه می‌دارد. پیش از ادامه، VPN دیگر را قطع کنید.</string>
     <string name="wg_title">VPN وایرگارد</string>
     <string name="wg_desc">فایل تنظیمات واقعی ‎.conf‎ وایرگارد را وارد کنید و با موتور رسمی تونل وایرگارد متصل شوید.</string>
+    <string name="wg_delete">حذف</string>
+    <string name="wg_delete_title">پیکربندی وایرگارد حذف شود؟</string>
+    <string name="wg_delete_message">این پیکربندی از دستگاه حذف می‌شود و این کار قابل بازگشت نیست.</string>
+    <string name="wg_delete_confirm">حذف پیکربندی</string>
+    <string name="wg_delete_cancel">لغو</string>
+    <string name="wg_delete_success">پیکربندی وایرگارد حذف شد.</string>
+    <string name="wg_delete_error">حذف پیکربندی ناموفق بود: %1$s</string>
     <string name="wg_import">واردکردن فایل ‎.conf‎</string>
     <string name="wg_no_profile">هنوز پروفایل وایرگاردی وارد نشده است.</string>
     <string name="wg_profile_ready">پروفایل وایرگارد وارد و اعتبارسنجی شد</string>
@@ -428,6 +435,7 @@
     <string name="dns_failed">ناموفق / پایان مهلت</string>
     <string name="dns_connected">تونل DNS متصل است</string>
     <string name="dns_disconnected">تونل DNS قطع شد</string>
+    <string name="dns_stop_stuck">توقف تونل DNS کامل نشد؛ دوباره تلاش کنید</string>
     <string name="dns_test_error">آزمایش ناموفق بود: %1$s</string>
     <string name="dns_provider_detail">سرور: %1$s</string>
     <string name="dns_note">این آزمایش زمان پاسخ DNS را می‌سنجد، نه پینگ داخل بازی. تونل فعلی فقط DNS روی IPv4/UDP را هدایت می‌کند؛ DNS رمزگذاری‌شدهٔ برنامه‌ها یا Private DNS اندروید ممکن است از این مسیر عبور نکند. برای DNS روی TCP/IPv6 هنوز پشتیبانی کامل وجود ندارد.</string>

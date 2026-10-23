@@ -27,6 +27,14 @@ class DnsForwardingVpnService : VpnService() {
     private val running = AtomicBoolean(false)
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Explicit stop action closes the TUN descriptor before stopping the service.
+        // This wakes a worker blocked in FileInputStream.read() and avoids a stale VPN.
+        if (intent?.action == ACTION_STOP) {
+            stopTunnelNow()
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
         val resolver = intent?.getStringExtra(EXTRA_RESOLVER)?.takeIf(::isIpv4Address)
         if (resolver == null) {
             stopSelf(startId)
@@ -154,18 +162,27 @@ class DnsForwardingVpnService : VpnService() {
             .build()
     }
 
+    private fun stopTunnelNow() {
+        running.set(false)
+        isRunning = false
+        worker?.interrupt()
+        // Closing the descriptor is essential: interrupt alone does not reliably
+        // unblock a thread reading a ParcelFileDescriptor on every Android build.
+        try { tun?.close() } catch (_: Exception) { }
+        tun = null
+        worker = null
+    }
+
     override fun onRevoke() {
+        stopTunnelNow()
+        stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
         super.onRevoke()
     }
 
     override fun onDestroy() {
-        running.set(false)
-        isRunning = false
-        worker?.interrupt()
-        try { tun?.close() } catch (_: Exception) { }
-        tun = null
-        worker = null
+        stopTunnelNow()
+        stopForeground(STOP_FOREGROUND_REMOVE)
         super.onDestroy()
     }
 
@@ -198,6 +215,7 @@ class DnsForwardingVpnService : VpnService() {
         @Volatile var isRunning: Boolean = false
             private set
         const val EXTRA_RESOLVER = "resolver_ipv4"
+        const val ACTION_STOP = "com.nexus.gamebooster.action.STOP_DNS_VPN"
         private const val CHANNEL_ID = "nexus_dns_vpn"
         private const val NOTIFICATION_ID = 4107
         private const val VPN_ADDRESS = "10.111.0.1"

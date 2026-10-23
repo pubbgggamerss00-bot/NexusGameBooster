@@ -15,10 +15,24 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.NetworkCheck
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.*
+import androidx.compose.material3.IconButton
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -34,6 +48,7 @@ import com.nexus.gamebooster.network.DnsResolverTester
 import com.nexus.gamebooster.network.DnsTestResult
 import com.nexus.gamebooster.network.WireGuardController
 import com.nexus.gamebooster.network.WireGuardProfile
+import com.nexus.gamebooster.ui.theme.ngbNeonHalo
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 
@@ -52,6 +67,13 @@ fun PingGoodScreen() {
     var hasTested by rememberSaveable { mutableStateOf(false) }
     var selectedDns by rememberSaveable { mutableStateOf("") }
     var pendingDns by remember { mutableStateOf("") }
+    var profilePendingDelete by remember { mutableStateOf<WireGuardProfile?>(null) }
+    val pulse = rememberInfiniteTransition(label = "gamingHeaderPulse")
+    val pulseScale by pulse.animateFloat(
+        initialValue = 0.96f, targetValue = 1.04f,
+        animationSpec = infiniteRepeatable(animation = tween(1050, easing = FastOutSlowInEasing), repeatMode = RepeatMode.Reverse),
+        label = "gamingHeaderScale"
+    )
 
     fun startDnsTunnel(address: String) {
         val intent = Intent(context, DnsForwardingVpnService::class.java)
@@ -115,9 +137,32 @@ fun PingGoodScreen() {
         dnsConnected = DnsForwardingVpnService.isRunning
     }
 
+    profilePendingDelete?.let { profile ->
+        AlertDialog(
+            onDismissRequest = { profilePendingDelete = null },
+            title = { Text(stringResource(R.string.wg_delete_title)) },
+            text = { Text(stringResource(R.string.wg_delete_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    profilePendingDelete = null
+                    scope.launch {
+                        busy = true
+                        val result = WireGuardController.deleteProfile(context, profile.id)
+                        profiles = WireGuardController.listProfiles(context)
+                        selectedProfileId = WireGuardController.selectedProfileId(context)
+                        message = if (result.isSuccess) context.getString(R.string.wg_delete_success)
+                            else context.getString(R.string.wg_delete_error, result.exceptionOrNull()?.message ?: "Unknown error")
+                        busy = false
+                    }
+                }) { Text(stringResource(R.string.wg_delete_confirm), color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { profilePendingDelete = null }) { Text(stringResource(R.string.wg_delete_cancel)) } }
+        )
+    }
+
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(52.dp)) {
+            Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.size(52.dp).graphicsLayer { scaleX = pulseScale; scaleY = pulseScale }) {
                 Icon(Icons.Filled.NetworkCheck, null, Modifier.padding(13.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
             }
             Column(Modifier.weight(1f)) {
@@ -133,8 +178,8 @@ fun PingGoodScreen() {
             Text(message, Modifier.padding(12.dp), color = MaterialTheme.colorScheme.onSecondaryContainer)
         }
 
-        if (tab == 0) {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), shape = RoundedCornerShape(20.dp)) {
+        AnimatedVisibility(visible = tab == 0, enter = fadeIn(tween(220)) + slideInVertically(tween(220)) { it / 12 }, exit = fadeOut(tween(120)) + slideOutVertically(tween(120)) { -it / 24 }) {
+            Card(modifier = Modifier.fillMaxWidth().ngbNeonHalo(20.dp, width = 3.dp, alpha = 0.18f), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), shape = RoundedCornerShape(20.dp)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Icon(Icons.Filled.Security, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp))
@@ -161,6 +206,9 @@ fun PingGoodScreen() {
                                 }
                             }, enabled = !wgConnected)
                             Text(profile.name, modifier = Modifier.weight(1f), fontWeight = if (selectedProfileId == profile.id) FontWeight.SemiBold else FontWeight.Normal)
+                            IconButton(onClick = { profilePendingDelete = profile }, enabled = !busy && !wgConnected) {
+                                Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.wg_delete), tint = MaterialTheme.colorScheme.error)
+                            }
                         }
                     }
                     OutlinedButton(onClick = { importLauncher.launch(arrayOf("*/*")) }, enabled = !busy && !wgConnected, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.wg_import)) }
@@ -184,9 +232,10 @@ fun PingGoodScreen() {
                     Text(stringResource(R.string.ping_vpn_conflict), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-        } else {
+        }
+        AnimatedVisibility(visible = tab == 1, enter = fadeIn(tween(220)) + slideInVertically(tween(220)) { it / 12 }, exit = fadeOut(tween(120)) + slideOutVertically(tween(120)) { -it / 24 }) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), shape = RoundedCornerShape(20.dp)) {
+                Card(modifier = Modifier.fillMaxWidth().ngbNeonHalo(20.dp, width = 3.dp, alpha = 0.18f), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), shape = RoundedCornerShape(20.dp)) {
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Icon(Icons.Filled.Cloud, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp))
@@ -219,8 +268,20 @@ fun PingGoodScreen() {
                 Text(stringResource(R.string.dns_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Button(onClick = {
                     if (dnsConnected) {
-                        context.stopService(Intent(context, DnsForwardingVpnService::class.java)); dnsConnected = false
-                        message = context.getString(R.string.dns_disconnected)
+                        busy = true
+                        context.startService(Intent(context, DnsForwardingVpnService::class.java).setAction(DnsForwardingVpnService.ACTION_STOP))
+                        message = context.getString(R.string.dns_testing)
+                        scope.launch {
+                            var attempts = 0
+                            while (DnsForwardingVpnService.isRunning && attempts < 30) {
+                                delay(100)
+                                attempts++
+                            }
+                            dnsConnected = DnsForwardingVpnService.isRunning
+                            busy = false
+                            message = if (dnsConnected) context.getString(R.string.dns_test_error, context.getString(R.string.dns_stop_stuck))
+                                else context.getString(R.string.dns_disconnected)
+                        }
                     } else if (wgConnected) message = context.getString(R.string.ping_vpn_conflict)
                     else {
                         pendingDns = selectedDns
@@ -241,7 +302,7 @@ fun PingGoodScreen() {
 @Composable
 private fun DnsResolverCard(name: String, address: String, detail: String, latency: Long?, selected: Boolean, success: Boolean, rank: Int? = null, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().ngbNeonHalo(16.dp, width = if (selected) 3.dp else 1.dp, alpha = if (selected) 0.22f else 0.05f).clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
         colors = CardDefaults.cardColors(containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface),

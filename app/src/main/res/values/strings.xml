@@ -404,6 +404,13 @@
     <string name="ping_vpn_conflict">Android allows one active VPN at a time. Disconnect the other VPN before continuing.</string>
     <string name="wg_title">WireGuard VPN</string>
     <string name="wg_desc">Import a real WireGuard .conf profile, then connect through the official WireGuard tunnel engine.</string>
+    <string name="wg_delete">Delete</string>
+    <string name="wg_delete_title">Delete WireGuard configuration?</string>
+    <string name="wg_delete_message">The selected configuration will be removed from this device. This cannot be undone.</string>
+    <string name="wg_delete_confirm">Delete configuration</string>
+    <string name="wg_delete_cancel">Cancel</string>
+    <string name="wg_delete_success">WireGuard configuration deleted.</string>
+    <string name="wg_delete_error">Could not delete configuration: %1$s</string>
     <string name="wg_import">Import .conf file</string>
     <string name="wg_no_profile">No WireGuard profile imported yet.</string>
     <string name="wg_profile_ready">WireGuard profile imported and validated</string>
@@ -428,6 +435,7 @@
     <string name="dns_failed">Failed / timeout</string>
     <string name="dns_connected">DNS tunnel connected</string>
     <string name="dns_disconnected">DNS tunnel disconnected</string>
+    <string name="dns_stop_stuck">DNS tunnel did not stop; please retry</string>
     <string name="dns_test_error">Test failed: %1$s</string>
     <string name="dns_provider_detail">Resolver: %1$s</string>
     <string name="dns_note">The test measures DNS response time, not in-game ping. The current tunnel routes IPv4/UDP DNS only; app-encrypted DNS or Android Private DNS may bypass it. TCP/IPv6 DNS is not fully supported yet.</string>

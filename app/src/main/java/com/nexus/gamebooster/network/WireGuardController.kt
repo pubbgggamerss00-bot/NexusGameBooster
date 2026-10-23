@@ -92,6 +92,24 @@ object WireGuardController {
         }
     }
 
+    suspend fun deleteProfile(context: Context, profileId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            require(profileId.isNotBlank()) { "Select a profile to delete" }
+            // Do not remove the config backing an active tunnel.
+            if (selectedProfileId(context) == profileId && isConnected(context)) {
+                error("Disconnect WireGuard before deleting this profile")
+            }
+            val config = configFile(context, profileId)
+            require(config.exists()) { "Profile not found" }
+            check(config.delete()) { "Could not delete configuration" }
+            nameFile(context, profileId).takeIf { it.exists() }?.delete()
+            val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            if (prefs.getString(SELECTED_ID, "") == profileId) {
+                prefs.edit().remove(SELECTED_ID).apply()
+            }
+        }
+    }
+
     fun isConnected(context: Context): Boolean = try {
         backend(context).getState(tunnel) == Tunnel.State.UP
     } catch (_: Exception) { false }
