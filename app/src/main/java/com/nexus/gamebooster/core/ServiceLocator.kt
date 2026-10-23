@@ -18,6 +18,7 @@ import com.nexus.gamebooster.optimizer.actions.AndroidBoostExplicitActions
 import com.nexus.gamebooster.optimizer.actions.ApplyProfileAction
 import com.nexus.gamebooster.optimizer.actions.BoostExplicitActions
 import com.nexus.gamebooster.optimizer.actions.CompileGameAction
+import com.nexus.gamebooster.optimizer.actions.DeviceRestoreExecutor
 import com.nexus.gamebooster.optimizer.actions.ForceStopBackgroundAction
 import com.nexus.gamebooster.optimizer.actions.FreeMemoryAction
 import com.nexus.gamebooster.optimizer.actions.PrepareGameLaunchAction
@@ -87,6 +88,14 @@ object ServiceLocator {
         AndroidBoostExplicitActions(appContext, gameLauncher)
     }
 
+    /**
+     * Phase 10 — reverts the device changes recorded in the ledger (Settings →
+     * "Restore device changes"). Same honest contract as the boost actions.
+     */
+    val deviceRestoreExecutor: DeviceRestoreExecutor by lazy {
+        DeviceRestoreExecutor(shizukuPrivilege, settingsRepository)
+    }
+
     fun init(appContext: Context) {
         if (initialized) return
         initialized = true
@@ -119,16 +128,19 @@ object ServiceLocator {
      *  8. Prepare launch (resolve only — actual launch stays user-explicit)
      *
      * Actions that need Shizuku return Unsupported when it is not ready — never fake success.
+     * Phase 10: the three device-mutating actions (4/6/7) record their pre-state in the
+     * device-change ledger BEFORE writing, so Settings → restore can revert them to the
+     * user's real original values.
      */
     fun boostEngine(gamePackageName: String?): BoostEngine = DefaultBoostEngine(
         autoActions = listOf(
             ApplyProfileAction(profileRepository, settingsRepository),
             SessionMonitoringAction(sessionMonitorController),
             ForceStopBackgroundAction(appContext, shizukuPrivilege, gamePackageName),
-            ProtectGameAction(shizukuPrivilege, gamePackageName),
+            ProtectGameAction(shizukuPrivilege, gamePackageName, settingsRepository),
             FreeMemoryAction(shizukuPrivilege),
-            CompileGameAction(shizukuPrivilege, gamePackageName),
-            SystemTweaksAction(shizukuPrivilege),
+            CompileGameAction(shizukuPrivilege, gamePackageName, changeLedger = settingsRepository),
+            SystemTweaksAction(shizukuPrivilege, settingsRepository),
             PrepareGameLaunchAction(gameLauncher, gamePackageName),
         ),
     )
@@ -181,5 +193,8 @@ object ServiceLocator {
         SettingsViewModel(
             settingsRepository = settingsRepository,
             gameRepository = gameRepository,
+            shizukuPrivilege = shizukuPrivilege,
+            restoreExecutor = deviceRestoreExecutor,
+            activateShizuku = { shizukuPrivilege.activate(appContext) },
         )
 }

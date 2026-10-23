@@ -1,5 +1,8 @@
 package com.nexus.gamebooster.optimizer.actions
 
+import com.nexus.gamebooster.data.DeviceChangeRecord
+import com.nexus.gamebooster.data.DeviceChangeStore
+import com.nexus.gamebooster.data.DeviceChangeTypes
 import com.nexus.gamebooster.monitoring.UnavailableReasons
 import com.nexus.gamebooster.optimizer.BoostAction
 import com.nexus.gamebooster.optimizer.BoostActionIds
@@ -14,10 +17,16 @@ import com.nexus.gamebooster.shizuku.ShizukuPrivilege
  *  2. Set App Standby bucket to "active"
  *
  * Both steps need Shizuku. Partial success is still reported honestly.
+ *
+ * Phase 10: BEFORE mutating, the pre-state is captured for the device-change ledger —
+ * whitelist membership (Boolean?) and the original standby-bucket name. Only records
+ * with a KNOWN pre-state are restorable; unknown pre-states are recorded as such and
+ * the restore path skips them honestly instead of guessing.
  */
 class ProtectGameAction(
     private val shizuku: ShizukuPrivilege,
     private val targetGamePackage: String?,
+    private val changeLedger: DeviceChangeStore? = null,
 ) : BoostAction {
 
     override val id: String = BoostActionIds.PROTECT_GAME
@@ -31,8 +40,37 @@ class ProtectGameAction(
             return BoostActionOutcome.Skipped(UnavailableReasons.NO_GAME_SELECTED)
         }
 
+        // Read-before-write (Phase 10): capture the true pre-boost state.
+        val wasWhitelisted = shizuku.idleWhitelistContains(pkg)
+        val originalBucket = readOriginalBucket(pkg)
+
         val whitelist = shizuku.whitelistFromBatteryOptimization(pkg)
         val bucket = shizuku.setStandbyBucket(pkg, "active")
+
+        // Ledger entries are only kept for changes that actually took effect, and the
+        // store keeps only the FIRST record per (type, package) — the real originals.
+        if (whitelist.isSuccess && wasWhitelisted != true && changeLedger != null) {
+            changeLedger.addDeviceChangeIfAbsent(
+                DeviceChangeRecord(
+                    id = "wl_" + pkg + "_" + System.currentTimeMillis(),
+                    type = DeviceChangeTypes.IDLE_WHITELIST,
+                    packageName = pkg,
+                    wasWhitelisted = wasWhitelisted,
+                    createdAtMillis = System.currentTimeMillis(),
+                ),
+            )
+        }
+        if (bucket.isSuccess && changeLedger != null) {
+            changeLedger.addDeviceChangeIfAbsent(
+                DeviceChangeRecord(
+                    id = "sb_" + pkg + "_" + System.currentTimeMillis(),
+                    type = DeviceChangeTypes.STANDBY_BUCKET,
+                    packageName = pkg,
+                    originalBucket = originalBucket,
+                    createdAtMillis = System.currentTimeMillis(),
+                ),
+            )
+        }
 
         return when {
             whitelist.isSuccess && bucket.isSuccess ->
@@ -48,5 +86,14 @@ class ProtectGameAction(
                     ).joinToString(" | ").ifBlank { "protect failed" },
                 )
         }
+    }
+
+    /** Original bucket NAME (restorable) or null when the read failed / output was unusable. */
+    private suspend fun readOriginalBucket(pkg: String): String? {
+        val result = shizuku.getStandbyBucket(pkg)
+        if (!result.isSuccess) return null
+        val raw = result.stdout.trim()
+        if (raw.isEmpty() || raw == "null") return null
+        return shizuku.standbyBucketCodeToName(raw)
     }
 }

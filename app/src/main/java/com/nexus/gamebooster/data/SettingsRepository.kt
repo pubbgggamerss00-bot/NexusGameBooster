@@ -114,6 +114,7 @@ private object PreferencesKeys {
     val SELECTED_GAMES = stringSetPreferencesKey("selected_games")
     val MANUAL_GAMES = stringSetPreferencesKey("manual_games")
     val BOOST_HISTORY = stringSetPreferencesKey("boost_history")
+    val DEVICE_CHANGES = stringSetPreferencesKey("device_changes")
 }
 
 /**
@@ -128,7 +129,7 @@ private object PreferencesKeys {
  * [MAX_BOOST_HISTORY] newest reports, corrupt entries skipped on every read.
  */
 class SettingsRepository(private val dataStore: DataStore<Preferences>) :
-    SelectedGamesStore, ActiveProfileStore, BoostHistoryStore {
+    SelectedGamesStore, ActiveProfileStore, BoostHistoryStore, DeviceChangeStore {
 
     companion object {
         /** Production entry point; keeps the property-delegate DataStore wiring in one place. */
@@ -136,6 +137,9 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) :
 
         /** Boost history cap: the [BoostReport] newest list is kept; older ones are dropped. */
         const val MAX_BOOST_HISTORY = 20
+
+        /** Device-change ledger cap (per-package entries only; far below this in practice). */
+        const val MAX_DEVICE_CHANGES = 50
     }
 
     /** Tolerant JSON mapper: unknown future fields are ignored, sealed outcomes decode via @SerialName. */
@@ -242,6 +246,49 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) :
     private fun decodeBoostReports(entries: Set<String>): List<BoostReport> =
         entries.mapNotNull { entry ->
             runCatching { json.decodeFromString<BoostReport>(entry) }.getOrNull()
+        }
+
+    // -------------------------------------------------------- DeviceChangeStore
+
+    override val deviceChanges: Flow<List<DeviceChangeRecord>> = dataStore.data
+        .guardCorruption()
+        .map { prefs -> decodeDeviceChanges(prefs[PreferencesKeys.DEVICE_CHANGES] ?: emptySet()) }
+
+    override suspend fun addDeviceChangeIfAbsent(record: DeviceChangeRecord) {
+        dataStore.edit { prefs ->
+            val decoded = decodeDeviceChanges(prefs[PreferencesKeys.DEVICE_CHANGES] ?: emptySet())
+            // First recorded original wins: a later boost must never overwrite the
+            // user's true pre-boost values with values the app itself had changed.
+            if (decoded.any { it.upsertKey == record.upsertKey }) return@edit
+            val updated = (listOf(record) + decoded).take(MAX_DEVICE_CHANGES)
+            prefs[PreferencesKeys.DEVICE_CHANGES] = updated.map { json.encodeToString(it) }.toSet()
+        }
+    }
+
+    override suspend fun removeDeviceChanges(ids: Set<String>) {
+        if (ids.isEmpty()) return
+        dataStore.edit { prefs ->
+            val decoded = decodeDeviceChanges(prefs[PreferencesKeys.DEVICE_CHANGES] ?: emptySet())
+            val remaining = decoded.filterNot { it.id in ids }
+            if (remaining.isEmpty()) {
+                prefs.remove(PreferencesKeys.DEVICE_CHANGES)
+            } else {
+                prefs[PreferencesKeys.DEVICE_CHANGES] =
+                    remaining.map { json.encodeToString(it) }.toSet()
+            }
+        }
+    }
+
+    override suspend fun clearDeviceChanges() {
+        dataStore.edit { prefs ->
+            prefs.remove(PreferencesKeys.DEVICE_CHANGES)
+        }
+    }
+
+    /** Same per-entry tolerance as the boost history: one bad line never breaks the ledger. */
+    private fun decodeDeviceChanges(entries: Set<String>): List<DeviceChangeRecord> =
+        entries.mapNotNull { entry ->
+            runCatching { json.decodeFromString<DeviceChangeRecord>(entry) }.getOrNull()
         }
 
     /** Clears every key this app wrote, including theme, profile, the game keys and the boost history (Settings → "Reset app data"). */

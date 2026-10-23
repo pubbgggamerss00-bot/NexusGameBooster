@@ -317,7 +317,7 @@
     <string name="settings_visible_apps_value">%1$d (launcher apps only)</string>
     <string name="settings_reset">Reset app data</string>
     <string name="settings_reset_title">Reset app data?</string>
-    <string name="settings_reset_body">Clears language, theme, reduce-motion, the selected profile, your game library and the boost history.</string>
+    <string name="settings_reset_body">Clears language, theme, reduce-motion, the selected profile, your game library, the boost history — and forgets the recorded device-change list (device settings themselves are not reverted here).</string>
     <string name="settings_reset_confirm">Reset</string>
 
     <!-- Accessibility labels (Phase 7) -->
@@ -353,4 +353,42 @@
     <string name="boost_detail_none_to_stop">Nothing to stop — background is already clear</string>
     <string name="boost_detail_partial_protect">Game protection partially applied</string>
     <string name="boost_detail_stopped_apps">Stopped %1$d background apps</string>
+
+    <!-- Phase 10 — restore device changes (Settings) -->
+    <string name="settings_restore_section">Restore device changes</string>
+    <string name="settings_restore_shizuku_status">Shizuku</string>
+    <string name="settings_restore_empty">No device changes recorded yet — nothing to restore. Entries appear here after a real boost runs with Shizuku.</string>
+    <string name="settings_restore_count_value">%1$d recorded change(s)</string>
+    <string name="settings_restore_item_anim">System animation scales</string>
+    <string name="settings_restore_item_anim_subtitle">Recorded original: %1$s / %2$s / %3$s</string>
+    <string name="settings_restore_item_unknown_value">unknown</string>
+    <string name="settings_restore_item_whitelist">Battery-optimization whitelist: %1$s</string>
+    <string name="settings_restore_item_whitelist_subtitle">The game was added to the whitelist by a boost</string>
+    <string name="settings_restore_item_bucket">App standby bucket: %1$s</string>
+    <string name="settings_restore_item_bucket_subtitle">Original bucket: %1$s</string>
+    <string name="settings_restore_bucket_active">Active</string>
+    <string name="settings_restore_bucket_working_set">Working set</string>
+    <string name="settings_restore_bucket_frequent">Frequent</string>
+    <string name="settings_restore_bucket_rare">Rare</string>
+    <string name="settings_restore_bucket_restricted">Restricted</string>
+    <string name="settings_restore_bucket_exempted">Exempted</string>
+    <string name="settings_restore_item_compile">ART compilation: %1$s</string>
+    <string name="settings_restore_item_compile_subtitle">Restore returns the app to the system-managed compile state</string>
+    <string name="settings_restore_button">Restore original values</string>
+    <string name="settings_restore_confirm_title">Restore device changes?</string>
+    <string name="settings_restore_confirm_body">The recorded original values are written back to the device. This runs over Shizuku. Changes without a recorded original are skipped and reported honestly.</string>
+    <string name="settings_restore_forget">Forget records</string>
+    <string name="settings_restore_forget_title">Forget the recorded changes?</string>
+    <string name="settings_restore_forget_body">The list is cleared without touching the device. These changes can no longer be restored afterwards.</string>
+    <string name="settings_restore_result_title">Restore result</string>
+    <string name="settings_restore_result_summary">Restored: %1$d · Skipped: %2$d · Failed: %3$d</string>
+    <string name="settings_restore_result_shizuku_required">Shizuku is not ready — nothing was changed.</string>
+    <string name="settings_restore_status_restored">Restored</string>
+    <string name="settings_restore_status_skipped">Skipped: %1$s</string>
+    <string name="settings_restore_status_failed">Failed: %1$s</string>
+    <string name="settings_restore_reason_unknown_original">original value unknown</string>
+    <string name="settings_restore_reason_no_change_made">no change was needed</string>
+    <string name="settings_restore_reason_shizuku_required">Shizuku required</string>
+    <string name="settings_restore_note">Force-stopped apps and freed caches are temporary — the system brings them back on its own, so they are not listed here.</string>
+    <string name="settings_restore_reset_note">“Reset app data” below also forgets this record list.</string>
 </resources>

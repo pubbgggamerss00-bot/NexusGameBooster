@@ -273,6 +273,14 @@ class ShizukuPrivilege {
         exec("cmd", "package", "compile", "-m", mode, "-f", packageName)
 
     /**
+     * Resets the package's ART compilation state back to the system-managed default.
+     * The exact prior compile state cannot be snapshotted, so this is the honest
+     * restore path (documented in the restore UI).
+     */
+    suspend fun resetCompile(packageName: String): ShellResult =
+        exec("cmd", "package", "compile", "--reset", packageName)
+
+    /**
      * Trim system caches (frees reclaimable RAM). Size is a hint in bytes; 0 = aggressive.
      */
     suspend fun trimCaches(bytesHint: Long = 0L): ShellResult =
@@ -287,6 +295,55 @@ class ShizukuPrivilege {
             "settings put global transition_animation_scale $scale; " +
             "settings put global animator_duration_scale $scale"
     )
+
+    // ------------------------------------------------------ Phase 10 — restore reads
+
+    /** Reads one global settings value (e.g. `window_animation_scale`) as shell. */
+    suspend fun getGlobalSetting(key: String): ShellResult =
+        exec("settings", "get", "global", key)
+
+    /** Writes one global settings value back (restore path). */
+    suspend fun putGlobalSetting(key: String, value: String): ShellResult =
+        exec("settings", "put", "global", key, value)
+
+    /**
+     * Whether [packageName] is already on the device-idle whitelist.
+     * `null` = the query itself failed (state unknown — callers must not guess).
+     */
+    suspend fun idleWhitelistContains(packageName: String): Boolean? {
+        val result = exec("dumpsys", "deviceidle", "whitelist")
+        if (!result.isSuccess) return null
+        // The dumpsys whitelist section lists one package per line (optionally with a
+        // prefix); match on the exact token to avoid substring false positives.
+        return result.stdout.lineSequence().any { line ->
+            line.trim().trim(',', ':') == packageName ||
+                line.trim().endsWith(",$packageName") ||
+                line.trim().endsWith(":$packageName")
+        }
+    }
+
+    /** Removes [packageName] from the device-idle whitelist (restore path). */
+    suspend fun removeFromIdleWhitelist(packageName: String): ShellResult =
+        exec("dumpsys", "deviceidle", "whitelist", "-$packageName")
+
+    /** Reads the current standby bucket code of [packageName] (e.g. "10", "40"). */
+    suspend fun getStandbyBucket(packageName: String): ShellResult =
+        exec("am", "get-standby-bucket", packageName)
+
+    /**
+     * Maps a numeric standby-bucket code (as printed by `am get-standby-bucket`)
+     * to the bucket name accepted by `am set-standby-bucket`. Unknown codes are
+     * returned as their raw string so the restore path stays lossless.
+     */
+    fun standbyBucketCodeToName(code: String): String = when (code.trim()) {
+        "5" -> "exempted"
+        "10" -> "active"
+        "20" -> "working_set"
+        "30" -> "frequent"
+        "40" -> "rare"
+        "45" -> "restricted"
+        else -> code.trim()
+    }
 
     companion object {
         private const val REQUEST_CODE_PERMISSION = 9001

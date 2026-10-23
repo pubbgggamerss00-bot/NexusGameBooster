@@ -317,7 +317,7 @@
     <string name="settings_visible_apps_value">%1$d (فقط برنامه‌های دارای اجراگر)</string>
     <string name="settings_reset">بازنشانی داده‌های برنامه</string>
     <string name="settings_reset_title">بازنشانی داده‌های برنامه؟</string>
-    <string name="settings_reset_body">زبان، پوسته، کاهش انیمیشن، پروفایل انتخاب‌شده، کتابخانه‌ی بازی و تاریخچه‌ی بوست پاک می‌شود.</string>
+    <string name="settings_reset_body">زبان، پوسته، کاهش انیمیشن، پروفایل انتخاب‌شده، کتابخانه‌ی بازی و تاریخچه‌ی بوست پاک می‌شود — و فهرست تغییرات ثبت‌شده‌ی دستگاه نیز فراموش می‌شود (خودِ تنظیمات دستگاه اینجا برنمی‌گردند).</string>
     <string name="settings_reset_confirm">بازنشانی</string>
 
     <!-- Accessibility labels (Phase 7) -->
@@ -353,4 +353,42 @@
     <string name="boost_detail_none_to_stop">چیزی برای بستن نیست — پس‌زمینه از قبل خالی است</string>
     <string name="boost_detail_partial_protect">محافظت بازی به‌صورت نیمه‌کاره اعمال شد</string>
     <string name="boost_detail_stopped_apps">%1$d برنامه پس‌زمینه بسته شد</string>
+
+    <!-- Phase 10 — restore device changes (Settings) -->
+    <string name="settings_restore_section">بازگردانی تغییرات دستگاه</string>
+    <string name="settings_restore_shizuku_status">شیزوکو</string>
+    <string name="settings_restore_empty">هنوز هیچ تغییری روی دستگاه ثبت نشده — چیزی برای بازگردانی نیست. پس از اولین بوست واقعی با شیزوکو، موارد اینجا نمایش داده می‌شوند.</string>
+    <string name="settings_restore_count_value">%1$d تغییر ثبت‌شده</string>
+    <string name="settings_restore_item_anim">مقیاس انیمیشن‌های سیستم</string>
+    <string name="settings_restore_item_anim_subtitle">مقدار اصلی ثبت‌شده: %1$s / %2$s / %3$s</string>
+    <string name="settings_restore_item_unknown_value">نامشخص</string>
+    <string name="settings_restore_item_whitelist">لیست سفید بهینه‌سازی باتری: %1$s</string>
+    <string name="settings_restore_item_whitelist_subtitle">بازی بواسطه بوست به لیست سفید اضافه شد</string>
+    <string name="settings_restore_item_bucket">حالت آماده‌به‌کار برنامه: %1$s</string>
+    <string name="settings_restore_item_bucket_subtitle">حالت اصلی: %1$s</string>
+    <string name="settings_restore_bucket_active">فعال</string>
+    <string name="settings_restore_bucket_working_set">مجموعه کاری</string>
+    <string name="settings_restore_bucket_frequent">پرکاربرد</string>
+    <string name="settings_restore_bucket_rare">کم‌کاربرد</string>
+    <string name="settings_restore_bucket_restricted">محدودشده</string>
+    <string name="settings_restore_bucket_exempted">معاف</string>
+    <string name="settings_restore_item_compile">کامپایل ART: %1$s</string>
+    <string name="settings_restore_item_compile_subtitle">بازگردانی برنامه را به حالت مدیریت‌شده توسط سیستم برمی‌گرداند</string>
+    <string name="settings_restore_button">بازگردانی مقادیر اصلی</string>
+    <string name="settings_restore_confirm_title">بازگردانی تغییرات دستگاه؟</string>
+    <string name="settings_restore_confirm_body">مقادیر اصلی ثبت‌شده روی دستگاه نوشته می‌شوند. این کار از طریق شیزوکو اجرا می‌شود. تغییراتی که مقدار اصلی آن‌ها ثبت نشده رد می‌شوند و صادقانه گزارش می‌گیرند.</string>
+    <string name="settings_restore_forget">فراموشی سوابق</string>
+    <string name="settings_restore_forget_title">سوابق ثبت‌شده فراموش شود؟</string>
+    <string name="settings_restore_forget_body">فهرست بدون دست‌زدن به دستگاه پاک می‌شود. پس از آن دیگر نمی‌توان این تغییرات را بازگرداند.</string>
+    <string name="settings_restore_result_title">نتیجه بازگردانی</string>
+    <string name="settings_restore_result_summary">بازگردانی‌شده: %1$d · رد‌شده: %2$d · ناموفق: %3$d</string>
+    <string name="settings_restore_result_shizuku_required">شیزوکو آماده نیست — هیچ تغییری اعمال نشد.</string>
+    <string name="settings_restore_status_restored">بازگردانی شد</string>
+    <string name="settings_restore_status_skipped">رد شد: %1$s</string>
+    <string name="settings_restore_status_failed">ناموفق: %1$s</string>
+    <string name="settings_restore_reason_unknown_original">مقدار اصلی نامشخص</string>
+    <string name="settings_restore_reason_no_change_made">تغییری لازم نبود</string>
+    <string name="settings_restore_reason_shizuku_required">شیزوکو لازم است</string>
+    <string name="settings_restore_note">بستن برنامه‌های پس‌زمینه و آزادسازی حافظه پنهان موقتی است — سیستم خودش آن‌ها را برمی‌گرداند، بنابراین در این فهرست نیستند.</string>
+    <string name="settings_restore_reset_note">«بازنشانی داده‌های برنامه» در پایین، این فهرست را نیز فراموش می‌کند.</string>
 </resources>
