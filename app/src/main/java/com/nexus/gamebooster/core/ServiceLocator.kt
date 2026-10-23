@@ -28,12 +28,15 @@ import com.nexus.gamebooster.optimizer.actions.SystemTweaksAction
 import com.nexus.gamebooster.profiles.ProfileRepository
 import com.nexus.gamebooster.profiles.StaticProfileRepository
 import com.nexus.gamebooster.shizuku.ShizukuPrivilege
+import com.nexus.gamebooster.update.ApkInstaller
+import com.nexus.gamebooster.update.GitHubUpdateClient
 import com.nexus.gamebooster.ui.screens.home.BoostViewModel
 import com.nexus.gamebooster.ui.screens.home.HomeViewModel
 import com.nexus.gamebooster.ui.screens.library.LibraryViewModel
 import com.nexus.gamebooster.ui.screens.monitor.MonitorViewModel
 import com.nexus.gamebooster.ui.screens.profiles.ProfilesViewModel
 import com.nexus.gamebooster.ui.screens.settings.SettingsViewModel
+import java.io.File
 
 /**
  * Tiny manual DI container. Initialized once from [com.nexus.gamebooster.NexusGameBoosterApp].
@@ -196,5 +199,20 @@ object ServiceLocator {
             shizukuPrivilege = shizukuPrivilege,
             restoreExecutor = deviceRestoreExecutor,
             activateShizuku = { shizukuPrivilege.activate(appContext) },
+            updateClient = GitHubUpdateClient,
+            canRequestInstalls = { ApkInstaller.canRequestInstalls(appContext) },
+            requestInstallPermission = {
+                // Best-effort: the outcome shows in the card (the switch is the fact).
+                ApkInstaller.openInstallPermissionSettings(appContext)
+            },
+            downloadUpdate = { url, fileName, onProgress ->
+                GitHubUpdateClient.downloadApk(
+                    url = url,
+                    destDir = File(appContext.cacheDir, "updates"),
+                    fileName = fileName,
+                    onProgress = onProgress,
+                )
+            },
+            startInstall = { file -> ApkInstaller.installApk(appContext, file) },
         )
 }

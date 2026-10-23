@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Phase 11: FileProvider paths for the Settings → update flow. Only the APK files
+  downloaded into cacheDir/updates are ever shared — and only with the system
+  package installer (grantUriPermissions + FLAG_GRANT_READ_URI_PERMISSION).
+-->
+<paths>
+    <cache-path
+        name="update_apks"
+        path="updates/" />
+</paths>

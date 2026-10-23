@@ -1,0 +1,8 @@
+Nexus Game Booster — new version!
+
+What's new:
+• A "Check for updates" button in Settings — one tap shows whether you are on the latest version.
+• If a new version exists, you see what's new in plain language (no technical jargon).
+• One "Download & install" button gets the new version for you — no browser, no file manager, everything happens inside the app.
+• Android shows its own one-tap confirmation before installing (that's a system rule every app must follow).
+• The update check goes straight to GitHub releases — no accounts, no servers of ours.

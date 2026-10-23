@@ -15,12 +15,16 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
+import androidx.compose.material.icons.outlined.SystemUpdateAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
@@ -40,6 +44,8 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nexus.gamebooster.BuildConfig
@@ -56,6 +62,7 @@ import com.nexus.gamebooster.shizuku.ShizukuPrivilege
 import com.nexus.gamebooster.ui.components.NgbOutlinedButton
 import com.nexus.gamebooster.ui.components.NgbScreenContainer
 import com.nexus.gamebooster.ui.components.SectionCard
+import com.nexus.gamebooster.update.UpdateTools
 
 @Composable
 fun SettingsScreen() {
@@ -66,6 +73,11 @@ fun SettingsScreen() {
     var showForgetDialog by rememberSaveable { mutableStateOf(false) }
 
     NgbScreenContainer {
+        // Returns from the system "Install unknown apps" page — resume the update
+        // flow exactly once, based on the REAL switch state.
+        LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+            vm.onScreenResumed()
+        }
         Text(
             text = stringResource(R.string.settings_headline),
             style = MaterialTheme.typography.headlineSmall,
@@ -158,6 +170,14 @@ fun SettingsScreen() {
             onActivateShizuku = vm::activateShizukuForRestore,
             onRestoreClick = { showRestoreDialog = true },
             onForgetClick = { showForgetDialog = true },
+        )
+        Spacer(Modifier.height(16.dp))
+
+        AppUpdatesCard(
+            state = state,
+            onCheck = vm::checkForUpdates,
+            onDownload = vm::downloadAndInstallUpdate,
+            onAllowInstall = vm::grantInstallPermission,
         )
         Spacer(Modifier.height(16.dp))
 
@@ -532,6 +552,187 @@ private fun localizedBucketName(name: String): String = when (name) {
     "restricted" -> stringResource(R.string.settings_restore_bucket_restricted)
     "exempted" -> stringResource(R.string.settings_restore_bucket_exempted)
     else -> name
+}
+
+/**
+ * Phase 11 card: check the app's own GitHub releases for a newer version and, when
+ * one exists, download + start the install entirely in-app. Every state comes from
+ * a real network/system call — Idle means "not checked yet", never "up to date".
+ */
+@Composable
+private fun AppUpdatesCard(
+    state: SettingsUiState,
+    onCheck: () -> Unit,
+    onDownload: () -> Unit,
+    onAllowInstall: () -> Unit,
+) {
+    SectionCard(
+        title = stringResource(R.string.settings_update_section),
+        icon = Icons.Outlined.SystemUpdateAlt,
+    ) {
+        AboutRow(
+            label = stringResource(R.string.settings_update_current),
+            value = BuildConfig.VERSION_NAME,
+        )
+
+        val checking = state.update is UpdateCheckUi.Checking
+        val downloading = state.update is UpdateCheckUi.Downloading
+        NgbOutlinedButton(
+            onClick = onCheck,
+            enabled = !checking && !downloading,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            if (checking) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                )
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(
+                text = if (checking) {
+                    stringResource(R.string.settings_update_checking)
+                } else {
+                    stringResource(R.string.settings_update_check)
+                },
+            )
+        }
+
+        when (val update = state.update) {
+            is UpdateCheckUi.UpToDate -> Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 4.dp),
+            ) {
+                Icon(
+                    Icons.Filled.CheckCircle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = stringResource(R.string.settings_update_uptodate, update.remoteVersion),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+
+            is UpdateCheckUi.Available -> {
+                Text(
+                    text = stringResource(R.string.settings_update_available, update.versionName),
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+                if (update.whatsNew != null) {
+                    Text(
+                        text = stringResource(R.string.settings_update_whatsnew),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 220.dp)
+                            .verticalScroll(rememberScrollState()),
+                    ) {
+                        Text(
+                            text = update.whatsNew,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                } else {
+                    // The release ships no friendly notes file — say so, never invent.
+                    Text(
+                        text = stringResource(R.string.settings_update_notes_missing),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                NgbOutlinedButton(
+                    onClick = onDownload,
+                    enabled = !downloading,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.settings_update_download))
+                }
+            }
+
+            is UpdateCheckUi.Downloading -> {
+                val total = update.totalBytes
+                if (total > 0) {
+                    LinearProgressIndicator(
+                        progress = {
+                            (update.downloadedBytes.toFloat() / total).coerceIn(0f, 1f)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.settings_update_downloading,
+                            UpdateTools.formatMb(update.downloadedBytes),
+                            UpdateTools.formatMb(total),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    Text(
+                        text = stringResource(
+                            R.string.settings_update_downloaded,
+                            UpdateTools.formatMb(update.downloadedBytes),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            is UpdateCheckUi.Failed -> Text(
+                text = stringResource(update.errorRes, *update.args.toTypedArray()),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+
+            UpdateCheckUi.Idle, UpdateCheckUi.Checking -> Unit
+        }
+
+        if (state.updateNeedsInstallPermission) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.settings_update_install_permission_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+            NgbOutlinedButton(onClick = onAllowInstall, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.settings_update_allow))
+            }
+        }
+
+        state.updateHintRes?.let { hintRes ->
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Filled.CheckCircle,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = stringResource(hintRes),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.settings_update_note),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 /**

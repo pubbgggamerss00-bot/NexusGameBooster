@@ -3,6 +3,7 @@ package com.nexus.gamebooster.ui.screens.settings
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.nexus.gamebooster.BuildConfig
 import com.nexus.gamebooster.R
 import com.nexus.gamebooster.data.DeviceChangeRecord
 import com.nexus.gamebooster.data.DeviceChangeStore
@@ -14,11 +15,16 @@ import com.nexus.gamebooster.games.GameScanResult
 import com.nexus.gamebooster.optimizer.actions.DeviceRestoreExecutor
 import com.nexus.gamebooster.optimizer.actions.DeviceRestoreExecutor.ItemStatus
 import com.nexus.gamebooster.shizuku.ShizukuPrivilege
+import com.nexus.gamebooster.update.GitHubUpdateClient
+import com.nexus.gamebooster.update.UpdateTools
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
+import java.util.Locale
 
 /**
  * Restore status of ONE ledger record after the last restore run — used by the UI to
@@ -28,6 +34,34 @@ data class DeviceChangeStatusUi(
     val record: DeviceChangeRecord,
     val status: ItemStatus?,
 )
+
+/**
+ * Phase 11 state machine for the Settings → "Check for updates" card. Every state
+ * is a REAL outcome of a REAL network/system call — the card never invents a result.
+ */
+sealed interface UpdateCheckUi {
+    data object Idle : UpdateCheckUi
+
+    data object Checking : UpdateCheckUi
+
+    /** The numeric prefix of the latest GitHub release equals ours. */
+    data class UpToDate(val remoteVersion: String) : UpdateCheckUi
+
+    /**
+     * A release with a numerically greater prefix exists. [whatsNew] is the friendly
+     * notes text when the release ships one, null → the UI shows an honest generic line.
+     */
+    data class Available(
+        val versionName: String,
+        val whatsNew: String?,
+        val apkSizeBytes: Long,
+    ) : UpdateCheckUi
+
+    data class Downloading(val downloadedBytes: Long, val totalBytes: Long) : UpdateCheckUi
+
+    /** Honest failure: [errorRes] + its string args (the raw detail travels inside). */
+    data class Failed(val errorRes: Int, val args: List<String> = emptyList()) : UpdateCheckUi
+}
 
 data class SettingsUiState(
     val language: Language = Language.SYSTEM,
@@ -50,6 +84,12 @@ data class SettingsUiState(
     val lastStatuses: Map<String, ItemStatus> = emptyMap(),
     /** One-shot hint after Activate was tapped (res id of an existing shizuku_msg_* string). */
     @StringRes val shizukuHintRes: Int? = null,
+    // --- Phase 11: check for updates ---
+    val update: UpdateCheckUi = UpdateCheckUi.Idle,
+    /** True when the user tapped download but the system "Install unknown apps" switch is off. */
+    val updateNeedsInstallPermission: Boolean = false,
+    /** One-shot inline hint, e.g. after the system installer was opened. */
+    @StringRes val updateHintRes: Int? = null,
 )
 
 /**
@@ -68,10 +108,20 @@ class SettingsViewModel(
     private val shizukuPrivilege: ShizukuPrivilege,
     private val restoreExecutor: DeviceRestoreExecutor,
     private val activateShizuku: () -> ShizukuPrivilege.ActivateOutcome,
+    private val updateClient: GitHubUpdateClient = GitHubUpdateClient,
+    private val canRequestInstalls: () -> Boolean = { false },
+    private val requestInstallPermission: () -> Unit = {},
+    private val downloadUpdate: suspend (url: String, fileName: String, onProgress: (Long, Long) -> Unit) -> Result<File> = { _, _, _ ->
+        Result.failure(IllegalStateException("no download wiring"))
+    },
+    private val startInstall: (File) -> Result<Unit> = { Result.failure(IllegalStateException("no install wiring")) },
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    /** Release behind the current Available/Downloading card — reused for retry/resume. */
+    private var pendingRelease: UpdateTools.LatestRelease? = null
 
     init {
         viewModelScope.launch {
@@ -176,6 +226,160 @@ class SettingsViewModel(
 
     fun dismissRestoreReport() {
         _uiState.update { it.copy(lastRestoreReport = null) }
+    }
+
+    // ---------------------------------------------- Phase 11: check for updates
+
+    /**
+     * Asks GitHub for the latest release and compares numeric prefixes honestly:
+     * greater → Available (with user-level notes), equal/less → UpToDate,
+     * unparseable/HTTP error → Failed with the raw detail. Never fakes either way.
+     */
+    fun checkForUpdates() {
+        if (_uiState.value.update is UpdateCheckUi.Checking) return
+        if (_uiState.value.update is UpdateCheckUi.Downloading) return
+        _uiState.update {
+            it.copy(
+                update = UpdateCheckUi.Checking,
+                updateHintRes = null,
+                updateNeedsInstallPermission = false,
+            )
+        }
+        viewModelScope.launch {
+            val languageTag = when (settingsRepository.settings.first().language) {
+                Language.PERSIAN -> "fa"
+                Language.ENGLISH -> "en"
+                Language.SYSTEM -> Locale.getDefault().language.ifBlank { "en" }
+            }
+            val fetch = updateClient.fetchLatestRelease(languageTag)
+            val release = fetch.getOrNull()
+            if (release == null) {
+                _uiState.update {
+                    it.copy(
+                        update = UpdateCheckUi.Failed(
+                            R.string.settings_update_error,
+                            listOf(fetch.exceptionOrNull()?.message.orEmpty()),
+                        ),
+                    )
+                }
+                return@launch
+            }
+            pendingRelease = release
+            when (val comparison = UpdateTools.compareVersionNames(BuildConfig.VERSION_NAME, release.versionName)) {
+                null -> _uiState.update {
+                    it.copy(
+                        update = UpdateCheckUi.Failed(
+                            R.string.settings_update_version_mismatch,
+                            listOf(BuildConfig.VERSION_NAME, release.versionName, release.tagName),
+                        ),
+                    )
+                }
+
+                else ->
+                    // Standard compareTo semantics: local.compareTo(remote).
+                    // < 0 → a numerically newer release exists → Available;
+                    // 0 (equal prefix) or > 0 (this build is newer than latest) → up to date.
+                    if (comparison < 0) {
+                        _uiState.update {
+                            it.copy(
+                                update = UpdateCheckUi.Available(
+                                    versionName = release.versionName,
+                                    whatsNew = release.whatsNewText,
+                                    apkSizeBytes = release.apkSizeBytes,
+                                ),
+                            )
+                        }
+                    } else {
+                        _uiState.update { it.copy(update = UpdateCheckUi.UpToDate(release.versionName)) }
+                    }
+            }
+        }
+    }
+
+    /**
+     * Download + hand to the system installer, fully in-app. Before ANY bytes move,
+     * the real per-app install switch is checked; if it is off, the one-time system
+     * page opens and the download resumes automatically when the user returns.
+     */
+    fun downloadAndInstallUpdate() {
+        val release = pendingRelease ?: return
+        if (_uiState.value.update is UpdateCheckUi.Downloading) return
+        if (!canRequestInstalls()) {
+            _uiState.update { it.copy(updateNeedsInstallPermission = true) }
+            requestInstallPermission()
+            return
+        }
+        startDownload(release)
+    }
+
+    /** Called on ON_RESUME: the user just came back from the install-permission page. */
+    fun onScreenResumed() {
+        val release = pendingRelease ?: return
+        if (_uiState.value.updateNeedsInstallPermission && canRequestInstalls()) {
+            _uiState.update { it.copy(updateNeedsInstallPermission = false) }
+            startDownload(release)
+        }
+    }
+
+    /** Re-opens the system install-permission page from the card's Allow button. */
+    fun grantInstallPermission() {
+        requestInstallPermission()
+    }
+
+    private fun startDownload(release: UpdateTools.LatestRelease) {
+        _uiState.update {
+            it.copy(
+                update = UpdateCheckUi.Downloading(0, release.apkSizeBytes),
+                updateHintRes = null,
+                updateNeedsInstallPermission = false,
+            )
+        }
+        viewModelScope.launch {
+            val fileName = "nexus-update-${release.versionName}.apk"
+            val downloaded = downloadUpdate(release.apkUrl, fileName) { done, total ->
+                _uiState.update { state ->
+                    if (state.update is UpdateCheckUi.Downloading) {
+                        state.copy(update = UpdateCheckUi.Downloading(done, total))
+                    } else {
+                        state
+                    }
+                }
+            }
+            val apkFile = downloaded.getOrNull()
+            if (apkFile == null) {
+                _uiState.update {
+                    it.copy(
+                        update = UpdateCheckUi.Failed(
+                            R.string.settings_update_download_failed,
+                            listOf(downloaded.exceptionOrNull()?.message.orEmpty()),
+                        ),
+                    )
+                }
+                return@launch
+            }
+            val install = startInstall(apkFile)
+            if (install.isSuccess) {
+                _uiState.update {
+                    it.copy(
+                        update = UpdateCheckUi.Available(
+                            versionName = release.versionName,
+                            whatsNew = release.whatsNewText,
+                            apkSizeBytes = release.apkSizeBytes,
+                        ),
+                        updateHintRes = R.string.settings_update_install_opened,
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        update = UpdateCheckUi.Failed(
+                            R.string.settings_update_install_failed,
+                            listOf(install.exceptionOrNull()?.message.orEmpty()),
+                        ),
+                    )
+                }
+            }
+        }
     }
 
     private fun ShizukuPrivilege.ActivateOutcome.toMessageRes(): Int = when (this) {

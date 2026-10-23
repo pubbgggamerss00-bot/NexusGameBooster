@@ -391,6 +391,26 @@
     <string name="settings_restore_reason_shizuku_required">شیزوکو لازم است</string>
     <string name="settings_restore_note">بستن برنامه‌های پس‌زمینه و آزادسازی حافظه پنهان موقتی است — سیستم خودش آن‌ها را برمی‌گرداند، بنابراین در این فهرست نیستند.</string>
     <string name="settings_restore_reset_note">«بازنشانی داده‌های برنامه» در پایین، این فهرست را نیز فراموش می‌کند.</string>
+    <!-- Phase 11: check for updates -->
+    <string name="settings_update_section">بروزرسانی برنامه</string>
+    <string name="settings_update_current">نسخه نصب‌شده</string>
+    <string name="settings_update_check">بررسی بروزرسانی</string>
+    <string name="settings_update_checking">در حال بررسی…</string>
+    <string name="settings_update_uptodate">شما روی آخرین نسخه هستید (آخرین انتشار: %1$s).</string>
+    <string name="settings_update_available">نسخه جدید موجود است: %1$s</string>
+    <string name="settings_update_whatsnew">تازه‌های این نسخه</string>
+    <string name="settings_update_download">دانلود و نصب</string>
+    <string name="settings_update_downloading">در حال دانلود… %1$s از %2$s</string>
+    <string name="settings_update_downloaded">در حال دانلود… %1$s</string>
+    <string name="settings_update_install_opened">دانلود تمام شد — نصب‌کننده اندروید باز شد. برای بروزرسانی برنامه، همان‌جا تأیید کنید.</string>
+    <string name="settings_update_install_permission_note">اندروید اجازه بروزرسانی خودکار برنامه را فقط پس از فعال‌کردن «نصب برنامه‌های ناشناس» برای Nexus می‌دهد. این دکمه همان صفحه‌ی سیستم را باز می‌کند — یک‌بار اجازه دهید، دانلود خودش ادامه پیدا می‌کند.</string>
+    <string name="settings_update_allow">اجازه‌ی نصب</string>
+    <string name="settings_update_error">بررسی بروزرسانی ناموفق بود: %1$s</string>
+    <string name="settings_update_download_failed">دانلود ناموفق بود: %1$s</string>
+    <string name="settings_update_install_failed">اجرای نصب‌کننده ممکن نشد: %1$s</string>
+    <string name="settings_update_version_mismatch">مقایسه‌ی نسخه نصب‌شده (%1$s) با آخرین انتشار (%2$s، %3$s) ممکن نشد. برای اطمینان، صفحه‌ی Releases گیت‌هاب را ببینید.</string>
+    <string name="settings_update_notes_missing">برای این نسخه هنوز خلاصه‌ی ساده اضافه نشده است. جزئیات در صفحه‌ی Releases گیت‌هاب است.</string>
+    <string name="settings_update_note">بررسی مستقیم از صفحه‌ی Releases همین برنامه در گیت‌هاب انجام می‌شود. دانلود کاملاً داخل برنامه است؛ سپس نصب‌کننده‌ی خود اندروید یک تأیید ساده نشان می‌دهد (الزام سیستم است و برنامه نمی‌تواند از آن عبور کند).</string>
 
     <!-- Phase 10.5 — network tools (Ping Good tab): reason + WireGuard + DNS changer -->
     <string name="reason_action_disabled_for_safety">برای حفظ ایمنی غیرفعال است؛ تا زمانی که صفحهٔ بررسی و تأیید جداگانهٔ برنامه‌ها اضافه شود.</string>

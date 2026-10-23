@@ -12,10 +12,16 @@
       Phase 9: Shizuku provides elevated APIs via its own binder; the provider below
       is required by the Shizuku library so the manager can grant this app access.
       Package visibility still limited to LAUNCHER apps (no QUERY_ALL_PACKAGES).
+
+      Phase 11: REQUEST_INSTALL_PACKAGES (normal-grade, no runtime prompt) backs the
+      Settings → "Check for updates" self-update: it ONLY enables the per-app
+      "Install unknown apps" switch the user must allow once; every install still
+      goes through Android's own package-installer confirmation dialog.
     -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <queries>
         <intent>
@@ -45,6 +51,20 @@
             android:enabled="true"
             android:exported="true"
             android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+
+        <!--
+          Phase 11: shares the downloaded update APK with the system package installer
+          only (exported=false + FLAG_GRANT_READ_URI_PERMISSION at install time).
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updatefiles"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <activity
             android:name=".MainActivity"

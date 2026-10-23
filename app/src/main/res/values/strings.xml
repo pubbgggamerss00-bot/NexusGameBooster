@@ -391,6 +391,26 @@
     <string name="settings_restore_reason_shizuku_required">Shizuku required</string>
     <string name="settings_restore_note">Force-stopped apps and freed caches are temporary — the system brings them back on its own, so they are not listed here.</string>
     <string name="settings_restore_reset_note">“Reset app data” below also forgets this record list.</string>
+    <!-- Phase 11: check for updates -->
+    <string name="settings_update_section">App updates</string>
+    <string name="settings_update_current">Installed version</string>
+    <string name="settings_update_check">Check for updates</string>
+    <string name="settings_update_checking">Checking…</string>
+    <string name="settings_update_uptodate">You are on the latest version (latest release: %1$s).</string>
+    <string name="settings_update_available">New version available: %1$s</string>
+    <string name="settings_update_whatsnew">What\'s new in this version</string>
+    <string name="settings_update_download">Download &amp; install</string>
+    <string name="settings_update_downloading">Downloading… %1$s of %2$s</string>
+    <string name="settings_update_downloaded">Downloading… %1$s</string>
+    <string name="settings_update_install_opened">Download finished — the Android installer is open. Confirm there to update the app.</string>
+    <string name="settings_update_install_permission_note">Android only allows app self-updates after you turn on “Install unknown apps” for Nexus. This opens a one-time system page — allow it and the download continues automatically.</string>
+    <string name="settings_update_allow">Allow installation</string>
+    <string name="settings_update_error">Update check failed: %1$s</string>
+    <string name="settings_update_download_failed">Download failed: %1$s</string>
+    <string name="settings_update_install_failed">Could not start the installer: %1$s</string>
+    <string name="settings_update_version_mismatch">Could not compare the installed version (%1$s) with the latest release (%2$s, %3$s). Open the GitHub releases page to verify manually.</string>
+    <string name="settings_update_notes_missing">No plain-language summary was added for this release yet. Details are on the GitHub releases page.</string>
+    <string name="settings_update_note">Checks this app\'s GitHub releases directly. The download runs inside the app; Android\'s own installer then shows a one-tap confirmation (a system requirement the app cannot bypass).</string>
 
     <!-- Phase 10.5 — network tools (Ping Good tab): reason + WireGuard + DNS changer -->
     <string name="reason_action_disabled_for_safety">Disabled for safety until you review and approve apps individually.</string>
