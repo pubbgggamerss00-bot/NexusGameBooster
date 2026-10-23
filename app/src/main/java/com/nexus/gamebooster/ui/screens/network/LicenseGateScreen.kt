@@ -17,6 +17,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,8 +32,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import com.nexus.gamebooster.R
 import com.nexus.gamebooster.network.NexusApiClient
+import java.net.URL
 import kotlinx.coroutines.launch
 
+/**
+ * License gate. The production API base is built into the app
+ * ([NexusApiClient.DEFAULT_BASE_URL]) so the user only types their access key —
+ * no server address needed. The address stays one tap away under
+ * "Change server address" for self-hosted setups.
+ *
+ * After a successful activation the session (token + base) persists in private
+ * prefs and every later start re-syncs silently [NexusApiClient.sync]; the key
+ * is only asked for again if the server revokes the session (401/403).
+ */
 @Composable
 fun LicenseGateScreen(showRetry: Boolean = false, onActivated: () -> Unit, onRetry: (() -> Unit)? = null) {
     val context = LocalContext.current
@@ -41,6 +53,7 @@ fun LicenseGateScreen(showRetry: Boolean = false, onActivated: () -> Unit, onRet
     var key by remember { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
+    var showServerField by remember { mutableStateOf(false) }
     Surface(color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -68,8 +81,32 @@ fun LicenseGateScreen(showRetry: Boolean = false, onActivated: () -> Unit, onRet
                 Spacer(Modifier.height(16.dp))
             }
             Spacer(Modifier.height(20.dp))
-            OutlinedTextField(value = api, onValueChange = { api = it }, label = { Text(stringResource(R.string.license_api_label)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = key, onValueChange = { key = it }, label = { Text(stringResource(R.string.license_key_label)) }, singleLine = true, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                value = key,
+                onValueChange = { key = it },
+                label = { Text(stringResource(R.string.license_key_label)) },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                stringResource(R.string.license_server_caption, displayHost(api)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            )
+            TextButton(onClick = { showServerField = !showServerField }, enabled = !busy) {
+                Text(stringResource(R.string.license_advanced_toggle))
+            }
+            if (showServerField) {
+                OutlinedTextField(
+                    value = api,
+                    onValueChange = { api = it },
+                    label = { Text(stringResource(R.string.license_api_label)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
             Spacer(Modifier.height(12.dp))
             Button(onClick = {
                 if (busy) return@Button
@@ -92,3 +129,7 @@ fun LicenseGateScreen(showRetry: Boolean = false, onActivated: () -> Unit, onRet
         }
     }
 }
+
+/** Host only (e.g. "nexus-gamebooster-api.amineshgi-1386.workers.dev") for the caption. */
+private fun displayHost(url: String): String =
+    runCatching { URL(url.trim()).host }.getOrNull()?.takeIf { it.isNotBlank() } ?: url.trim()

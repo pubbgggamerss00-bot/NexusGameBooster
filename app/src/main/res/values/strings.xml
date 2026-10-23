@@ -475,6 +475,8 @@
     <string name="license_retry_title">Couldn\'t reach the server</string>
     <string name="license_retry_body">Your saved session is kept. Check your internet connection and try again.</string>
     <string name="license_retry_action">Retry connection</string>
+    <string name="license_server_caption">Server: %1$s</string>
+    <string name="license_advanced_toggle">Change server address</string>
     <string name="api_error_base_url">The API address must start with https://</string>
     <string name="api_error_key_rejected">Key was not verified</string>
     <string name="api_error_no_token">No session token was received from the server</string>

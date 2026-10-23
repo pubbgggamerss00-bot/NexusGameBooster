@@ -10,8 +10,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 
-/** Cloudflare Worker client. Set the real HTTPS Worker URL on the license screen. */
+/**
+ * Cloudflare Worker control-plane client.
+ *
+ * The production Worker URL is baked in ([DEFAULT_BASE_URL]) so the user never
+ * types a server address — only their access key. A custom base (self-hosted
+ * Worker) can still be set from the gate's "Change server address" option and
+ * is persisted together with the session token, so after the one-time
+ * activation every app start re-syncs silently.
+ */
 object NexusApiClient {
+    /** Production control plane. Kept as a constant: updates ship pre-connected. */
+    const val DEFAULT_BASE_URL = "https://nexus-gamebooster-api.amineshgi-1386.workers.dev"
+
     val sessionInvalid = MutableStateFlow(false)
     private const val PREFS = "nexus_api_session"
     private const val API_BASE = "api_base"
@@ -20,9 +31,10 @@ object NexusApiClient {
     private const val SYNC = "last_sync_json"
 
     fun token(context: Context) = prefs(context).getString(TOKEN, "").orEmpty()
-    fun apiBase(context: Context) = prefs(context).getString(API_BASE, "").orEmpty()
-    fun hasSession(context: Context) = token(context).isNotBlank() && apiBase(context).isNotBlank()
-    fun cachedSync(context: Context): JSONObject? = runCatching { JSONObject(prefs(context).getString(SYNC, "{}")) }.getOrNull()
+    fun apiBase(context: Context): String =
+        prefs(context).getString(API_BASE, null)?.takeIf { it.isNotBlank() } ?: DEFAULT_BASE_URL
+    fun hasSession(context: Context) = token(context).isNotBlank()
+    fun cachedSync(context: Context): JSONObject? = runCatching { JSONObject(prefs(context).getString(SYNC, null) ?: "{}") }.getOrNull()
     fun clearSession(context: Context) { prefs(context).edit().remove(TOKEN).remove(SYNC).apply() }
 
     suspend fun activate(context: Context, baseUrl: String, key: String): JSONObject = withContext(Dispatchers.IO) {

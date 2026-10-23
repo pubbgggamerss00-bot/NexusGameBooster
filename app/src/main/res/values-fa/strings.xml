@@ -475,6 +475,8 @@
     <string name="license_retry_title">اتصال به سرور برقرار نشد</string>
     <string name="license_retry_body">نشست ذخیره‌شدهٔ شما حفظ شده است. اتصال اینترنت را بررسی و دوباره تلاش کنید.</string>
     <string name="license_retry_action">تلاش دوباره برای اتصال</string>
+    <string name="license_server_caption">سرور: %1$s</string>
+    <string name="license_advanced_toggle">تغییر آدرس سرور</string>
     <string name="api_error_base_url">آدرس API باید با https:// شروع شود</string>
     <string name="api_error_key_rejected">کلید تأیید نشد</string>
     <string name="api_error_no_token">توکن نشست از سرور دریافت نشد</string>

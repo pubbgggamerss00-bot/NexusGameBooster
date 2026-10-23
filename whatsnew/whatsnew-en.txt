@@ -1,12 +1,11 @@
 Nexus Game Booster — new version!
 
 What's new:
-• The app now connects to your Nexus panel: sign in once with your access key and everything syncs automatically.
-• Your panel's DNS list appears in the DNS changer — pick one and connect, no test needed first.
-• WireGuard profiles from your panel are imported and kept up to date for you.
-• A manual refresh button plus automatic refresh every five minutes on the Ping Good screen.
-• If the server can't be reached, one tap retries — you won't be signed out.
+• The app now comes pre-connected to the official Nexus server — you only enter your access key, nothing else.
+• One-time sign-in: after that the app stays connected and re-checks itself automatically on every start.
+• The server address is still there for advanced users under "Change server address" — you never have to touch it.
+• Wrong or used-up key? The server now answers with a clear message instead of a generic error.
 
-Important: this version is signed with a new key, so you must uninstall the old version once before installing this one. That step also resets in-app data.
+Updating: if you are on 0.11.1, install this update directly — no uninstall needed. (Only installs older than 0.11.1 need the one-time uninstall first.)
 
 Still inside the app: the "Check for updates" button in Settings, plain-language release notes, and one-tap download & install — everything stays in the app.
