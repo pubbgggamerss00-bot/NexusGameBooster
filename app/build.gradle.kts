@@ -17,8 +17,8 @@ android {
         applicationId = "com.nexus.gamebooster"
         minSdk = 26
         targetSdk = 35
-        versionCode = 16
-        versionName = "0.11.2-api-connected"
+        versionCode = 17
+        versionName = "0.11.3"
     }
 
     // ---------------------------------------------------------------------------

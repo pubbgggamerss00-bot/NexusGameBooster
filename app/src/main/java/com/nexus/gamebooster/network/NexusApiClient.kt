@@ -13,11 +13,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 /**
  * Cloudflare Worker control-plane client.
  *
- * The production Worker URL is baked in ([DEFAULT_BASE_URL]) so the user never
- * types a server address — only their access key. A custom base (self-hosted
- * Worker) can still be set from the gate's "Change server address" option and
- * is persisted together with the session token, so after the one-time
- * activation every app start re-syncs silently.
+ * The production Worker URL is baked into the app. It is not shown or editable
+ * in the UI. This hides it from ordinary users but does not make the URL a
+ * secret against APK inspection.
  */
 object NexusApiClient {
     /** Production control plane. Kept as a constant: updates ship pre-connected. */
@@ -31,8 +29,7 @@ object NexusApiClient {
     private const val SYNC = "last_sync_json"
 
     fun token(context: Context) = prefs(context).getString(TOKEN, "").orEmpty()
-    fun apiBase(context: Context): String =
-        prefs(context).getString(API_BASE, null)?.takeIf { it.isNotBlank() } ?: DEFAULT_BASE_URL
+    fun apiBase(context: Context): String = DEFAULT_BASE_URL
     fun hasSession(context: Context) = token(context).isNotBlank()
     fun cachedSync(context: Context): JSONObject? = runCatching { JSONObject(prefs(context).getString(SYNC, null) ?: "{}") }.getOrNull()
     fun clearSession(context: Context) { prefs(context).edit().remove(TOKEN).remove(SYNC).apply() }
@@ -45,7 +42,7 @@ object NexusApiClient {
         if (response.optBoolean("valid").not()) error(response.optString("message", context.getString(R.string.api_error_key_rejected)))
         val token = response.optString("token")
         require(token.isNotBlank()) { context.getString(R.string.api_error_no_token) }
-        prefs(context).edit().putString(API_BASE, base).putString(TOKEN, token).apply()
+        prefs(context).edit().remove(API_BASE).putString(TOKEN, token).apply()
         sessionInvalid.value = false
         sync(context)
         response

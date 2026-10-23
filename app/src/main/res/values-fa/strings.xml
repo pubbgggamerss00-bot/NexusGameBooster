@@ -464,7 +464,6 @@
     <string name="dns_vpn_notification_title">تغییر DNS در Nexus فعال است</string>
     <string name="dns_vpn_notification_text">درخواست‌های DNS از سرور انتخاب‌شده عبور می‌کنند.</string>
     <string name="license_subtitle">ورود با کلید دسترسی</string>
-    <string name="license_api_label">آدرس HTTPS مربوط به API</string>
     <string name="license_key_label">کلید ورود</string>
     <string name="license_checking">در حال بررسی کلید و ظرفیت دستگاه…</string>
     <string name="license_success">کلید تأیید شد.</string>
@@ -475,8 +474,6 @@
     <string name="license_retry_title">اتصال به سرور برقرار نشد</string>
     <string name="license_retry_body">نشست ذخیره‌شدهٔ شما حفظ شده است. اتصال اینترنت را بررسی و دوباره تلاش کنید.</string>
     <string name="license_retry_action">تلاش دوباره برای اتصال</string>
-    <string name="license_server_caption">سرور: %1$s</string>
-    <string name="license_advanced_toggle">تغییر آدرس سرور</string>
     <string name="api_error_base_url">آدرس API باید با https:// شروع شود</string>
     <string name="api_error_key_rejected">کلید تأیید نشد</string>
     <string name="api_error_no_token">توکن نشست از سرور دریافت نشد</string>

@@ -17,7 +17,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,28 +31,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import com.nexus.gamebooster.R
 import com.nexus.gamebooster.network.NexusApiClient
-import java.net.URL
 import kotlinx.coroutines.launch
 
 /**
  * License gate. The production API base is built into the app
- * ([NexusApiClient.DEFAULT_BASE_URL]) so the user only types their access key —
- * no server address needed. The address stays one tap away under
- * "Change server address" for self-hosted setups.
+ * ([NexusApiClient.DEFAULT_BASE_URL]) and is intentionally not shown or
+ * editable in the UI — the user only types their access key.
  *
- * After a successful activation the session (token + base) persists in private
- * prefs and every later start re-syncs silently [NexusApiClient.sync]; the key
- * is only asked for again if the server revokes the session (401/403).
+ * After a successful activation the session token persists in private prefs
+ * and every later start re-syncs silently [NexusApiClient.sync]; the key is
+ * only asked for again if the server revokes the session (401/403).
  */
 @Composable
 fun LicenseGateScreen(showRetry: Boolean = false, onActivated: () -> Unit, onRetry: (() -> Unit)? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var api by remember { mutableStateOf(NexusApiClient.apiBase(context)) }
     var key by remember { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
+    var messageIsError by remember { mutableStateOf(false) }
+    var messageIsSuccess by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
-    var showServerField by remember { mutableStateOf(false) }
     Surface(color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -89,47 +86,40 @@ fun LicenseGateScreen(showRetry: Boolean = false, onActivated: () -> Unit, onRet
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
             )
-            Text(
-                stringResource(R.string.license_server_caption, displayHost(api)),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-            )
-            TextButton(onClick = { showServerField = !showServerField }, enabled = !busy) {
-                Text(stringResource(R.string.license_advanced_toggle))
-            }
-            if (showServerField) {
-                OutlinedTextField(
-                    value = api,
-                    onValueChange = { api = it },
-                    label = { Text(stringResource(R.string.license_api_label)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
             Spacer(Modifier.height(12.dp))
             Button(onClick = {
                 if (busy) return@Button
-                busy = true; message = context.getString(R.string.license_checking)
+                busy = true
+                messageIsError = false
+                messageIsSuccess = false
+                message = context.getString(R.string.license_checking)
                 scope.launch {
                     try {
-                        NexusApiClient.activate(context, api, key)
+                        NexusApiClient.activate(context, NexusApiClient.DEFAULT_BASE_URL, key)
                         message = context.getString(R.string.license_success)
+                        messageIsSuccess = true
+                        messageIsError = false
                         onActivated()
                     } catch (e: Exception) {
                         message = e.message ?: context.getString(R.string.license_failed_default)
+                        messageIsError = true
+                        messageIsSuccess = false
                     } finally { busy = false }
                 }
-            }, enabled = !busy && api.isNotBlank() && key.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
+            }, enabled = !busy && key.isNotBlank(), modifier = Modifier.fillMaxWidth()) {
                 if (busy) CircularProgressIndicator() else Text(stringResource(R.string.license_action))
             }
             Spacer(Modifier.height(12.dp))
-            Text(message ?: stringResource(R.string.license_initial_message), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                message ?: stringResource(R.string.license_initial_message),
+                color = when {
+                    messageIsError -> MaterialTheme.colorScheme.error
+                    messageIsSuccess -> androidx.compose.ui.graphics.Color(0xFF2E7D32)
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                style = MaterialTheme.typography.bodyMedium,
+            )
             Text(stringResource(R.string.license_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
-
-/** Host only (e.g. "nexus-gamebooster-api.amineshgi-1386.workers.dev") for the caption. */
-private fun displayHost(url: String): String =
-    runCatching { URL(url.trim()).host }.getOrNull()?.takeIf { it.isNotBlank() } ?: url.trim()
