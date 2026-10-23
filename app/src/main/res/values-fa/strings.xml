@@ -340,6 +340,16 @@
 
     <string name="shizuku_card_title">دسترسی شیزوکو</string>
     <string name="shizuku_refresh_status">بررسی مجدد</string>
+    <string name="shizuku_activate">فعال‌سازی شیزوکو</string>
+    <string name="shizuku_msg_not_installed">شیزوکو نصب نیست. گوگل‌پلی باز می‌شود تا نصب کنید. بعد از نصب، شیزوکو را Start کنید و برگردید.</string>
+    <string name="shizuku_msg_open_manager">شیزوکو نصب است. اپ شیزوکو باز شد — آنجا Start را بزنید و برگردید. وقتی آماده شود مجوز به‌صورت خودکار درخواست می‌شود.</string>
+    <string name="shizuku_msg_permission">لطفاً در پنجره بازشده مجوز را بدهید تا بوست واقعی کار کند.</string>
+    <string name="shizuku_msg_ready">شیزوکو آماده است. بوست واقعی در دسترس است.</string>
+    <string name="shizuku_msg_install_button">نصب شیزوکو</string>
+    <string name="shizuku_msg_need_start">اپ شیزوکو باز می‌شود. آنجا Start را بزنید (اشکال‌زدایی بی‌سیم یا USB)، سپس برگردید — مجوز به‌صورت خودکار درخواست می‌شود.</string>
+    <string name="shizuku_msg_open_shizuku_button">باز کردن اپ شیزوکو</string>
+    <string name="shizuku_guide_inactive">شیزوکو فعال نیست. روی فعال‌سازی بزنید: اگر نصب نباشد به گوگل‌پلی می‌روید؛ اگر نصب باشد اپ شیزوکو باز می‌شود تا Start کنید.</string>
+    <string name="shizuku_guide_permission">شیزوکو در حال اجراست. مجوز بدهید تا بوست کامل (بستن پس‌زمینه، محافظت بازی، کامپایل، آزادسازی رم) فعال شود.</string>
     <string name="boost_detail_none_to_stop">چیزی برای بستن نیست — پس‌زمینه از قبل خالی است</string>
     <string name="boost_detail_partial_protect">محافظت بازی به‌صورت نیمه‌کاره اعمال شد</string>
     <string name="boost_detail_stopped_apps">%1$d برنامه پس‌زمینه بسته شد</string>

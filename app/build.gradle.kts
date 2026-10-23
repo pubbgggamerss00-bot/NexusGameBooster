@@ -17,8 +17,8 @@ android {
         applicationId = "com.nexus.gamebooster"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "0.9.0-shizuku"
+        versionCode = 10
+        versionName = "0.9.4-boost-modes"
     }
 
     // ---------------------------------------------------------------------------

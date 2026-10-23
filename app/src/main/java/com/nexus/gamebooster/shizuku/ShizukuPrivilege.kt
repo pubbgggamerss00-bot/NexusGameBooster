@@ -1,6 +1,9 @@
 package com.nexus.gamebooster.shizuku
 
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.ParcelFileDescriptor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -11,6 +14,7 @@ import kotlinx.coroutines.withContext
 import moe.shizuku.server.IShizukuService
 import rikka.shizuku.Shizuku
 import java.io.BufferedReader
+import java.io.InputStreamReader
 
 /**
  * Phase 9 — bridge to Shizuku (ADB-level / shell UID 2000 privileges without full root).
@@ -105,6 +109,103 @@ class ShizukuPrivilege {
         Shizuku.requestPermission(REQUEST_CODE_PERMISSION)
     }
 
+    /** Whether the official Shizuku manager package is installed on this device. */
+    fun isShizukuInstalled(context: Context): Boolean {
+        return try {
+            context.packageManager.getPackageInfo(SHIZUKU_PACKAGE, 0)
+            true
+        } catch (_: PackageManager.NameNotFoundException) {
+            false
+        }
+    }
+
+    /** Opens only the installed Shizuku manager app. Does not open the store. */
+    fun openShizukuManager(context: Context): Boolean {
+        val launch = context.packageManager.getLaunchIntentForPackage(SHIZUKU_PACKAGE) ?: return false
+        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        return try {
+            context.startActivity(launch)
+            true
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    /** Opens store / download page so the user can install Shizuku. */
+    fun openShizukuDownload(context: Context): Boolean {
+        // Prefer Google Play store page for Shizuku.
+        val playWeb = Uri.parse("https://play.google.com/store/apps/details?id=$SHIZUKU_PACKAGE")
+        val market = Uri.parse("market://details?id=$SHIZUKU_PACKAGE")
+        return try {
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW, market).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+            true
+        } catch (_: Throwable) {
+            try {
+                context.startActivity(
+                    Intent(Intent.ACTION_VIEW, playWeb).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+                true
+            } catch (_: Throwable) {
+                try {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse("https://shizuku.rikka.app/download/"))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                    true
+                } catch (_: Throwable) {
+                    false
+                }
+            }
+        }
+    }
+
+    /**
+     * Result of the in-app Activate flow. The UI shows the matching message;
+     * no silent fake success.
+     */
+    enum class ActivateOutcome {
+        /** Already READY — nothing to do. */
+        ALREADY_READY,
+        /** Binder up; permission dialog was shown (system sheet over our app). */
+        PERMISSION_REQUESTED,
+        /**
+         * Installed but service not running. Stay in-app and show instructions.
+         * Android does not allow a third-party app to start the Shizuku daemon itself.
+         */
+        NEED_START_SERVICE,
+        /** Shizuku package is not on the device. */
+        NOT_INSTALLED,
+    }
+
+    /**
+     * One-tap Activate (user pressed the button):
+     * 1. Already ready → nothing
+     * 2. Needs permission → show Shizuku permission dialog
+     * 3. Installed but service off → open Shizuku app so user can Start
+     * 4. Not installed → open Google Play page for Shizuku
+     */
+    fun activate(context: Context): ActivateOutcome {
+        refreshStatus()
+        return when (_status.value) {
+            Status.READY -> ActivateOutcome.ALREADY_READY
+            Status.PERMISSION_REQUIRED -> {
+                requestPermission()
+                ActivateOutcome.PERMISSION_REQUESTED
+            }
+            Status.NOT_RUNNING -> {
+                if (!isShizukuInstalled(context)) {
+                    openShizukuDownload(context)
+                    ActivateOutcome.NOT_INSTALLED
+                } else {
+                    openShizukuManager(context)
+                    ActivateOutcome.NEED_START_SERVICE
+                }
+            }
+        }
+    }
+
     val isReady: Boolean
         get() = _status.value == Status.READY
 
@@ -189,5 +290,6 @@ class ShizukuPrivilege {
 
     companion object {
         private const val REQUEST_CODE_PERMISSION = 9001
+        const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
     }
 }

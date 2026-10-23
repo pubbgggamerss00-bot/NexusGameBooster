@@ -153,29 +153,35 @@ fun HomeScreen(onOpenLibrary: () -> Unit = {}) {
         boostVm.logEvents.collect { event -> vm.onBoostLogEvent(event) }
     }
 
-    // Re-check Shizuku when user returns from the Shizuku manager app.
+    // Re-check Shizuku when user returns from the Shizuku manager; auto-request permission if binder is up.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 vm.refreshShizukuStatus()
+                // If user just started Shizuku, ask for permission without another tap.
+                if (state.shizukuStatus == ShizukuPrivilege.Status.PERMISSION_REQUIRED ||
+                    ServiceLocator.shizukuPrivilege.status.value == ShizukuPrivilege.Status.PERMISSION_REQUIRED
+                ) {
+                    vm.requestShizukuPermission()
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // Clean Home (Phase 9): only hero art + Shizuku + Boost. Metrics / history / profiles → other tabs.
+    val context = androidx.compose.ui.platform.LocalContext.current
     NgbScreenContainer {
         NgbHero()
-        Spacer(Modifier.height(16.dp))
-        DeviceCard(facts = state.deviceFacts)
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(20.dp))
         ShizukuStatusCard(
             status = state.shizukuStatus,
-            onRequestPermission = vm::requestShizukuPermission,
-            onRefresh = vm::refreshShizukuStatus,
+            onActivate = { vm.activateShizuku(context) },
+            onRequestPermission = { vm.activateShizuku(context) },
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(20.dp))
         BoostCard(
             label = boostButtonLabel(boostState),
             accentColor = boostButtonColor(boostState),
@@ -188,27 +194,17 @@ fun HomeScreen(onOpenLibrary: () -> Unit = {}) {
                 boostVm.startBoost()
             },
         )
-        Spacer(Modifier.height(16.dp))
-        StatusCard(state = state, onRefresh = vm::refresh)
-        Spacer(Modifier.height(16.dp))
-        LibraryShortcutCard(gameCount = state.gameCount, onOpenLibrary = onOpenLibrary)
-        Spacer(Modifier.height(16.dp))
-        ProfileQuickCard(
-            profiles = state.profiles,
-            activeProfileId = state.activeProfileId,
-            saveError = state.profileSaveError,
-            onSelect = vm::selectProfile,
-            motionEnabled = motionEnabled,
-        )
-        Spacer(Modifier.height(16.dp))
-        ActivityCard(entries = state.activityLog)
-        Spacer(Modifier.height(16.dp))
-        BoostHistoryCard(
-            reports = boostState.history,
-            onOpenReport = boostVm::viewHistoryReport,
-            motionEnabled = motionEnabled,
-        )
         Spacer(Modifier.height(8.dp))
+    }
+
+    // In-app Shizuku activate feedback (install / start / permission).
+    state.shizukuMessageKey?.let { key ->
+        ShizukuMessageDialog(
+            messageKey = key,
+            onDismiss = vm::dismissShizukuMessage,
+            onOpenDownload = { vm.openShizukuDownload(context) },
+            onOpenShizukuApp = { vm.openShizukuApp(context) },
+        )
     }
 
     if (boostState.showResultDialog) {
@@ -250,53 +246,107 @@ private fun boostButtonColor(state: BoostUiState) = when (state.status) {
 }
 
 /**
- * Phase 9: honest Shizuku status card.
- * - NOT_RUNNING → tell user to start Shizuku
- * - PERMISSION_REQUIRED → button to request grant
- * - READY → confirm real boost is available
+ * Phase 9: Shizuku status card — single Activate button when not ready.
  */
 @Composable
 private fun ShizukuStatusCard(
     status: ShizukuPrivilege.Status,
+    onActivate: () -> Unit,
     onRequestPermission: () -> Unit,
-    onRefresh: () -> Unit,
 ) {
-    val (titleRes, color) = when (status) {
-        ShizukuPrivilege.Status.READY ->
-            R.string.shizuku_status_ready to MaterialTheme.colorScheme.primary
-        ShizukuPrivilege.Status.PERMISSION_REQUIRED ->
-            R.string.shizuku_status_permission_required to MaterialTheme.colorScheme.secondary
-        ShizukuPrivilege.Status.NOT_RUNNING ->
-            R.string.shizuku_status_not_running to MaterialTheme.colorScheme.error
+    // READY → quiet success only. Otherwise guide text + one action button.
+    if (status == ShizukuPrivilege.Status.READY) {
+        SectionCard(
+            title = stringResource(R.string.shizuku_card_title),
+            icon = Icons.Outlined.Security,
+        ) {
+            Text(
+                text = stringResource(R.string.shizuku_status_ready),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        return
     }
+
+    val guideRes = when (status) {
+        ShizukuPrivilege.Status.PERMISSION_REQUIRED -> R.string.shizuku_guide_permission
+        else -> R.string.shizuku_guide_inactive  // not running (installed or not — activate handles both)
+    }
+    val buttonRes = when (status) {
+        ShizukuPrivilege.Status.PERMISSION_REQUIRED -> R.string.shizuku_request_permission
+        else -> R.string.shizuku_activate
+    }
+    val buttonAction = when (status) {
+        ShizukuPrivilege.Status.PERMISSION_REQUIRED -> onRequestPermission
+        else -> onActivate
+    }
+
     SectionCard(
         title = stringResource(R.string.shizuku_card_title),
         icon = Icons.Outlined.Security,
     ) {
         Text(
-            text = stringResource(titleRes),
+            text = stringResource(guideRes),
             style = MaterialTheme.typography.bodyMedium,
-            color = color,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            when (status) {
-                ShizukuPrivilege.Status.PERMISSION_REQUIRED -> {
-                    TextButton(onClick = onRequestPermission) {
-                        Text(stringResource(R.string.shizuku_request_permission))
-                    }
-                }
-                ShizukuPrivilege.Status.NOT_RUNNING -> {
-                    TextButton(onClick = onRefresh) {
-                        Text(stringResource(R.string.shizuku_refresh_status))
-                    }
-                }
-                ShizukuPrivilege.Status.READY -> {
-                    // No action needed — status text already confirms readiness.
-                }
-            }
+        TextButton(onClick = buttonAction) {
+            Text(stringResource(buttonRes))
         }
     }
+}
+
+
+@Composable
+private fun ShizukuMessageDialog(
+    messageKey: String,
+    onDismiss: () -> Unit,
+    onOpenDownload: () -> Unit,
+    onOpenShizukuApp: () -> Unit,
+) {
+    val body = when (messageKey) {
+        HomeViewModel.MSG_NOT_INSTALLED -> stringResource(R.string.shizuku_msg_not_installed)
+        HomeViewModel.MSG_NEED_START -> stringResource(R.string.shizuku_msg_need_start)
+        HomeViewModel.MSG_PERMISSION -> stringResource(R.string.shizuku_msg_permission)
+        HomeViewModel.MSG_READY -> stringResource(R.string.shizuku_msg_ready)
+        else -> messageKey
+    }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.shizuku_card_title)) },
+        text = { Text(body) },
+        confirmButton = {
+            when (messageKey) {
+                HomeViewModel.MSG_NOT_INSTALLED -> {
+                    TextButton(onClick = onOpenDownload) {
+                        Text(stringResource(R.string.shizuku_msg_install_button))
+                    }
+                }
+                HomeViewModel.MSG_NEED_START -> {
+                    // Explicit user choice only — we do not auto-leave the app.
+                    TextButton(onClick = onOpenShizukuApp) {
+                        Text(stringResource(R.string.shizuku_msg_open_shizuku_button))
+                    }
+                }
+                else -> {
+                    TextButton(onClick = onDismiss) {
+                        Text(stringResource(R.string.action_close))
+                    }
+                }
+            }
+        },
+        dismissButton = {
+            if (messageKey == HomeViewModel.MSG_NOT_INSTALLED ||
+                messageKey == HomeViewModel.MSG_NEED_START
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.action_close))
+                }
+            }
+        },
+    )
 }
 
 @Composable

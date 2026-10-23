@@ -89,28 +89,14 @@ fun ProfilesScreen() {
     val state by vm.uiState.collectAsStateWithLifecycle()
     val motionEnabled = LocalNgbMotionEnabled.current
 
+    // Simplified profiles: name + select only (no long descriptions / effect lists).
     NgbScreenContainer {
         Text(
             text = stringResource(R.string.profiles_headline),
             style = MaterialTheme.typography.headlineSmall,
         )
-        Text(
-            text = stringResource(R.string.profiles_subtitle),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
         Spacer(Modifier.height(16.dp))
 
-        // "Current profile" summary — the persisted (normalized) selection, or nothing
-        // until it has loaded. The chip marks it as current; the note states the honesty
-        // contract: this app's own behavior changes, the device does not.
-        state.profiles.firstOrNull { it.id == state.activeProfileId }?.let { current ->
-            CurrentProfileCard(profile = current)
-            Spacer(Modifier.height(16.dp))
-        }
-
-        // Inline save-error surface: the previous profile is still active; the user can
-        // retry the same selection (or the default) or dismiss the message.
         if (state.saveError) {
             SaveErrorCard(
                 onRetry = {
@@ -122,7 +108,7 @@ fun ProfilesScreen() {
         }
 
         state.profiles.forEach { profile ->
-            ProfileCard(
+            SimpleProfileRow(
                 profile = profile,
                 selected = state.activeProfileId == profile.id,
                 onClick = { vm.selectProfile(profile.id) },
@@ -130,27 +116,75 @@ fun ProfilesScreen() {
             )
             Spacer(Modifier.height(12.dp))
         }
-
-        SectionCard(
-            title = stringResource(R.string.profiles_unsupported_title),
-            icon = Icons.Outlined.Info,
-        ) {
-            Text(
-                text = stringResource(R.string.profiles_unsupported_body),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Spacer(Modifier.height(16.dp))
-
-        Text(
-            text = stringResource(R.string.profiles_footnote),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.height(24.dp))
-        CustomProfilesCard()
         Spacer(Modifier.height(8.dp))
+    }
+}
+
+/** Compact selectable row: icon + title + active chip. No multi-paragraph copy. */
+@Composable
+private fun SimpleProfileRow(
+    profile: PerformanceProfile,
+    selected: Boolean,
+    onClick: () -> Unit,
+    motionEnabled: Boolean,
+) {
+    val colorSpec = if (motionEnabled) tween<Color>(durationMillis = 200) else snap()
+    val containerColor by animateColorAsState(
+        targetValue = if (selected) {
+            MaterialTheme.colorScheme.primaryContainer
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant
+        },
+        animationSpec = colorSpec,
+        label = "simpleProfileContainer",
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        animationSpec = colorSpec,
+        label = "simpleProfileBorder",
+    )
+    val interactionSource = remember { MutableInteractionSource() }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        border = BorderStroke(width = 2.dp, color = borderColor),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .ngbPressScale(interactionSource, motionEnabled)
+                .selectable(
+                    selected = selected,
+                    interactionSource = interactionSource,
+                    indication = LocalIndication.current,
+                    role = Role.RadioButton,
+                    onClick = onClick,
+                )
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RadioButton(selected = selected, onClick = null)
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                imageVector = profileIcon(profile.id),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = stringResource(profile.titleRes),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+            )
+            if (selected) {
+                StatusChip(
+                    text = stringResource(R.string.profiles_active_chip),
+                    variant = StatusChipVariant.OK,
+                )
+            }
+        }
     }
 }
 

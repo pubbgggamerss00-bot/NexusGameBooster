@@ -340,6 +340,16 @@
 
     <string name="shizuku_card_title">Shizuku privilege</string>
     <string name="shizuku_refresh_status">Check again</string>
+    <string name="shizuku_activate">Activate Shizuku</string>
+    <string name="shizuku_msg_not_installed">Shizuku is not installed. Google Play will open so you can install it. After install, Start Shizuku and return here.</string>
+    <string name="shizuku_msg_open_manager">Shizuku is installed. The Shizuku app was opened — tap Start there, then return here. Permission will be requested automatically when ready.</string>
+    <string name="shizuku_msg_permission">Please allow the permission in the dialog so real boost can run.</string>
+    <string name="shizuku_msg_ready">Shizuku is ready. Real boost is available.</string>
+    <string name="shizuku_msg_install_button">Install Shizuku</string>
+    <string name="shizuku_msg_need_start">Opening Shizuku. Tap Start there (Wireless debugging or USB), then return here — permission will be requested automatically.</string>
+    <string name="shizuku_msg_open_shizuku_button">Open Shizuku app</string>
+    <string name="shizuku_guide_inactive">Shizuku is not active. Tap Activate: if Shizuku is missing you will go to Google Play to install it; if it is installed the Shizuku app opens so you can Start the service.</string>
+    <string name="shizuku_guide_permission">Shizuku is running. Grant permission so this app can use full boost (force-stop, protect game, compile, free RAM).</string>
     <string name="boost_detail_none_to_stop">Nothing to stop — background is already clear</string>
     <string name="boost_detail_partial_protect">Game protection partially applied</string>
     <string name="boost_detail_stopped_apps">Stopped %1$d background apps</string>

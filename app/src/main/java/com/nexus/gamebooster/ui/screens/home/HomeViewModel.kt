@@ -55,6 +55,11 @@ data class HomeUiState(
     val isRefreshing: Boolean = false,
     /** Phase 9: live Shizuku privilege status for the Home status card. */
     val shizukuStatus: ShizukuPrivilege.Status = ShizukuPrivilege.Status.NOT_RUNNING,
+    /**
+     * In-app message after Activate (null = dismiss).
+     * Values: not_installed | open_manager | permission | ready
+     */
+    val shizukuMessageKey: String? = null,
 )
 
 /**
@@ -121,6 +126,43 @@ class HomeViewModel(
     /** Re-check binder / permission (e.g. after user returns from Shizuku app). */
     fun refreshShizukuStatus() {
         shizukuPrivilege.refreshStatus()
+    }
+
+    /**
+     * Home "Activate Shizuku" — stays inside this app (no auto-launch of external apps).
+     */
+    fun activateShizuku(context: android.content.Context) {
+        val outcome = shizukuPrivilege.activate(context)
+        val key = when (outcome) {
+            ShizukuPrivilege.ActivateOutcome.NOT_INSTALLED -> MSG_NOT_INSTALLED
+            ShizukuPrivilege.ActivateOutcome.NEED_START_SERVICE -> MSG_NEED_START
+            ShizukuPrivilege.ActivateOutcome.PERMISSION_REQUESTED -> MSG_PERMISSION
+            ShizukuPrivilege.ActivateOutcome.ALREADY_READY -> MSG_READY
+        }
+        _uiState.update { it.copy(shizukuMessageKey = key) }
+    }
+
+    fun dismissShizukuMessage() {
+        _uiState.update { it.copy(shizukuMessageKey = null) }
+    }
+
+    /** User explicitly chose Install from the dialog. */
+    fun openShizukuDownload(context: android.content.Context) {
+        shizukuPrivilege.openShizukuDownload(context)
+        dismissShizukuMessage()
+    }
+
+    /** User explicitly chose to open the Shizuku app to press Start. */
+    fun openShizukuApp(context: android.content.Context) {
+        shizukuPrivilege.openShizukuManager(context)
+        dismissShizukuMessage()
+    }
+
+    companion object {
+        const val MSG_NOT_INSTALLED = "not_installed"
+        const val MSG_NEED_START = "need_start"
+        const val MSG_PERMISSION = "permission"
+        const val MSG_READY = "ready"
     }
 
     /** One-shot read of the monitoring repository (button or first entry into the screen). */
