@@ -117,11 +117,35 @@ private fun NgbHero() {
                 .matchParentSize()
                 .background(
                     Brush.verticalGradient(
-                        0f to Color.Transparent,
-                        1f to MaterialTheme.colorScheme.background.copy(alpha = 0.88f),
+                        0f to MaterialTheme.colorScheme.background.copy(alpha = 0.16f),
+                        0.42f to Color.Transparent,
+                        1f to MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
                     ),
                 ),
         )
+        // Compact, high-contrast brand chip makes the hero read like a game dashboard.
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(14.dp)
+                .clip(RoundedCornerShape(50))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.86f))
+                .padding(horizontal = 11.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+            )
+            Spacer(Modifier.width(7.dp))
+            Text(
+                text = stringResource(R.string.home_hero_badge),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)

@@ -13,15 +13,15 @@ import androidx.compose.ui.graphics.Color
 // screens never hardcode colors, they read MaterialTheme.colorScheme.
 // -----------------------------------------------------------------------------
 val NgbBackground = Color(0xFF05050C)
-val NgbSurface = Color(0xFF0F0C1E)
-val NgbSurfaceVariant = Color(0xFF171129)
+val NgbSurface = Color(0xFF100D20)
+val NgbSurfaceVariant = Color(0xFF19142B)
 val NgbPrimary = Color(0xFF00FF9D)
 val NgbOnPrimary = Color(0xFF03150C)
 val NgbSecondary = Color(0xFFBF00FF)
 val NgbTertiary = Color(0xFF00F0FF)
 val NgbError = Color(0xFFFF4D6D)
 val NgbOnBackground = Color(0xFFFFFFFF)
-val NgbOutline = Color(0xFF2A1F4D)
+val NgbOutline = Color(0xFF352653)
 val NgbTextMuted = Color(0xFFA0A0C0)
 
 // Kit accent tokens not covered by Material roles (buttons/chips read these
@@ -42,7 +42,7 @@ val NgbVioletDeep = Color(0xFF8A2BE2)
 val NgbSurfaceContainerLowest = Color(0xFF070512)
 val NgbSurfaceContainerLow = Color(0xFF0F0C1E)
 val NgbSurfaceContainer = Color(0xFF171129)
-val NgbSurfaceContainerHigh = Color(0xFF1F1740)
+val NgbSurfaceContainerHigh = Color(0xFF241A45)
 val NgbSurfaceContainerHighest = Color(0xFF2A1F55)
 val NgbSurfaceDim = Color(0xFF05050C)
 val NgbSurfaceBright = Color(0xFF2A1F55)

@@ -1,10 +1,7 @@
-Nexus Game Booster 1.0.0 — new version!
+Nexus Game Booster 1.1.0 — new version!
 
 What's new:
-• A "Support & tickets" section in Settings: submit a ticket with key verification and follow the conversation with support in "My tickets" — including replying to open tickets.
-• Ticket security: every time you open the tickets area, the typed key is checked via the API against the active session of this app; a wrong key only shows an error message, it never logs you out.
-• Server side: a tickets API (create, list, reply) with key/device ownership checks, a new database migration and a refreshed admin panel with ticket management.
-• Key renewal by days or hours, and one-hour trial keys from the admin panel.
-• The NEON ARENA theme and the app-entry loading are unchanged — updating from 0.11.5 installs directly, no uninstall needed (same signature).
-
-Important note: tickets go live only after the v1.0.0 Worker is deployed and the database migration is run once (guide included in this release bundle); until then the tickets section shows a server error.
+• The Home hero card is easier to read: a new layered gradient behind the text and a new "Gaming command center" badge on the card corner.
+• A gentle tone retune of surfaces and outlines for more visual depth — the core neon accent colors are exactly the ones you know.
+• No changes to feature logic, tickets or the API — this release is purely a visual upgrade.
+• Updating from 1.0.0 installs directly — no uninstall needed (same signature).
