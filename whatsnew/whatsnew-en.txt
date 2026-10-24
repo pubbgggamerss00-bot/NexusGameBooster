@@ -1,10 +1,9 @@
 Nexus Game Booster — new version!
 
 What's new:
-• A live license countdown now sits on the Home screen: days, hours, minutes and seconds remaining on your access key, with a glowing ring that shows how much of the term is left. Green = active; red = expired or 3 days or less remaining. The app reads the REAL expiry time from the server — nothing is guessed on the device.
-• The whole app wears the new NEON ARENA look from the design kit: cut-corner buttons, state-colored tunnel buttons (grey = locked, green = ready, striped = connecting, red = connected/tap to cut), glowing status chips and the retuned deep-navy palette.
-• Updating from 0.11.3 installs directly — no uninstall needed (same signature).
-
-Note for the server admin: deploy the updated Worker file (cloudflare-worker/nexus-gamebooster-api.js in the repository) so the server provides the license timestamps. Existing sessions pick the expiry up automatically on the next sync; brand-new activations require the updated Worker first.
+• The full "NEON ARENA v2" theme from the new neon mockup: purple-black backdrop with neon glows and a twinkling star field, saturated neon accents (green, cyan, purple, pink) and matching cards and buttons.
+• A fancy app-entry loading: expanding rings, a rotating neon arc and a shine progress bar while the app checks your session.
+• The license key screen got the same treatment: staggered entrance animation, a neon key card and a neon checking indicator — still key-only sign-in, no server field.
+• Updating from 0.11.4 installs directly — no uninstall needed (same signature).
 
 Still inside the app: the "Check for updates" button in Settings, plain-language release notes, and one-tap download & install.

@@ -25,6 +25,9 @@ import com.nexus.gamebooster.ui.motion.ngbPressScale
 import com.nexus.gamebooster.ui.theme.NgbChamferShape
 import com.nexus.gamebooster.ui.theme.NgbPrimaryBright
 import com.nexus.gamebooster.ui.theme.ngbCornerTicks
+import com.nexus.gamebooster.ui.theme.NgbVioletDeep
+import com.nexus.gamebooster.ui.theme.NgbSurfaceContainerLowest
+import com.nexus.gamebooster.ui.theme.NgbPrimary
 
 /**
  * The kit's secondary button (`.b2`): a chamfered button wrapped in a 1.5 dp
@@ -50,7 +53,7 @@ fun NgbSecondaryButton(
     val pressed by interaction.collectIsPressedAsState()
 
     val borderBrush = Brush.linearGradient(
-        listOf(Color(0xFF27F58A), Color(0xFF6D5BF0), Color(0xFF27F58A)),
+        listOf(NgbPrimary, NgbVioletDeep, NgbPrimary),
         start = Offset.Zero,
         end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY),
     )
@@ -76,10 +79,10 @@ fun NgbSecondaryButton(
                 .padding(1.5.dp)
                 .clip(NgbChamferShape(10.dp))
                 .drawBehind {
-                    drawRect(if (pressed) Color(0xFF0D2A2A) else Color(0xFF0A0E26))
+                    drawRect(if (pressed) Color(0xFF06231A) else NgbSurfaceContainerLowest)
                     if (enabled) {
                         ngbCornerTicks(
-                            color = Color(0xFF27F58A).copy(alpha = 0.85f),
+                            color = NgbPrimary.copy(alpha = 0.85f),
                             tick = 7.dp, inset = 5.dp, stroke = 1.5.dp,
                         )
                     }

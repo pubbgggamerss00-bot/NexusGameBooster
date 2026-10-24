@@ -48,6 +48,12 @@ import com.nexus.gamebooster.ui.theme.NgbPrimaryBright
 import com.nexus.gamebooster.ui.theme.NgbPrimaryDeep
 import com.nexus.gamebooster.ui.theme.ngbCornerTicks
 import com.nexus.gamebooster.ui.theme.neonGlow
+import com.nexus.gamebooster.ui.theme.NgbSurfaceContainerHighest
+import com.nexus.gamebooster.ui.theme.NgbSurfaceContainerHigh
+import com.nexus.gamebooster.ui.theme.NgbSurfaceContainer
+import com.nexus.gamebooster.ui.theme.NgbTextMuted
+import com.nexus.gamebooster.ui.theme.NgbOnBackground
+import com.nexus.gamebooster.ui.theme.NgbPrimary
 
 /**
  * The five tunnel-CTA states from the kit artboard, mapped 1:1 from the mockup
@@ -79,16 +85,16 @@ private val ConnectHexShape = NgbChamferShape(8.dp)
 
 /** Kit CTA vertical gradients, one per state (straight from the mockup CSS). */
 private fun stateGradient(state: NgbConnectState): Brush = when (state) {
-    NgbConnectState.LOCKED -> Brush.verticalGradient(listOf(Color(0xFF242A52), Color(0xFF1A2043)))
-    NgbConnectState.READY -> Brush.verticalGradient(listOf(NgbPrimaryBright, Color(0xFF27F58A).copy(alpha = 0.999f), NgbPrimaryDeep))
-    NgbConnectState.CONNECTING -> Brush.verticalGradient(listOf(Color(0xFF1C2457), Color(0xFF131A42)))
+    NgbConnectState.LOCKED -> Brush.verticalGradient(listOf(NgbSurfaceContainerHighest, NgbSurfaceContainerHigh))
+    NgbConnectState.READY -> Brush.verticalGradient(listOf(NgbPrimaryBright, NgbPrimary, NgbPrimaryDeep))
+    NgbConnectState.CONNECTING -> Brush.verticalGradient(listOf(Color(0xFF251A52), NgbSurfaceContainer))
     NgbConnectState.CONNECTED -> Brush.verticalGradient(listOf(Color(0xFFFF8CA3), Color(0xFFFF4D6D), Color(0xFFD42A4B)))
 }
 
 private fun stateTextColor(state: NgbConnectState): Color = when (state) {
-    NgbConnectState.LOCKED -> Color(0xFF8E97C6)
+    NgbConnectState.LOCKED -> NgbTextMuted
     NgbConnectState.READY -> Color(0xFF03150C)
-    NgbConnectState.CONNECTING -> Color(0xFFE8ECFF)
+    NgbConnectState.CONNECTING -> NgbOnBackground
     NgbConnectState.CONNECTED -> NgbOnRedCta
 }
 
@@ -122,7 +128,7 @@ fun NgbConnectButton(
         }
     }
 
-    val glowColor = if (state == NgbConnectState.CONNECTED) Color(0xFFFF4D6D) else Color(0xFF27F58A)
+    val glowColor = if (state == NgbConnectState.CONNECTED) Color(0xFFFF4D6D) else NgbPrimary
     val baseModifier = modifier
         .heightIn(min = 56.dp)
         .neonGlow(glowColor = glowColor, shape = ConnectShape, blurRadius = 14.dp, glowAlpha = glowAlpha)
@@ -182,7 +188,7 @@ fun NgbConnectButton(
                             .drawBehind {
                                 drawRect(
                                     when (state) {
-                                        NgbConnectState.CONNECTING -> Color(0xFF27F58A).copy(alpha = 0.16f)
+                                        NgbConnectState.CONNECTING -> NgbPrimary.copy(alpha = 0.16f)
                                         NgbConnectState.LOCKED -> Color.White.copy(alpha = 0.06f)
                                         else -> Color.Black.copy(alpha = 0.22f)
                                     }
@@ -237,10 +243,10 @@ private fun DrawScope.drawBehindStateSurface(state: NgbConnectState) {
         NgbConnectState.CONNECTING -> {
             // inset 0 0 0 1.5px rgba(39,245,138,.55) — inner ring
             val s = 1.5.dp.toPx()
-            drawRect(Color(0xFF27F58A).copy(alpha = 0.55f), topLeft = Offset(0f, 0f), size = androidx.compose.ui.geometry.Size(size.width, s))
-            drawRect(Color(0xFF27F58A).copy(alpha = 0.55f), topLeft = Offset(0f, size.height - s), size = androidx.compose.ui.geometry.Size(size.width, s))
-            drawRect(Color(0xFF27F58A).copy(alpha = 0.55f), topLeft = Offset(0f, 0f), size = androidx.compose.ui.geometry.Size(s, size.height))
-            drawRect(Color(0xFF27F58A).copy(alpha = 0.55f), topLeft = Offset(size.width - s, 0f), size = androidx.compose.ui.geometry.Size(s, size.height))
+            drawRect(NgbPrimary.copy(alpha = 0.55f), topLeft = Offset(0f, 0f), size = androidx.compose.ui.geometry.Size(size.width, s))
+            drawRect(NgbPrimary.copy(alpha = 0.55f), topLeft = Offset(0f, size.height - s), size = androidx.compose.ui.geometry.Size(size.width, s))
+            drawRect(NgbPrimary.copy(alpha = 0.55f), topLeft = Offset(0f, 0f), size = androidx.compose.ui.geometry.Size(s, size.height))
+            drawRect(NgbPrimary.copy(alpha = 0.55f), topLeft = Offset(size.width - s, 0f), size = androidx.compose.ui.geometry.Size(s, size.height))
         }
     }
 }
@@ -308,5 +314,5 @@ private fun DrawScope.drawStripes(phase: Float) {
         path.close()
         x += period
     }
-    drawPath(path, color = Color(0xFF27F58A).copy(alpha = 0.22f))
+    drawPath(path, color = NgbPrimary.copy(alpha = 0.22f))
 }

@@ -23,6 +23,7 @@ import com.nexus.gamebooster.ui.theme.NgbChamferShape
 import com.nexus.gamebooster.ui.theme.NgbPrimaryBright
 import com.nexus.gamebooster.ui.theme.NgbPrimaryDeep
 import com.nexus.gamebooster.ui.theme.neonGlow
+import com.nexus.gamebooster.ui.theme.NgbPrimary
 
 /** Minimum interactive height for app buttons (accessibility target size). */
 private val MinButtonHeight = 48.dp
@@ -34,7 +35,7 @@ private val CtaShape = RoundedCornerShape(percent = 50)
  * The kit's READY-state CTA gradient — the standard look of every enabled
  * app button since the Phase 11.4 "NEON ARENA v1" kit application.
  */
-private val KitCtaGradient = Brush.verticalGradient(listOf(NgbPrimaryBright, Color(0xFF27F58A).copy(alpha = 0.999f), NgbPrimaryDeep))
+private val KitCtaGradient = Brush.verticalGradient(listOf(NgbPrimaryBright, NgbPrimary, NgbPrimaryDeep))
 
 private val KitCtaShape = NgbChamferShape(12.dp)
 

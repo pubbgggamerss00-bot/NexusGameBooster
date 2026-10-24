@@ -3,73 +3,75 @@ package com.nexus.gamebooster.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // -----------------------------------------------------------------------------
-// Neon gaming palette — Phase 11.4 "NEON ARENA v1" retune. The values below are
-// the EXACT tokens extracted from the user-supplied design mockups (the app
-// theme artboard + the button/component kit): near-black page #05060D, card
-// base #0B1030 with the #131A42→#242A52 container ramp, neon-green primary
-// #27F58A (bright tip #3DFF9A), neon-violet #A78BFA, neon-cyan #22D3EE,
-// neon-red #FF4D6D and amber #FFB020 for connecting/soon states.
+// Neon gaming palette — Phase 11.5 "NEON ARENA v2" retune. The values below are
+// the EXACT tokens extracted from the user-supplied NexusGameBooster-Neon-Theme
+// mockup (the definitive neon artboard): near-black purple-tinted page #05050C,
+// translucent violet card base #0F0C1E, and the four saturated neon accents —
+// green #00FF9D, cyan #00F0FF, purple #BF00FF, pink #FF2D95 — with white
+// primary text and the muted lavender-grey #A0A0C0 for secondary text.
 // DARK_NAVY theme mode. All roles below are the SINGLE source of color truth —
 // screens never hardcode colors, they read MaterialTheme.colorScheme.
 // -----------------------------------------------------------------------------
-val NgbBackground = Color(0xFF05060D)
-val NgbSurface = Color(0xFF0B1030)
-val NgbSurfaceVariant = Color(0xFF131A42)
-val NgbPrimary = Color(0xFF27F58A)
+val NgbBackground = Color(0xFF05050C)
+val NgbSurface = Color(0xFF0F0C1E)
+val NgbSurfaceVariant = Color(0xFF171129)
+val NgbPrimary = Color(0xFF00FF9D)
 val NgbOnPrimary = Color(0xFF03150C)
-val NgbSecondary = Color(0xFFA78BFA)
-val NgbTertiary = Color(0xFF22D3EE)
+val NgbSecondary = Color(0xFFBF00FF)
+val NgbTertiary = Color(0xFF00F0FF)
 val NgbError = Color(0xFFFF4D6D)
-val NgbOnBackground = Color(0xFFE8ECFF)
-val NgbOutline = Color(0xFF262D5A)
-val NgbTextMuted = Color(0xFFA3ACD8)
+val NgbOnBackground = Color(0xFFFFFFFF)
+val NgbOutline = Color(0xFF2A1F4D)
+val NgbTextMuted = Color(0xFFA0A0C0)
 
 // Kit accent tokens not covered by Material roles (buttons/chips read these
 // directly — they are part of the same single source of color truth).
-val NgbPrimaryBright = Color(0xFF3DFF9A)
-val NgbPrimaryDeep = Color(0xFF0FB566)
+val NgbPrimaryBright = Color(0xFF66FFC2)
+val NgbPrimaryDeep = Color(0xFF00B368)
+val NgbPink = Color(0xFFFF2D95)
+val NgbPurpleSoft = Color(0xFFE0A0FF)
 val NgbWarning = Color(0xFFFFB020)
 val NgbWarningSoft = Color(0xFFFFCF7D)
 val NgbErrorSoft = Color(0xFFFF93A8)
 val NgbOnRedCta = Color(0xFF1C0309)
-val NgbVioletDeep = Color(0xFF6D5BF0)
+val NgbVioletDeep = Color(0xFF8A2BE2)
 
 // Harmonized Material 3 "surface container" roles so default Card/Dialog/Snackbar
 // containers stay in-palette instead of falling back to the grey baseline theme.
-// The ramp mirrors the mockup card gradients (#131A42 → #242A52).
-val NgbSurfaceContainerLowest = Color(0xFF080C1E)
-val NgbSurfaceContainerLow = Color(0xFF0B1030)
-val NgbSurfaceContainer = Color(0xFF131A42)
-val NgbSurfaceContainerHigh = Color(0xFF1A2043)
-val NgbSurfaceContainerHighest = Color(0xFF242A52)
-val NgbSurfaceDim = Color(0xFF05060D)
-val NgbSurfaceBright = Color(0xFF242A52)
-val NgbInverseSurface = Color(0xFF242A52)
-val NgbInverseOnSurface = Color(0xFFE8ECFF)
+// The ramp mirrors the mockup's violet-tinted card family (#0F0C1E and lighter).
+val NgbSurfaceContainerLowest = Color(0xFF070512)
+val NgbSurfaceContainerLow = Color(0xFF0F0C1E)
+val NgbSurfaceContainer = Color(0xFF171129)
+val NgbSurfaceContainerHigh = Color(0xFF1F1740)
+val NgbSurfaceContainerHighest = Color(0xFF2A1F55)
+val NgbSurfaceDim = Color(0xFF05050C)
+val NgbSurfaceBright = Color(0xFF2A1F55)
+val NgbInverseSurface = Color(0xFF2A1F55)
+val NgbInverseOnSurface = Color(0xFFFFFFFF)
 
 // Phase 8 container roles: the neon-tinted containers drive the selected-profile
 // card (primaryContainer) and the active bottom-navigation pill (secondaryContainer).
-val NgbPrimaryContainer = Color(0xFF0D2B1D)
-val NgbOnPrimaryContainer = Color(0xFF9BFFCB)
-val NgbOnSecondary = Color(0xFF12092E)
-val NgbSecondaryContainer = Color(0xFF281E5F)
-val NgbOnSecondaryContainer = Color(0xFFC9BDFF)
-val NgbOnTertiary = Color(0xFF052539)
-val NgbTertiaryContainer = Color(0xFF0A2B3C)
-val NgbOnTertiaryContainer = Color(0xFF7BE7FF)
+val NgbPrimaryContainer = Color(0xFF062B1C)
+val NgbOnPrimaryContainer = Color(0xFF8DFFC4)
+val NgbOnSecondary = Color(0xFF1F0033)
+val NgbSecondaryContainer = Color(0xFF31094A)
+val NgbOnSecondaryContainer = Color(0xFFE0A0FF)
+val NgbOnTertiary = Color(0xFF032329)
+val NgbTertiaryContainer = Color(0xFF06303A)
+val NgbOnTertiaryContainer = Color(0xFF8DF6FF)
 
 // AMOLED_BLACK variant: pure black background/surfaces, same neon accents.
 // Text colors stay shared with the navy palette for identical contrast behavior.
 val AmoledBackground = Color(0xFF000000)
-val AmoledSurface = Color(0xFF05060D)
-val AmoledSurfaceVariant = Color(0xFF10121F)
+val AmoledSurface = Color(0xFF050409)
+val AmoledSurfaceVariant = Color(0xFF0B0817)
 val AmoledSurfaceContainerLowest = Color(0xFF000000)
-val AmoledSurfaceContainerLow = Color(0xFF05060D)
-val AmoledSurfaceContainer = Color(0xFF0B0D1A)
-val AmoledSurfaceContainerHigh = Color(0xFF10121F)
-val AmoledSurfaceContainerHighest = Color(0xFF161829)
+val AmoledSurfaceContainerLow = Color(0xFF050409)
+val AmoledSurfaceContainer = Color(0xFF0B0817)
+val AmoledSurfaceContainerHigh = Color(0xFF120D22)
+val AmoledSurfaceContainerHighest = Color(0xFF191233)
 val AmoledSurfaceDim = Color(0xFF000000)
-val AmoledSurfaceBright = Color(0xFF161829)
-val AmoledInverseSurface = Color(0xFF161829)
-val AmoledInverseOnSurface = Color(0xFFE8ECFF)
-val AmoledOutline = Color(0xFF262D5A)
+val AmoledSurfaceBright = Color(0xFF191233)
+val AmoledInverseSurface = Color(0xFF191233)
+val AmoledInverseOnSurface = Color(0xFFFFFFFF)
+val AmoledOutline = Color(0xFF2A1F4D)

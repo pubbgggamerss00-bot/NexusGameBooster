@@ -22,6 +22,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nexus.gamebooster.ui.theme.neonGlow
+import com.nexus.gamebooster.ui.theme.NgbPrimary
+import com.nexus.gamebooster.ui.theme.NgbSecondary
+import com.nexus.gamebooster.ui.theme.NgbPurpleSoft
 
 /**
  * The kit's section header (`.ph`): a glowing green diamond marker followed by
@@ -32,7 +35,7 @@ import com.nexus.gamebooster.ui.theme.neonGlow
 fun NgbSectionHeader(
     title: String,
     modifier: Modifier = Modifier,
-    markerColor: Color = Color(0xFF27F58A),
+    markerColor: Color = NgbPrimary,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
         Box(
@@ -61,12 +64,12 @@ fun NgbMiniChip(
         modifier = modifier
             .height(24.dp)
             .clip(RoundedCornerShape(6.dp))
-            .background(Color(0xFF8B5CF6).copy(alpha = 0.14f))
-            .border(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.45f), RoundedCornerShape(6.dp))
+            .background(NgbSecondary.copy(alpha = 0.14f))
+            .border(1.dp, NgbSecondary.copy(alpha = 0.45f), RoundedCornerShape(6.dp))
             .padding(horizontal = 9.dp),
     ) {
-        Box(Modifier.size(7.dp).clip(RoundedCornerShape(50)).background(Color(0xFFCFC6FF)))
+        Box(Modifier.size(7.dp).clip(RoundedCornerShape(50)).background(NgbPurpleSoft))
         Spacer(Modifier.width(6.dp))
-        Text(text, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color(0xFFCFC6FF))
+        Text(text, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = NgbPurpleSoft)
     }
 }

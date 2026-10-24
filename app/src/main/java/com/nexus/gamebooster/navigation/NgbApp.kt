@@ -11,7 +11,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -24,8 +23,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -37,10 +36,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.nexus.gamebooster.R
 import com.nexus.gamebooster.core.AppLocale
 import com.nexus.gamebooster.core.ServiceLocator
 import com.nexus.gamebooster.core.withAppLocale
 import com.nexus.gamebooster.data.AppSettings
+import com.nexus.gamebooster.ui.components.NgbNeonBackdrop
+import com.nexus.gamebooster.ui.components.NgbNeonLoader
 import com.nexus.gamebooster.ui.motion.LocalNgbMotionEnabled
 import com.nexus.gamebooster.ui.screens.home.HomeScreen
 import com.nexus.gamebooster.ui.screens.library.LibraryScreen
@@ -130,12 +132,17 @@ private fun NgbRoot() {
         }
     }
     when (gateState) {
-        0 -> Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) { CircularProgressIndicator() }
+        // App entry: the NEON ARENA v2 loader (rings + rotating arc + star field)
+        // while the saved session is re-synced — replaces the plain spinner.
+        0 -> NgbNeonLoader(
+            statusText = stringResource(R.string.app_loading_subtitle),
+            loadingContentDescription = stringResource(R.string.loader_content_description),
+        )
         1 -> LicenseGateScreen(onActivated = { gateState = 2 })
-        2 -> NgbMainContent()
+        2 -> Box(Modifier.fillMaxSize()) {
+            NgbNeonBackdrop(Modifier.fillMaxSize())
+            NgbMainContent()
+        }
         else -> LicenseGateScreen(showRetry = true, onActivated = { gateState = 2 }, onRetry = { checkTick++ })
     }
 }
@@ -148,8 +155,12 @@ private fun NgbMainContent() {
     val motionEnabled = LocalNgbMotionEnabled.current
 
     Scaffold(
+        // The star-field backdrop lives behind the shell (NgbRoot gate 2), so the
+        // scaffold stays transparent and screens draw over the neon sky.
+        containerColor = Color.Transparent,
         bottomBar = {
-            NavigationBar {
+            // Mockup .bottom-nav: near-black translucent bar, green hairline top edge.
+            NavigationBar(containerColor = Color(0xEB080612)) {
                 NgbDestination.entries.forEach { destination ->
                     val selected = currentRoute == destination.route
                     NavigationBarItem(

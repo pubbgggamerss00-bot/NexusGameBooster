@@ -469,6 +469,8 @@
     <string name="license_success">Key verified.</string>
     <string name="license_failed_default">Could not reach the server.</string>
     <string name="license_action">Verify key &amp; sign in</string>
+    <string name="app_loading_subtitle">Preparing your arena…</string>
+    <string name="loader_content_description">Loading</string>
     <string name="license_hint">The key and device capacity are checked on the server.</string>
     <string name="license_initial_message">Enter a valid access key to continue.</string>
     <string name="license_retry_title">Couldn\'t reach the server</string>

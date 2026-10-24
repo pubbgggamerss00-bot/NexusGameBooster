@@ -51,6 +51,12 @@ import androidx.compose.ui.platform.LocalContext
 import com.nexus.gamebooster.R
 import com.nexus.gamebooster.network.NexusApiClient
 import com.nexus.gamebooster.ui.theme.ngbNeonHalo
+import com.nexus.gamebooster.ui.theme.NgbError
+import com.nexus.gamebooster.ui.theme.NgbPrimary
+import com.nexus.gamebooster.ui.theme.NgbSecondary
+import com.nexus.gamebooster.ui.theme.NgbTertiary
+import com.nexus.gamebooster.ui.theme.NgbTextMuted
+import com.nexus.gamebooster.ui.theme.NgbOnBackground
 import kotlinx.coroutines.delay
 import java.text.NumberFormat
 import java.util.Locale
@@ -76,8 +82,8 @@ fun LicenseCountdownCard(modifier: Modifier = Modifier) {
     val expired = hasExpiry && remainingMillis <= 0L
     val warning = hasExpiry && remainingMillis <= 3L * 24L * 60L * 60L * 1_000L
     val accent = when {
-        expired || warning -> Color(0xFFFF466A)
-        else -> Color(0xFF2CE880)
+        expired || warning -> NgbError
+        else -> NgbPrimary
     }
     val totalMillis = if (createdAtMillis > 0L && expiresAtMillis > createdAtMillis) expiresAtMillis - createdAtMillis else remainingMillis.coerceAtLeast(1L)
     val progress = if (hasExpiry) (remainingMillis.toFloat() / totalMillis.toFloat()).coerceIn(0f, 1f) else 0f
@@ -95,18 +101,18 @@ fun LicenseCountdownCard(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
-                .background(Brush.linearGradient(listOf(Color(0xFF0D1835), Color(0xFF10152E), Color(0xFF19153A))))
-                .border(1.dp, Brush.sweepGradient(listOf(accent.copy(alpha = 0.85f), Color(0xFF3AC2F8), Color(0xFF9D6BFF), accent.copy(alpha = 0.85f))), RoundedCornerShape(22.dp))
+                .background(Brush.linearGradient(listOf(Color(0xFF140F26), Color(0xFF100C20), Color(0xFF1A1333))))
+                .border(1.dp, Brush.sweepGradient(listOf(accent.copy(alpha = 0.85f), NgbTertiary, NgbSecondary, accent.copy(alpha = 0.85f))), RoundedCornerShape(22.dp))
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(modifier = Modifier.size(116.dp).scale(pulseScale), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.size(108.dp)) {
                     val stroke = size.minDimension * 0.085f
-                    drawArc(Color(0xFF263353), -90f, 360f, false, style = Stroke(stroke, cap = StrokeCap.Round))
+                    drawArc(Color(0xFF322658), -90f, 360f, false, style = Stroke(stroke, cap = StrokeCap.Round))
                     if (hasExpiry) {
                         drawArc(
-                            brush = Brush.sweepGradient(listOf(accent.copy(alpha = 0.45f), accent, Color(0xFF3AC2F8), accent)),
+                            brush = Brush.sweepGradient(listOf(accent.copy(alpha = 0.45f), accent, NgbTertiary, accent)),
                             startAngle = -90f,
                             sweepAngle = 360f * animatedProgress,
                             useCenter = false,
@@ -117,7 +123,7 @@ fun LicenseCountdownCard(modifier: Modifier = Modifier) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     Icon(Icons.Filled.Bolt, contentDescription = null, tint = accent, modifier = Modifier.size(25.dp))
                     Text(if (!hasExpiry) "--" else if (expired) "00" else formatNumber(remainingMillis / 86_400_000L), color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 28.sp)
-                    Text(stringResource(R.string.license_countdown_days), color = Color(0xFFB7C5E8), fontSize = 11.sp)
+                    Text(stringResource(R.string.license_countdown_days), color = NgbTextMuted, fontSize = 11.sp)
                 }
             }
             Spacer(Modifier.width(14.dp))
@@ -125,7 +131,7 @@ fun LicenseCountdownCard(modifier: Modifier = Modifier) {
                 Text(stringResource(R.string.license_countdown_title), color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(5.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(7.dp).clip(RoundedCornerShape(50)).background(if (hasExpiry) accent else Color(0xFF9AA6CC)))
+                    Box(Modifier.size(7.dp).clip(RoundedCornerShape(50)).background(if (hasExpiry) accent else NgbTextMuted))
                     Spacer(Modifier.width(6.dp))
                     Text(
                         text = when {
@@ -134,7 +140,7 @@ fun LicenseCountdownCard(modifier: Modifier = Modifier) {
                             warning -> stringResource(R.string.license_countdown_warning)
                             else -> stringResource(R.string.license_countdown_active)
                         },
-                        color = if (hasExpiry) accent else Color(0xFFB7C5E8),
+                        color = if (hasExpiry) accent else NgbTextMuted,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                     )
@@ -149,7 +155,7 @@ fun LicenseCountdownCard(modifier: Modifier = Modifier) {
                 } else if (expired) {
                     Text("00 : 00 : 00", color = accent, fontSize = 21.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
                 } else {
-                    Text("— : — : —", color = Color(0xFFB7C5E8), fontSize = 21.sp, fontWeight = FontWeight.Bold)
+                    Text("— : — : —", color = NgbOnBackground, fontSize = 21.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -159,11 +165,11 @@ fun LicenseCountdownCard(modifier: Modifier = Modifier) {
 @Composable
 private fun TimeUnitBox(value: String, label: String, accent: Color, modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier.clip(RoundedCornerShape(10.dp)).background(Color(0xFF080F25).copy(alpha = 0.9f)).border(1.dp, accent.copy(alpha = 0.22f), RoundedCornerShape(10.dp)).padding(vertical = 7.dp, horizontal = 3.dp),
+        modifier = modifier.clip(RoundedCornerShape(10.dp)).background(Color(0xFF0B0817).copy(alpha = 0.9f)).border(1.dp, accent.copy(alpha = 0.22f), RoundedCornerShape(10.dp)).padding(vertical = 7.dp, horizontal = 3.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(value, color = accent, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, lineHeight = 21.sp)
-        Text(label, color = Color(0xFF9AA6CC), fontSize = 9.sp, textAlign = TextAlign.Center, maxLines = 1)
+        Text(label, color = NgbTextMuted, fontSize = 9.sp, textAlign = TextAlign.Center, maxLines = 1)
     }
 }
 

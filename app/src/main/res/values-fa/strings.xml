@@ -469,6 +469,8 @@
     <string name="license_success">کلید تأیید شد.</string>
     <string name="license_failed_default">ارتباط با سرور ناموفق بود.</string>
     <string name="license_action">بررسی کلید و ورود</string>
+    <string name="app_loading_subtitle">در حال آماده‌سازی آرنا…</string>
+    <string name="loader_content_description">در حال بارگذاری</string>
     <string name="license_hint">کلید و ظرفیت دستگاه‌ها در سرور بررسی می‌شوند.</string>
     <string name="license_initial_message">برای ورود، کلید معتبر را وارد کنید.</string>
     <string name="license_retry_title">اتصال به سرور برقرار نشد</string>

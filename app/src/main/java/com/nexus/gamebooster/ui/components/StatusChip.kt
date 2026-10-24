@@ -32,6 +32,7 @@ import com.nexus.gamebooster.ui.theme.NgbErrorSoft
 import com.nexus.gamebooster.ui.theme.NgbPrimaryBright
 import com.nexus.gamebooster.ui.theme.NgbWarningSoft
 import com.nexus.gamebooster.ui.theme.neonGlow
+import com.nexus.gamebooster.ui.theme.NgbPrimary
 
 /**
  * Semantic chip variants used across status rows.
@@ -69,7 +70,7 @@ fun StatusChip(
     val style = when (variant) {
         StatusChipVariant.OK -> ChipStyle(scheme.primary.copy(alpha = 0.14f), scheme.primary, scheme.primary.copy(alpha = 0.55f), blink = false, glow = false)
         StatusChipVariant.OK_MUTED -> ChipStyle(scheme.primary.copy(alpha = 0.07f), scheme.primary.copy(alpha = 0.55f), scheme.primary.copy(alpha = 0.30f), blink = false, glow = false)
-        StatusChipVariant.OK_GLOW -> ChipStyle(Color(0xFF27F58A).copy(alpha = 0.12f), NgbPrimaryBright, Color(0xFF27F58A).copy(alpha = 0.55f), blink = true, glow = true)
+        StatusChipVariant.OK_GLOW -> ChipStyle(NgbPrimary.copy(alpha = 0.12f), NgbPrimaryBright, NgbPrimary.copy(alpha = 0.55f), blink = true, glow = true)
         StatusChipVariant.PENDING -> ChipStyle(Color(0xFFFFB020).copy(alpha = 0.12f), NgbWarningSoft, Color(0xFFFFB020).copy(alpha = 0.50f), blink = true, glow = false)
         StatusChipVariant.ALERT -> ChipStyle(Color(0xFFFF4D6D).copy(alpha = 0.12f), NgbErrorSoft, Color(0xFFFF4D6D).copy(alpha = 0.50f), blink = false, glow = false)
         StatusChipVariant.OFFLINE -> ChipStyle(scheme.secondary.copy(alpha = 0.16f), scheme.secondary, scheme.secondary.copy(alpha = 0.50f), blink = false, glow = false)
@@ -99,7 +100,7 @@ fun StatusChip(
     val chipShape = RoundedCornerShape(percent = 50)
     val base = if (style.glow && motion) {
         modifier.neonGlow(
-            glowColor = Color(0xFF27F58A),
+            glowColor = NgbPrimary,
             shape = chipShape,
             blurRadius = 14.dp,
             glowAlpha = 0.28f,
