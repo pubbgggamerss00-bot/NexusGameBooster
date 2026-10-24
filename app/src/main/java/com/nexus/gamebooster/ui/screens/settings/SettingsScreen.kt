@@ -61,6 +61,7 @@ import com.nexus.gamebooster.optimizer.actions.DeviceRestoreExecutor.ItemStatus
 import com.nexus.gamebooster.optimizer.actions.DeviceRestoreExecutor.Reasons
 import com.nexus.gamebooster.shizuku.ShizukuPrivilege
 import com.nexus.gamebooster.ui.components.NgbOutlinedButton
+import com.nexus.gamebooster.ui.components.NgbPageHeader
 import com.nexus.gamebooster.ui.components.NgbScreenContainer
 import com.nexus.gamebooster.ui.components.SectionCard
 import com.nexus.gamebooster.update.UpdateTools
@@ -79,10 +80,7 @@ fun SettingsScreen() {
         LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
             vm.onScreenResumed()
         }
-        Text(
-            text = stringResource(R.string.settings_headline),
-            style = MaterialTheme.typography.headlineSmall,
-        )
+        NgbPageHeader(title = stringResource(R.string.settings_headline))
         Spacer(Modifier.height(16.dp))
 
         SectionCard(

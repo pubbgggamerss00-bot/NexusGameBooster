@@ -57,6 +57,7 @@ import com.nexus.gamebooster.core.VmFactory
 import com.nexus.gamebooster.profiles.PerformanceProfile
 import com.nexus.gamebooster.profiles.ProfileEffect
 import com.nexus.gamebooster.ui.components.EmptyState
+import com.nexus.gamebooster.ui.components.NgbPageHeader
 import com.nexus.gamebooster.ui.components.NgbScreenContainer
 import com.nexus.gamebooster.ui.components.SectionCard
 import com.nexus.gamebooster.ui.components.StatusChip
@@ -91,9 +92,9 @@ fun ProfilesScreen() {
 
     // Simplified profiles: name + select only (no long descriptions / effect lists).
     NgbScreenContainer {
-        Text(
-            text = stringResource(R.string.profiles_headline),
-            style = MaterialTheme.typography.headlineSmall,
+        NgbPageHeader(
+            title = stringResource(R.string.profiles_headline),
+            subtitle = stringResource(R.string.profiles_subtitle),
         )
         Spacer(Modifier.height(16.dp))
 

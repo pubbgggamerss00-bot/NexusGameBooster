@@ -76,6 +76,7 @@ import com.nexus.gamebooster.games.Game
 import com.nexus.gamebooster.games.GameSort
 import com.nexus.gamebooster.games.InstalledApp
 import com.nexus.gamebooster.ui.components.EmptyState
+import com.nexus.gamebooster.ui.components.NgbPageHeader
 import com.nexus.gamebooster.ui.components.NgbButton
 import com.nexus.gamebooster.ui.components.NgbOutlinedButton
 import com.nexus.gamebooster.ui.motion.LocalNgbMotionEnabled
@@ -120,14 +121,9 @@ fun LibraryScreen() {
                     .fillMaxWidth()
                     .widthIn(max = LibraryMaxContentWidth),
             ) {
-                Text(
-                    text = stringResource(R.string.library_headline),
-                    style = MaterialTheme.typography.headlineSmall,
-                )
-                Text(
-                    text = stringResource(R.string.library_subtitle),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                NgbPageHeader(
+                    title = stringResource(R.string.library_headline),
+                    subtitle = stringResource(R.string.library_subtitle),
                 )
                 Spacer(Modifier.height(12.dp))
 

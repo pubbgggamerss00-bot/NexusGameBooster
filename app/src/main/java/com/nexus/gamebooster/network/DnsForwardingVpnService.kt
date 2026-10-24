@@ -72,17 +72,29 @@ class DnsForwardingVpnService : VpnService() {
         val input = FileInputStream(descriptor.fileDescriptor)
         val output = FileOutputStream(descriptor.fileDescriptor)
         val buffer = ByteArray(32767)
-        while (running.get() && !Thread.currentThread().isInterrupted) {
-            try {
-                val count = input.read(buffer)
-                if (count <= 0) continue
-                val packet = buffer.copyOf(count)
-                val response = forwardIpv4UdpDns(packet, resolver)
-                if (response != null && running.get()) output.write(response)
-            } catch (_: Exception) {
-                if (running.get()) continue
-                break
+        try {
+            while (running.get() && !Thread.currentThread().isInterrupted) {
+                try {
+                    val count = input.read(buffer)
+                    if (count <= 0) continue
+                    val packet = buffer.copyOf(count)
+                    val response = forwardIpv4UdpDns(packet, resolver)
+                    if (response != null && running.get()) output.write(response)
+                } catch (_: Exception) {
+                    // An I/O failure must terminate the worker instead of spinning forever.
+                    break
+                }
             }
+        } finally {
+            running.set(false)
+            isRunning = false
+            synchronized(this) {
+                if (tun === descriptor) tun = null
+                if (worker === Thread.currentThread()) worker = null
+            }
+            try { descriptor.close() } catch (_: Exception) { }
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
         }
     }
 

@@ -1,7 +1,7 @@
-Nexus Game Booster 1.1.0 — new version!
+Nexus Game Booster 1.1.1 — new version!
 
 What's new:
-• The Home hero card is easier to read: a new layered gradient behind the text and a new "Gaming command center" badge on the card corner.
-• A gentle tone retune of surfaces and outlines for more visual depth — the core neon accent colors are exactly the ones you know.
-• No changes to feature logic, tickets or the API — this release is purely a visual upgrade.
-• Updating from 1.0.0 installs directly — no uninstall needed (same signature).
+• Library, Monitor, Profiles and Settings now share one clean neon page header — every main screen looks consistent.
+• DNS forwarding stability fix: if the DNS forwarder hits an input/output error it now stops cleanly instead of retrying forever, and the "connected" status can no longer go stale after a failure.
+• Nothing else changed — no new permissions, no API or account changes.
+• Updating from 1.1.0 (or any 0.11.3+) installs directly — no uninstall needed (same signature).

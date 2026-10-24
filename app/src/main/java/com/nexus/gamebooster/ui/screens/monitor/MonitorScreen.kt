@@ -62,6 +62,7 @@ import com.nexus.gamebooster.ui.components.MapperMetricRow
 import com.nexus.gamebooster.ui.components.MetricRow
 import com.nexus.gamebooster.ui.components.NgbButton
 import com.nexus.gamebooster.ui.components.NgbOutlinedButton
+import com.nexus.gamebooster.ui.components.NgbPageHeader
 import com.nexus.gamebooster.ui.components.NgbScreenContainer
 import com.nexus.gamebooster.ui.components.SectionCard
 import com.nexus.gamebooster.ui.components.StatusChip
@@ -133,9 +134,9 @@ fun MonitorScreen() {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(
-                text = stringResource(R.string.monitor_headline),
-                style = MaterialTheme.typography.headlineSmall,
+            NgbPageHeader(
+                title = stringResource(R.string.monitor_headline),
+                subtitle = stringResource(R.string.monitor_subtitle),
                 modifier = Modifier.weight(1f),
             )
             // Prominent manual refresh. This screen uses no animations at all, so the
@@ -145,11 +146,6 @@ fun MonitorScreen() {
                 Text(stringResource(R.string.refresh))
             }
         }
-        Text(
-            text = stringResource(R.string.monitor_subtitle),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
         Spacer(Modifier.height(8.dp))
         // Honest policy chips from the LOADED profile. While the profile has not loaded
         // yet, a neutral "loading policy" state is shown — never a guess.
