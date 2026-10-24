@@ -3,7 +3,14 @@ const now = () => Math.floor(Date.now() / 1000);
 const id = () => crypto.randomUUID();
 const enc = new TextEncoder();
 async function sha256(value) { const b = await crypto.subtle.digest("SHA-256", enc.encode(value)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2,"0")).join(""); }
-function randomKey() { const bytes = crypto.getRandomValues(new Uint8Array(24)); return "NGB-" + [...bytes].map(b => b.toString(16).padStart(2,"0")).join("").toUpperCase(); }
+function randomKey() {
+  // 12 characters total: BGT_ + 8 random uppercase letters/digits (excluding ambiguous characters).
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  let suffix = "";
+  for (const b of bytes) suffix += alphabet[b % alphabet.length];
+  return "BGT_" + suffix;
+}
 function cleanText(v, max=200) { return String(v ?? "").replace(/[\u0000-\u001F\u007F]/g, " ").trim().slice(0,max); }
 function validDns(v) { return /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/.test(v) || /^[a-fA-F0-9:]{3,39}$/.test(v); }
 function validWg(v) { return typeof v === "string" && v.length > 0 && v.length <= 128000 && /^\s*\[Interface\]/mi.test(v) && /^\s*\[Peer\]/mi.test(v); }
@@ -11,6 +18,31 @@ async function body(req) { try { return await req.json(); } catch { throw new Er
 function admin(req, env) { const auth = req.headers.get("Authorization") || ""; return !!env.ADMIN_TOKEN && auth === `Bearer ${env.ADMIN_TOKEN}`; }
 async function audit(env, action, actor, type, recordId, detail="") { await env.DB.prepare("INSERT INTO audit_log (id,at,action,actor,record_type,record_id,detail) VALUES (?,?,?,?,?,?,?)").bind(id(),now(),action,actor,type,recordId,cleanText(detail,500)).run(); }
 async function requireAdmin(req, env) { if (!admin(req, env)) return json({ error: "unauthorized", message: "دسترسی ادمین معتبر نیست" }, 401); return null; }
+async function appSession(req, env) {
+ const token=(req.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"");
+ if(!token) return {error:json({error:"unauthorized",message:"ابتدا کلید را فعال کنید"},401)};
+ const sessionRow=await env.DB.prepare("SELECT value FROM app_settings WHERE key=?").bind(`session:${await sha256(token)}`).first();
+ if(!sessionRow) return {error:json({error:"unauthorized",message:"نشست معتبر نیست؛ دوباره کلید را وارد کنید"},401)};
+ const session=JSON.parse(sessionRow.value), device=cleanText(req.headers.get("X-Device-Id"),200);
+ if(!device || await sha256(device)!==session.deviceHash) return {error:json({error:"device_mismatch",message:"این نشست به دستگاه دیگری تعلق دارد"},403)};
+ if(session.expiresAt<=now()) return {error:json({error:"session_expired",message:"نشست منقضی شده؛ دوباره وارد شوید"},401)};
+ const license=await env.DB.prepare("SELECT id,key_hint,label,active,expires_at,revoked_at FROM license_keys WHERE id=?").bind(session.licenseId).first();
+ if(!license||!license.active||license.revoked_at||license.expires_at<=now()) return {error:json({error:"license_invalid",message:"کلید غیرفعال یا منقضی شده است"},403)};
+ const activation=await env.DB.prepare("SELECT id FROM activations WHERE license_id=? AND device_hash=?").bind(session.licenseId,session.deviceHash).first();
+ if(!activation) return {error:json({error:"device_revoked",message:"دسترسی این دستگاه توسط مدیر لغو شده است"},403)};
+ return {session,license,deviceHash:session.deviceHash};
+}
+async function ticketKeyMatches(env, key, licenseId) {
+ const normalized=cleanText(key,100).toUpperCase();
+ if(!normalized) return false;
+ const row=await env.DB.prepare("SELECT id,active,expires_at,revoked_at FROM license_keys WHERE key_hash=?").bind(await sha256(normalized)).first();
+ return !!row && row.id===licenseId && !!row.active && !row.revoked_at && row.expires_at>now();
+}
+async function ticketMessages(env, ticketId) {
+ const r=await env.DB.prepare("SELECT id,sender,message,created_at FROM support_ticket_messages WHERE ticket_id=? ORDER BY created_at ASC").bind(ticketId).all();
+ return r.results;
+}
+
 export default {
  async fetch(req, env) {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: { "access-control-allow-origin":"*", "access-control-allow-methods":"GET,POST,PATCH,DELETE,OPTIONS", "access-control-allow-headers":"Content-Type,Authorization,X-Device-Id" } });
@@ -41,6 +73,52 @@ export default {
     await env.DB.prepare("INSERT INTO app_settings(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at").bind(`session:${await sha256(token)}`, JSON.stringify({licenseId:row.id,deviceHash:dh,expiresAt:now()+86400}),now()).run();
     return json({ valid:true, token, createdAt:row.created_at, expiresAt:row.expires_at, sessionExpiresAt:now()+86400, message:"کلید تأیید شد" });
    }
+   // User support tickets: every entry point rechecks the typed key against the active app session.
+   if (p === "/api/v1/tickets/verify" && req.method === "POST") {
+    const b=await body(req), a=await appSession(req,env); if(a.error)return a.error;
+    if(!await ticketKeyMatches(env,b.key,a.session.licenseId)) return json({valid:false,code:"KEY_SESSION_MISMATCH",message:"این کلید با کلید فعال همین برنامه مطابقت ندارد؛ کلید فعلی برنامه را وارد کنید."},403);
+    return json({valid:true,keyHint:a.license.key_hint,message:"کلید با نشست فعال برنامه مطابقت دارد."});
+   }
+   if (p === "/api/v1/tickets" && req.method === "POST") {
+    const b=await body(req), a=await appSession(req,env); if(a.error)return a.error;
+    if(!await ticketKeyMatches(env,b.key,a.session.licenseId)) return json({error:"KEY_SESSION_MISMATCH",message:"این کلید با کلید فعال همین برنامه مطابقت ندارد."},403);
+    const subject=cleanText(b.subject,120), message=cleanText(b.message,4000);
+    if(subject.length<3||message.length<5) return json({error:"INVALID_TICKET",message:"عنوان و متن تیکت را کامل وارد کنید."},400);
+    const tid=id(), t=now();
+    await env.DB.prepare("INSERT INTO support_tickets(id,license_id,device_hash,key_hint,subject,status,created_at,updated_at) VALUES(?,?,?,?,?,'open',?,?)").bind(tid,a.session.licenseId,a.deviceHash,a.license.key_hint,subject,t,t).run();
+    await env.DB.prepare("INSERT INTO support_ticket_messages(id,ticket_id,sender,message,created_at) VALUES(?,?, 'user', ?, ?)").bind(id(),tid,message,t).run();
+    await audit(env,"ticket_create","license:"+a.license.key_hint,"ticket",tid,subject);
+    return json({ok:true,item:{id:tid,subject,status:"open",created_at:t,updated_at:t,messages:[{sender:"user",message,created_at:t}]}},201);
+   }
+   if (p === "/api/v1/tickets/list" && req.method === "POST") {
+    const b=await body(req), a=await appSession(req,env); if(a.error)return a.error;
+    if(!await ticketKeyMatches(env,b.key,a.session.licenseId)) return json({error:"KEY_SESSION_MISMATCH",message:"این کلید با کلید فعال همین برنامه مطابقت ندارد."},403);
+    const r=await env.DB.prepare("SELECT id,subject,status,created_at,updated_at FROM support_tickets WHERE license_id=? ORDER BY updated_at DESC LIMIT 100").bind(a.session.licenseId).all();
+    const items=[]; for(const x of r.results) items.push({...x,messages:await ticketMessages(env,x.id)});
+    return json({items});
+   }
+   const userTicketMessageList=p.match(/^\/api\/v1\/tickets\/([\w-]+)\/messages$/);
+   if(userTicketMessageList && req.method==="POST") {
+    const b=await body(req), a=await appSession(req,env); if(a.error)return a.error;
+    if(!await ticketKeyMatches(env,b.key,a.session.licenseId)) return json({error:"KEY_SESSION_MISMATCH",message:"این کلید با کلید فعال همین برنامه مطابقت ندارد."},403);
+    const ticket=await env.DB.prepare("SELECT id FROM support_tickets WHERE id=? AND license_id=?").bind(userTicketMessageList[1],a.session.licenseId).first();
+    if(!ticket)return json({error:"NOT_FOUND",message:"این تیکت متعلق به این کلید و دستگاه نیست."},404);
+    const r=await ticketMessages(env,ticket.id); return json({items:r});
+   }
+   const userTicketReply=p.match(/^\/api\/v1\/tickets\/([\w-]+)\/reply$/);
+   if(userTicketReply && req.method==="POST") {
+    const b=await body(req), a=await appSession(req,env); if(a.error)return a.error;
+    if(!await ticketKeyMatches(env,b.key,a.session.licenseId)) return json({error:"KEY_SESSION_MISMATCH",message:"این کلید با کلید فعال همین برنامه مطابقت ندارد."},403);
+    const ticket=await env.DB.prepare("SELECT id,status FROM support_tickets WHERE id=? AND license_id=?").bind(userTicketReply[1],a.session.licenseId).first();
+    if(!ticket)return json({error:"NOT_FOUND",message:"تیکت پیدا نشد."},404);
+    if(ticket.status==="rejected"||ticket.status==="closed") return json({error:"TICKET_CLOSED",message:"این تیکت بسته یا رد شده و امکان پاسخ جدید ندارد."},409);
+    const message=cleanText(b.message,4000); if(message.length<2)return json({error:"INVALID_MESSAGE",message:"متن پاسخ را وارد کنید."},400);
+    const t=now(); await env.DB.prepare("INSERT INTO support_ticket_messages(id,ticket_id,sender,message,created_at) VALUES(?,?, 'user', ?, ?)").bind(id(),ticket.id,message,t).run();
+    await env.DB.prepare("UPDATE support_tickets SET status='open',updated_at=? WHERE id=?").bind(t,ticket.id).run();
+    await audit(env,"ticket_user_reply","license:"+a.license.key_hint,"ticket",ticket.id);
+    return json({ok:true});
+   }
+
    if (p === "/api/v1/sync" && req.method === "GET") {
     const token = (req.headers.get("Authorization")||"").replace(/^Bearer\s+/i,"");
     if (!token) return json({ error:"unauthorized", message:"ابتدا کلید را فعال کنید" },401);
@@ -66,14 +144,25 @@ export default {
     const r = await env.DB.prepare("SELECT id,key_hint,label,created_at,expires_at,max_activations,active,revoked_at,(SELECT COUNT(*) FROM activations a WHERE a.license_id=license_keys.id) AS used FROM license_keys ORDER BY created_at DESC LIMIT 500").all(); return json({items:r.results});
    }
    if (p === "/api/admin/keys" && req.method === "POST") {
-    const b = await body(req), days = Math.max(1,Math.min(3650,Number(b.days)||30)), max = Math.max(1,Math.min(10000,Number(b.maxActivations)||1)), label=cleanText(b.label,100), key=randomKey(), keyHash=await sha256(key), rid=id(), t=now();
-    await env.DB.prepare("INSERT INTO license_keys(id,key_hash,key_hint,label,created_at,expires_at,max_activations,active) VALUES(?,?,?,?,?,?,?,1)").bind(rid,keyHash,key.slice(-8),label,t,t+days*86400,max).run();
-    await audit(env,"create","admin","license",rid,`days=${days};maxActivations=${max}`);
-    return json({item:{id:rid,key,label,createdAt:t,expiresAt:t+days*86400,maxActivations:max,active:true,used:0}},201);
+    const b = await body(req), hours = Number(b.hours)>0 ? Math.max(1,Math.min(87600,Math.floor(Number(b.hours)))) : null, days = hours ? null : Math.max(1,Math.min(3650,Number(b.days)||30)), duration = hours ? hours*3600 : days*86400, max = Math.max(1,Math.min(10000,Number(b.maxActivations)||1)), label=cleanText(b.label,100), key=randomKey(), keyHash=await sha256(key), rid=id(), t=now();
+    await env.DB.prepare("INSERT INTO license_keys(id,key_hash,key_hint,label,created_at,expires_at,max_activations,active) VALUES(?,?,?,?,?,?,?,1)").bind(rid,keyHash,key.slice(-8),label,t,t+duration,max).run();
+    await audit(env,"create","admin","license",rid,`${hours ? `hours=${hours}` : `days=${days}`};maxActivations=${max}`);
+    return json({item:{id:rid,key,label,createdAt:t,expiresAt:t+duration,maxActivations:max,active:true,used:0,durationHours:hours,durationDays:days}},201);
    }
    const keyMatch=p.match(/^\/api\/admin\/keys\/([\w-]+)$/);
    if (keyMatch && req.method === "PATCH") { const b=await body(req), rid=keyMatch[1], active=b.active===false?0:1; await env.DB.prepare("UPDATE license_keys SET active=?,revoked_at=? WHERE id=?").bind(active,active?null:now(),rid).run(); await audit(env,active?"enable":"revoke","admin","license",rid); return json({ok:true}); }
    if (keyMatch && req.method === "DELETE") { const rid=keyMatch[1]; const row=await env.DB.prepare("SELECT id,label FROM license_keys WHERE id=?").bind(rid).first(); if(!row)return json({error:"not_found",message:"کلید پیدا نشد"},404); await env.DB.prepare("DELETE FROM activations WHERE license_id=?").bind(rid).run(); await env.DB.prepare("DELETE FROM license_keys WHERE id=?").bind(rid).run(); await audit(env,"delete","admin","license",rid,cleanText(row.label||"",100)); return json({ok:true}); }
+   const renewMatch=p.match(/^\/api\/admin\/keys\/([\w-]+)\/renew$/);
+   if(renewMatch && req.method==="POST") {
+    const b=await body(req), rid=renewMatch[1], row=await env.DB.prepare("SELECT id,expires_at FROM license_keys WHERE id=?").bind(rid).first();
+    if(!row)return json({error:"not_found",message:"کلید پیدا نشد"},404);
+    const hours=Number(b.hours)>0?Math.max(1,Math.min(87600,Math.floor(Number(b.hours)))):null;
+    const days=hours?null:Math.max(1,Math.min(3650,Math.floor(Number(b.days)||30)));
+    const extension=hours?hours*3600:days*86400, base=Math.max(now(),Number(row.expires_at)||0), expires=base+extension;
+    await env.DB.prepare("UPDATE license_keys SET expires_at=?,active=1,revoked_at=NULL WHERE id=?").bind(expires,rid).run();
+    await audit(env,"renew","admin","license",rid,hours?`hours=${hours}`:`days=${days}`);
+    return json({ok:true,expiresAt:expires,addedHours:hours,addedDays:days});
+   }
    const keyDevicesMatch=p.match(/^\/api\/admin\/keys\/([\w-]+)\/devices$/);
    if (keyDevicesMatch && req.method === "GET") {
     const r=await env.DB.prepare("SELECT id,device_hash,created_at,last_seen_at FROM activations WHERE license_id=? ORDER BY created_at DESC").bind(keyDevicesMatch[1]).all();
@@ -96,6 +185,33 @@ export default {
    const wgMatch=p.match(/^\/api\/admin\/wireguard\/([\w-]+)$/);
    if(wgMatch && req.method==="PATCH"){const b=await body(req),rid=wgMatch[1],old=await env.DB.prepare("SELECT * FROM wireguard_configs WHERE id=?").bind(rid).first();if(!old)return json({error:"not_found"},404);const config=b.configText===undefined?old.config_text:String(b.configText);if(!validWg(config))return json({error:"invalid_config"},400);await env.DB.prepare("UPDATE wireguard_configs SET name=?,description=?,country=?,config_text=?,active=?,updated_at=? WHERE id=?").bind(cleanText(b.name??old.name,80),cleanText(b.description??old.description,300),cleanText(b.country??old.country,80),config,b.active===undefined?old.active:(b.active?1:0),now(),rid).run();await audit(env,"update","admin","wireguard",rid,cleanText(b.name??old.name,80));return json({ok:true});}
    if(wgMatch && req.method==="DELETE"){await env.DB.prepare("DELETE FROM wireguard_configs WHERE id=?").bind(wgMatch[1]).run();await audit(env,"delete","admin","wireguard",wgMatch[1]);return json({ok:true});}
+   if(p==="/api/admin/tickets" && req.method==="GET") {
+    const r=await env.DB.prepare("SELECT t.id,t.license_id,t.key_hint,t.subject,t.status,t.created_at,t.updated_at,COALESCE(l.label,'') AS key_label FROM support_tickets t LEFT JOIN license_keys l ON l.id=t.license_id ORDER BY CASE t.status WHEN 'open' THEN 0 WHEN 'answered' THEN 1 ELSE 2 END,t.updated_at DESC LIMIT 500").all();
+    return json({items:r.results});
+   }
+   const adminTicketMessages=p.match(/^\/api\/admin\/tickets\/([\w-]+)\/messages$/);
+   if(adminTicketMessages && req.method==="GET") {
+    const ticket=await env.DB.prepare("SELECT id FROM support_tickets WHERE id=?").bind(adminTicketMessages[1]).first();
+    if(!ticket)return json({error:"not_found",message:"تیکت پیدا نشد"},404);
+    return json({items:await ticketMessages(env,ticket.id)});
+   }
+   const adminTicketReply=p.match(/^\/api\/admin\/tickets\/([\w-]+)\/reply$/);
+   if(adminTicketReply && req.method==="POST") {
+    const b=await body(req), ticket=await env.DB.prepare("SELECT id,status FROM support_tickets WHERE id=?").bind(adminTicketReply[1]).first();
+    if(!ticket)return json({error:"not_found",message:"تیکت پیدا نشد"},404);
+    if(ticket.status==="rejected"||ticket.status==="closed")return json({error:"ticket_closed",message:"ابتدا وضعیت تیکت را دوباره باز کنید."},409);
+    const message=cleanText(b.message,4000);if(message.length<2)return json({error:"invalid_message",message:"متن پاسخ را وارد کنید."},400);
+    const t=now();await env.DB.prepare("INSERT INTO support_ticket_messages(id,ticket_id,sender,message,created_at) VALUES(?,?, 'admin', ?, ?)").bind(id(),ticket.id,message,t).run();
+    await env.DB.prepare("UPDATE support_tickets SET status='answered',updated_at=? WHERE id=?").bind(t,ticket.id).run();
+    await audit(env,"ticket_admin_reply","admin","ticket",ticket.id);return json({ok:true});
+   }
+   const adminTicketStatus=p.match(/^\/api\/admin\/tickets\/([\w-]+)\/status$/);
+   if(adminTicketStatus && req.method==="PATCH") {
+    const b=await body(req), status=String(b.status||"");if(!["open","answered","rejected","closed"].includes(status))return json({error:"invalid_status",message:"وضعیت نامعتبر است."},400);
+    const r=await env.DB.prepare("UPDATE support_tickets SET status=?,updated_at=? WHERE id=?").bind(status,now(),adminTicketStatus[1]).run();
+    if(!r.meta?.changes)return json({error:"not_found",message:"تیکت پیدا نشد"},404);
+    await audit(env,"ticket_status","admin","ticket",adminTicketStatus[1],status);return json({ok:true});
+   }
    if(p==="/api/admin/audit" && req.method==="GET"){const r=await env.DB.prepare("SELECT at,action,actor,record_type,record_id,detail FROM audit_log ORDER BY at DESC LIMIT 300").all();return json({items:r.results});}
    if(p==="/api/admin/audit" && req.method==="DELETE"){await env.DB.prepare("DELETE FROM audit_log").run();return json({ok:true});}
    if(p==="/api/admin/sync-version" && req.method==="POST"){const version=String(now());await env.DB.prepare("INSERT INTO app_settings(key,value,updated_at) VALUES('sync_version',?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at").bind(version,now()).run();await audit(env,"publish","admin","settings","sync_version",version);return json({ok:true,version});}

@@ -502,4 +502,44 @@
     <string name="license_countdown_warning">EXPIRING SOON</string>
     <string name="sync_dns_count">%1$d DNS servers synced</string>
     <string name="sync_config_count">%1$d WireGuard configs synced</string>
+
+    <!-- Phase 12 (1.0.0): support tickets -->
+    <string name="ticket_section_title">Support &amp; tickets</string>
+    <string name="ticket_open_create">🎫 Submit a support ticket</string>
+    <string name="ticket_open_list">📨 My tickets</string>
+    <string name="ticket_section_hint">Each time you open the tickets area, your key is checked via the API against the active session of this app.</string>
+    <string name="ticket_key_dialog_title_create">Verify key to submit a ticket</string>
+    <string name="ticket_key_dialog_title_list">Verify key for my tickets</string>
+    <string name="ticket_key_dialog_body">Enter the key that is currently activated in this app.</string>
+    <string name="ticket_key_field_label">Active app key</string>
+    <string name="ticket_key_verify_button">Verify key</string>
+    <string name="ticket_error_enter_key">Enter your key.</string>
+    <string name="ticket_error_key_mismatch">This key does not match the session of this app.</string>
+    <string name="ticket_error_verify">Key verification or server communication failed.</string>
+    <string name="ticket_notice_key_ok">The key matches the active session of this app.</string>
+    <string name="ticket_notice_loaded_empty">No tickets have been registered with this key yet.</string>
+    <string name="ticket_notice_loaded">Tickets loaded.</string>
+    <string name="ticket_create_title">New ticket</string>
+    <string name="ticket_create_body">Key verified. Describe the problem and it will be reviewed in the support panel.</string>
+    <string name="ticket_subject_label">Ticket subject</string>
+    <string name="ticket_message_label">Problem description</string>
+    <string name="ticket_create_button">Submit ticket</string>
+    <string name="ticket_notice_created">Ticket submitted and sent to the admin panel.</string>
+    <string name="ticket_error_create">Could not submit the ticket.</string>
+    <string name="ticket_list_title">My tickets</string>
+    <string name="ticket_list_empty">No tickets yet.</string>
+    <string name="ticket_default_subject">Ticket</string>
+    <string name="ticket_status_prefix">Status: %1$s</string>
+    <string name="ticket_status_open">Awaiting review</string>
+    <string name="ticket_status_answered">Answered</string>
+    <string name="ticket_status_rejected">Rejected</string>
+    <string name="ticket_status_closed">Closed</string>
+    <string name="ticket_sender_admin">Support</string>
+    <string name="ticket_sender_user">You</string>
+    <string name="ticket_message_line">%1$s · %2$s</string>
+    <string name="ticket_reply_label">Your reply</string>
+    <string name="ticket_reply_button">Send reply</string>
+    <string name="ticket_notice_reply_sent">Your reply was sent.</string>
+    <string name="ticket_error_reply">Could not send the reply.</string>
+    <string name="ticket_refresh">Refresh</string>
 </resources>

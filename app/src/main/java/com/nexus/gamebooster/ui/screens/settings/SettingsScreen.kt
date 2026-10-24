@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.ConfirmationNumber
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Palette
@@ -179,6 +180,17 @@ fun SettingsScreen() {
             onDownload = vm::downloadAndInstallUpdate,
             onAllowInstall = vm::grantInstallPermission,
         )
+        Spacer(Modifier.height(16.dp))
+
+        // Phase 12 (1.0.0): support tickets — every entry point re-verifies the
+        // typed key against the active app session via the API (server-owned
+        // check); see [TicketSupportSection] for the dialog flow.
+        SectionCard(
+            title = stringResource(R.string.ticket_section_title),
+            icon = Icons.Outlined.ConfirmationNumber,
+        ) {
+            TicketSupportSection()
+        }
         Spacer(Modifier.height(16.dp))
 
         SectionCard(

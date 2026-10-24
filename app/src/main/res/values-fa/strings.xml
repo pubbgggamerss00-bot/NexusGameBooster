@@ -502,4 +502,44 @@
     <string name="license_countdown_warning">در آستانه انقضا</string>
     <string name="sync_dns_count">%1$d دی‌ان‌اس همگام شد</string>
     <string name="sync_config_count">%1$d کانفیگ وایرگارد همگام شد</string>
+
+    <!-- Phase 12 (1.0.0): support tickets -->
+    <string name="ticket_section_title">پشتیبانی و تیکت‌ها</string>
+    <string name="ticket_open_create">🎫 ثبت تیکت پشتیبانی</string>
+    <string name="ticket_open_list">📨 تیکت‌های من</string>
+    <string name="ticket_section_hint">برای هر بار ورود به بخش تیکت‌ها، کلید با نشست فعال همین برنامه از طریق API بررسی می‌شود.</string>
+    <string name="ticket_key_dialog_title_create">تأیید کلید برای ثبت تیکت</string>
+    <string name="ticket_key_dialog_title_list">تأیید کلید برای تیکت‌های من</string>
+    <string name="ticket_key_dialog_body">کلیدی را وارد کنید که همین حالا در این برنامه فعال است.</string>
+    <string name="ticket_key_field_label">کلید فعال برنامه</string>
+    <string name="ticket_key_verify_button">بررسی کلید</string>
+    <string name="ticket_error_enter_key">کلید را وارد کنید.</string>
+    <string name="ticket_error_key_mismatch">این کلید با نشست همین برنامه مطابقت ندارد.</string>
+    <string name="ticket_error_verify">خطا در بررسی کلید یا ارتباط با سرور.</string>
+    <string name="ticket_notice_key_ok">کلید با نشست فعال برنامه مطابقت دارد.</string>
+    <string name="ticket_notice_loaded_empty">هنوز تیکتی با این کلید ثبت نشده است.</string>
+    <string name="ticket_notice_loaded">تیکت‌ها بارگذاری شدند.</string>
+    <string name="ticket_create_title">ثبت تیکت جدید</string>
+    <string name="ticket_create_body">کلید تأیید شد. شرح مشکل را بنویسید تا در پنل پشتیبانی بررسی شود.</string>
+    <string name="ticket_subject_label">عنوان تیکت</string>
+    <string name="ticket_message_label">شرح مشکل</string>
+    <string name="ticket_create_button">ارسال تیکت</string>
+    <string name="ticket_notice_created">تیکت با موفقیت ثبت شد و به پنل ادمین ارسال شد.</string>
+    <string name="ticket_error_create">ثبت تیکت انجام نشد.</string>
+    <string name="ticket_list_title">تیکت‌های من</string>
+    <string name="ticket_list_empty">تیکتی ثبت نشده است.</string>
+    <string name="ticket_default_subject">تیکت</string>
+    <string name="ticket_status_prefix">وضعیت: %1$s</string>
+    <string name="ticket_status_open">در انتظار بررسی</string>
+    <string name="ticket_status_answered">پاسخ داده شده</string>
+    <string name="ticket_status_rejected">رد شده</string>
+    <string name="ticket_status_closed">بسته</string>
+    <string name="ticket_sender_admin">پشتیبانی</string>
+    <string name="ticket_sender_user">شما</string>
+    <string name="ticket_message_line">%1$s · %2$s</string>
+    <string name="ticket_reply_label">پاسخ شما</string>
+    <string name="ticket_reply_button">ارسال پاسخ</string>
+    <string name="ticket_notice_reply_sent">پاسخ شما ارسال شد.</string>
+    <string name="ticket_error_reply">ارسال پاسخ انجام نشد.</string>
+    <string name="ticket_refresh">تازه‌سازی</string>
 </resources>

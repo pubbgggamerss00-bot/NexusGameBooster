@@ -61,6 +61,35 @@ object NexusApiClient {
         response
     }
 
+    // ---- Phase 12 (1.0.0): support tickets ---------------------------------
+    // Every entry point re-checks the manually typed key against the ACTIVE
+    // session of this app via the server; the server enforces license+device
+    // ownership, so a foreign or stale key is rejected with 403
+    // (KEY_SESSION_MISMATCH) without touching the stored app session.
+
+    /** Verify the manually entered key belongs to the same license as this active app session. */
+    suspend fun verifyTicketKey(context: Context, key: String): JSONObject = withContext(Dispatchers.IO) {
+        val token = token(context)
+        require(token.isNotBlank()) { context.getString(R.string.api_error_activate_first) }
+        request(context, "${apiBase(context)}/api/v1/tickets/verify", "POST",
+            JSONObject().put("key", key.trim()).put("deviceId", deviceId(context)), token, deviceId(context))
+    }
+
+    suspend fun createTicket(context: Context, key: String, subject: String, message: String): JSONObject = withContext(Dispatchers.IO) {
+        request(context, "${apiBase(context)}/api/v1/tickets", "POST",
+            JSONObject().put("key", key.trim()).put("subject", subject.trim()).put("message", message.trim()).put("deviceId", deviceId(context)), token(context), deviceId(context))
+    }
+
+    suspend fun listTickets(context: Context, key: String): JSONObject = withContext(Dispatchers.IO) {
+        request(context, "${apiBase(context)}/api/v1/tickets/list", "POST",
+            JSONObject().put("key", key.trim()).put("deviceId", deviceId(context)), token(context), deviceId(context))
+    }
+
+    suspend fun replyTicket(context: Context, key: String, ticketId: String, message: String): JSONObject = withContext(Dispatchers.IO) {
+        request(context, "${apiBase(context)}/api/v1/tickets/${ticketId}/reply", "POST",
+            JSONObject().put("key", key.trim()).put("message", message.trim()).put("deviceId", deviceId(context)), token(context), deviceId(context))
+    }
+
     suspend fun sync(context: Context): JSONObject = withContext(Dispatchers.IO) {
         val base = apiBase(context)
         val token = token(context)
