@@ -19,6 +19,9 @@ object WireGuardController {
     private const val PROFILE_DIR = "wireguard-profiles"
     private const val PREFS = "wireguard_profiles"
     private const val SELECTED_ID = "selected_profile_id"
+    // Kept separately from the user's currently highlighted profile: the active tunnel
+    // may still be using an older profile after the selection changes.
+    private const val ACTIVE_ID = "active_profile_id"
     private const val TUNNEL_NAME = "Nexus WireGuard"
     @Volatile private var backend: GoBackend? = null
 
@@ -95,7 +98,7 @@ object WireGuardController {
         val selected = prefs.getString(SELECTED_ID, "").orEmpty()
         profileDir(context).listFiles().orEmpty().filter { it.isFile && it.extension == "conf" && it.nameWithoutExtension.startsWith("remote-") && it.nameWithoutExtension !in keep }.forEach { file ->
             val profileId = file.nameWithoutExtension
-            if (selected == profileId && isConnected(context)) disconnect(context)
+            if (activeProfileId(context) == profileId && isConnected(context)) disconnect(context)
             file.delete()
             nameFile(context, profileId).delete()
             if (selected == profileId) prefs.edit().remove(SELECTED_ID).apply()
@@ -110,6 +113,7 @@ object WireGuardController {
             backend(context).setState(tunnel, Tunnel.State.UP, config)
             check(backend(context).getState(tunnel) == Tunnel.State.UP) { "WireGuard tunnel did not become active" }
             selectProfile(context, profileId)
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(ACTIVE_ID, profileId).apply()
         }
     }
 
@@ -118,6 +122,7 @@ object WireGuardController {
             // setState returns Tunnel.State; return Unit explicitly so the declared
             // Result<Unit> matches (Kotlin 2.0 does not coerce this automatically).
             backend(context).setState(tunnel, Tunnel.State.DOWN, null)
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(ACTIVE_ID).apply()
             Unit
         }
     }
@@ -126,8 +131,8 @@ object WireGuardController {
         runCatching {
             require(profileId.isNotBlank()) { "Select a profile to delete" }
             // Do not remove the config backing an active tunnel.
-            if (selectedProfileId(context) == profileId && isConnected(context)) {
-                error("Disconnect WireGuard before deleting this profile")
+            if (activeProfileId(context) == profileId && isConnected(context)) {
+                error("Disconnect WireGuard before deleting the active profile")
             }
             val config = configFile(context, profileId)
             require(config.exists()) { "Profile not found" }
@@ -140,7 +145,15 @@ object WireGuardController {
         }
     }
 
+    fun activeProfileId(context: Context): String =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(ACTIVE_ID, "").orEmpty()
+
     fun isConnected(context: Context): Boolean = try {
-        backend(context).getState(tunnel) == Tunnel.State.UP
+        val connected = backend(context).getState(tunnel) == Tunnel.State.UP
+        if (!connected) {
+            // Heal stale metadata after Android tears the tunnel down outside the app.
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(ACTIVE_ID).apply()
+        }
+        connected
     } catch (_: Exception) { false }
 }

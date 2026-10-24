@@ -58,7 +58,7 @@ object DnsResolverTester {
         }
     }
 
-    private fun makeQuery(id: Int, domain: String): ByteArray {
+    internal fun makeQuery(id: Int, domain: String): ByteArray {
         val nameBytes = domain.split('.').flatMap { label -> listOf(label.length.toByte()) + label.toByteArray(Charsets.US_ASCII).toList() }.toByteArray()
         val query = ByteArray(12 + nameBytes.size + 5)
         query[0] = (id ushr 8).toByte(); query[1] = id.toByte()

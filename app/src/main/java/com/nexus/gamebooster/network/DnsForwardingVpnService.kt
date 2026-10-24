@@ -24,6 +24,7 @@ import kotlin.concurrent.thread
 class DnsForwardingVpnService : VpnService() {
     @Volatile private var tun: ParcelFileDescriptor? = null
     @Volatile private var worker: Thread? = null
+    @Volatile private var activeResolver: String? = null
     private val running = AtomicBoolean(false)
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -40,7 +41,13 @@ class DnsForwardingVpnService : VpnService() {
             stopSelf(startId)
             return START_NOT_STICKY
         }
-        if (running.get()) return START_STICKY
+        // Do not leave a stale service/notification behind after an earlier worker died.
+        // A repeated start with the same resolver is idempotent; a changed resolver is
+        // restarted deliberately instead of silently continuing with the old server.
+        if (running.get()) {
+            if (activeResolver == resolver && tun?.fileDescriptor?.valid() == true) return START_STICKY
+            stopTunnelNow()
+        }
         startForeground(NOTIFICATION_ID, buildNotification())
         try {
             val descriptor = Builder()
@@ -56,6 +63,7 @@ class DnsForwardingVpnService : VpnService() {
                 return START_NOT_STICKY
             }
             tun = descriptor
+            activeResolver = resolver
             running.set(true)
             isRunning = true
             worker = thread(name = "NexusDnsForwarder", isDaemon = true) {
@@ -63,38 +71,46 @@ class DnsForwardingVpnService : VpnService() {
             }
             return START_STICKY
         } catch (_: Exception) {
+            stopTunnelNow()
+            stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf(startId)
             return START_NOT_STICKY
         }
     }
 
     private fun runForwarder(descriptor: ParcelFileDescriptor, resolver: String) {
-        val input = FileInputStream(descriptor.fileDescriptor)
-        val output = FileOutputStream(descriptor.fileDescriptor)
-        val buffer = ByteArray(32767)
         try {
-            while (running.get() && !Thread.currentThread().isInterrupted) {
-                try {
-                    val count = input.read(buffer)
-                    if (count <= 0) continue
-                    val packet = buffer.copyOf(count)
-                    val response = forwardIpv4UdpDns(packet, resolver)
-                    if (response != null && running.get()) output.write(response)
-                } catch (_: Exception) {
-                    // An I/O failure must terminate the worker instead of spinning forever.
-                    break
+            FileInputStream(descriptor.fileDescriptor).use { input ->
+                FileOutputStream(descriptor.fileDescriptor).use { output ->
+                    val buffer = ByteArray(32767)
+                    while (running.get() && !Thread.currentThread().isInterrupted) {
+                        try {
+                            val count = input.read(buffer)
+                            if (count <= 0) continue
+                            val packet = buffer.copyOf(count)
+                            val response = forwardIpv4UdpDns(packet, resolver)
+                            if (response != null && running.get()) output.write(response)
+                        } catch (_: Exception) {
+                            // TUN read/write failures are terminal. Retrying a broken file
+                            // descriptor can spin the worker at 100% CPU and leave stale UI.
+                            break
+                        }
+                    }
                 }
             }
         } finally {
-            running.set(false)
-            isRunning = false
-            synchronized(this) {
-                if (tun === descriptor) tun = null
-                if (worker === Thread.currentThread()) worker = null
+            // A broken TUN or an unexpected I/O failure must not leave the UI reporting
+            // an active DNS connection. Only clear state if this is still the live tunnel.
+            if (tun === descriptor) {
+                running.set(false)
+                isRunning = false
+                activeResolver = null
+                tun = null
+                worker = null
+                try { descriptor.close() } catch (_: Exception) { }
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
             }
-            try { descriptor.close() } catch (_: Exception) { }
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
         }
     }
 
@@ -103,8 +119,13 @@ class DnsForwardingVpnService : VpnService() {
         val ipHeaderLength = (packet[0].toInt() and 0x0F) * 4
         if (ipHeaderLength < 20 || packet.size < ipHeaderLength + 8) return null
         if ((packet[9].toInt() and 0xFF) != 17) return null // UDP only
-        val totalLength = u16(packet, 2).coerceAtMost(packet.size)
-        if (totalLength < ipHeaderLength + 8) return null
+        // This minimal forwarder does not reassemble IP fragments. Reject fragmented
+        // DNS packets explicitly instead of parsing partial data as a complete query.
+        val fragmentField = u16(packet, 6)
+        if ((fragmentField and 0x3FFF) != 0) return null
+        val declaredLength = u16(packet, 2)
+        if (declaredLength < ipHeaderLength + 8 || declaredLength > packet.size) return null
+        val totalLength = declaredLength
         val destinationIp = packet.copyOfRange(16, 20)
         if (!destinationIp.contentEquals(VIRTUAL_DNS_BYTES)) return null
         val sourcePort = u16(packet, ipHeaderLength)
@@ -132,6 +153,8 @@ class DnsForwardingVpnService : VpnService() {
         } ?: return null
         if (dnsResponse.size < 12) return null
         if (dnsResponse[0] != dnsQuery[0] || dnsResponse[1] != dnsQuery[1]) return null
+        // QR must be set; otherwise a malformed/echoed query could be sent back as an answer.
+        if ((dnsResponse[2].toInt() and 0x80) == 0) return null
 
         val sourceIp = packet.copyOfRange(12, 16)
         val out = ByteArray(20 + 8 + dnsResponse.size)
@@ -183,6 +206,7 @@ class DnsForwardingVpnService : VpnService() {
         try { tun?.close() } catch (_: Exception) { }
         tun = null
         worker = null
+        activeResolver = null
     }
 
     override fun onRevoke() {
