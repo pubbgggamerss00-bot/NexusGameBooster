@@ -550,4 +550,14 @@
     <string name="ticket_notice_reply_sent">Your reply was sent.</string>
     <string name="ticket_error_reply">Could not send the reply.</string>
     <string name="ticket_refresh">Refresh</string>
+    <string name="game_advice_section_title">Game-specific tuning tips</string>
+    <string name="game_advice_pubg_title">PUBG Mobile · suggested setup</string>
+    <string name="game_advice_cod_title">Call of Duty: Mobile · suggested setup</string>
+    <string name="game_advice_pubg_tip_1">For steadier frames, try Smooth graphics first, then select the highest frame-rate option your device and game version offer.</string>
+    <string name="game_advice_pubg_tip_2">If frame drops continue, reduce shadows or other optional visual effects where available; change one setting at a time.</string>
+    <string name="game_advice_cod_tip_1">Prioritize the highest stable frame-rate option supported by your device; lower graphics quality if frame pacing becomes uneven.</string>
+    <string name="game_advice_cod_tip_2">Turn off optional visual effects such as depth of field or ragdoll only if those controls exist in your version.</string>
+    <string name="game_advice_common_tip_1">Use the phone maker’s built-in Game Mode if available and set it to performance.</string>
+    <string name="game_advice_common_tip_2">Avoid gaming while the phone is very hot; remove a thick case and pause to cool down if performance drops with heat.</string>
+    <string name="game_advice_disclaimer">These are manual suggestions, not settings applied by Nexus. Options vary by device, region, and game version.</string>
 </resources>

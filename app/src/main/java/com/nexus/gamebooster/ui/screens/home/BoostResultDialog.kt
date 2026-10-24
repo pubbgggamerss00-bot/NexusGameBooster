@@ -30,6 +30,7 @@ import com.nexus.gamebooster.core.boostCheckLabel
 import com.nexus.gamebooster.core.boostCheckValueText
 import com.nexus.gamebooster.core.boostDetailLabel
 import com.nexus.gamebooster.core.unavailableReasonLabel
+import com.nexus.gamebooster.games.GameTuningAdvisor
 import com.nexus.gamebooster.monitoring.UnavailableReasons
 import com.nexus.gamebooster.optimizer.BoostActionOutcome
 import com.nexus.gamebooster.optimizer.BoostCheck
@@ -88,6 +89,7 @@ fun BoostResultDialog(
                 } else {
                     state.report?.let { report ->
                         ChecksSection(report = report)
+                        GameAdviceSection(gameName = report.gameName)
                         Spacer(Modifier.height(12.dp))
                         ActionsSection(report = report)
                         Spacer(Modifier.height(12.dp))
@@ -410,3 +412,44 @@ private fun rememberTime(millis: Long): String =
     remember(millis) {
         DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(millis))
     }
+
+/** Title-specific, manual in-game tuning tips; never represented as applied by the app. */
+@Composable
+private fun GameAdviceSection(gameName: String?) {
+    val title = GameTuningAdvisor.identify(gameName) ?: return
+    val heading = when (title) {
+        GameTuningAdvisor.Title.PUBG_MOBILE -> R.string.game_advice_pubg_title
+        GameTuningAdvisor.Title.CALL_OF_DUTY_MOBILE -> R.string.game_advice_cod_title
+    }
+    val tips = when (title) {
+        GameTuningAdvisor.Title.PUBG_MOBILE -> listOf(
+            R.string.game_advice_pubg_tip_1,
+            R.string.game_advice_pubg_tip_2,
+            R.string.game_advice_common_tip_1,
+            R.string.game_advice_common_tip_2,
+        )
+        GameTuningAdvisor.Title.CALL_OF_DUTY_MOBILE -> listOf(
+            R.string.game_advice_cod_tip_1,
+            R.string.game_advice_cod_tip_2,
+            R.string.game_advice_common_tip_1,
+            R.string.game_advice_common_tip_2,
+        )
+    }
+    Spacer(Modifier.height(12.dp))
+    Text(text = stringResource(R.string.game_advice_section_title), style = MaterialTheme.typography.titleSmall)
+    Text(text = stringResource(heading), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+    tips.forEach { tip ->
+        Text(
+            text = "• " + stringResource(tip),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+    }
+    Text(
+        text = stringResource(R.string.game_advice_disclaimer),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 6.dp),
+    )
+}

@@ -1,8 +1,8 @@
-Nexus Game Booster 1.1.3 — new version!
+Nexus Game Booster 1.1.4 — new version!
 
 What's new:
-• New optional ROOT game mode in Settings: check root access, then set Android's GameManager performance mode for a game package (or restore standard mode).
-• Safety first: root is only requested when YOU tap a button, the package name is strictly validated, only the two fixed GameManager commands are used, and the real output/errors are shown — success is never faked.
-• Honest limits: your ROM must support GameManager mode; no FPS gain is promised. Devices without root are unaffected.
-• One new settings card, localized in English and Persian; 2 new unit tests (112 total). No new permissions.
-• Updating from 1.1.2 (or any 0.11.3+) installs directly — no uninstall needed (same signature).
+• Game-specific tuning tips for PUBG Mobile / BGMI and Call of Duty: Mobile, shown in the boost report only when the boosted game's name or package is recognized (e.g. com.tencent.ig, com.activision.callofduty.shooter).
+• Honest by design: these are manual, in-game setup suggestions — Nexus never changes the game's own settings and never promises FPS gains. Unknown games simply see no extra section.
+• Tips cover the highest stable frame rate, reducing optional effects, the phone maker's Game Mode, and heat management; a clear disclaimer says options vary by device, region, and game version.
+• Localized in English and Persian; 3 new unit tests (115 total). No new permissions.
+• Updating from 1.1.3 (or any 0.11.3+) installs directly — no uninstall needed (same signature).

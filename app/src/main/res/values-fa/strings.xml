@@ -550,4 +550,14 @@
     <string name="ticket_notice_reply_sent">پاسخ شما ارسال شد.</string>
     <string name="ticket_error_reply">ارسال پاسخ انجام نشد.</string>
     <string name="ticket_refresh">تازه‌سازی</string>
+    <string name="game_advice_section_title">پیشنهاد تنظیمات مخصوص بازی</string>
+    <string name="game_advice_pubg_title">پابجی موبایل · تنظیمات پیشنهادی</string>
+    <string name="game_advice_cod_title">کالاف دیوتی موبایل · تنظیمات پیشنهادی</string>
+    <string name="game_advice_pubg_tip_1">برای فریم پایدارتر، ابتدا گرافیک روان را امتحان کن و سپس بالاترین نرخ فریمی را انتخاب کن که دستگاه و نسخهٔ بازی پشتیبانی می‌کنند.</string>
+    <string name="game_advice_pubg_tip_2">اگر افت فریم ادامه داشت، در صورت وجود، سایه‌ها یا جلوه‌های تصویری اختیاری را کاهش بده؛ هر بار فقط یک گزینه را تغییر بده.</string>
+    <string name="game_advice_cod_tip_1">اولویت را به بالاترین نرخ فریم پایدارِ پشتیبانی‌شده بده؛ اگر نمایش ناپایدار شد، کیفیت گرافیک را کاهش بده.</string>
+    <string name="game_advice_cod_tip_2">در صورت وجود این گزینه‌ها در نسخهٔ بازی، جلوه‌های اختیاری مثل عمق میدان یا ragdoll را خاموش کن.</string>
+    <string name="game_advice_common_tip_1">اگر گوشی حالت بازی اختصاصی دارد، آن را فعال کن و در صورت وجود، حالت عملکرد را انتخاب کن.</string>
+    <string name="game_advice_common_tip_2">وقتی گوشی خیلی داغ است بازی نکن؛ در صورت افت عملکرد ناشی از گرما، قاب ضخیم را بردار و به گوشی فرصت خنک‌شدن بده.</string>
+    <string name="game_advice_disclaimer">این‌ها پیشنهادهای دستی هستند و Nexus آن تنظیمات را خودکار اعمال نمی‌کند. گزینه‌ها با مدل گوشی، منطقه و نسخهٔ بازی فرق دارند.</string>
 </resources>
