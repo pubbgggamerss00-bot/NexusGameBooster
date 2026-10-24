@@ -309,6 +309,13 @@
     <string name="settings_theme_note">بلافاصله اعمال و برای اجرای بعدی ذخیره می‌شود. پوسته‌ی روشن وجود ندارد.</string>
     <string name="settings_reduce_motion">کاهش انیمیشن</string>
     <string name="settings_reduce_motion_note">حرکت‌های غیرضروری را کاهش می‌دهد. بلافاصله ذخیره می‌شود.</string>
+    <string name="root_game_mode_title">حالت بازی با روت (اختیاری)</string>
+    <string name="root_game_mode_note">در صورت پشتیبانی رام، حالت عملکرد Android GameManager را اجرا می‌کند. دسترسی روت فقط پس از فشردن دکمه درخواست می‌شود. گزینهٔ حالت استاندارد برای بازگردانی وجود دارد. افزایش FPS تضمین نمی‌شود.</string>
+    <string name="root_game_mode_idle">حالت روت اختیاری است و تا وقتی یکی از دکمه‌های پایین را نزنید غیرفعال می‌ماند.</string>
+    <string name="root_game_package_label">نام بستهٔ بازی</string>
+    <string name="root_check_button">بررسی روت</string>
+    <string name="root_performance_button">عملکرد بالا</string>
+    <string name="root_standard_button">بازگردانی استاندارد</string>
     <string name="settings_section_about">درباره</string>
     <string name="settings_version">نسخه</string>
     <string name="settings_app_id">شناسه برنامه</string>

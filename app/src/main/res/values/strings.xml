@@ -309,6 +309,13 @@
     <string name="settings_theme_note">Applied immediately and saved for the next launch. There is no light theme.</string>
     <string name="settings_reduce_motion">Reduce motion</string>
     <string name="settings_reduce_motion_note">Reduces non-essential motion. Saved immediately.</string>
+    <string name="root_game_mode_title">Optional root game mode</string>
+    <string name="root_game_mode_note">Uses Android GameManager performance mode when your ROM supports it. Root permission is requested only when you tap a button. Standard mode is provided to revert. This does not guarantee higher FPS.</string>
+    <string name="root_game_mode_idle">Root mode is optional and disabled until you use a button below.</string>
+    <string name="root_game_package_label">Game package name</string>
+    <string name="root_check_button">Check root</string>
+    <string name="root_performance_button">Performance</string>
+    <string name="root_standard_button">Restore standard</string>
     <string name="settings_section_about">About</string>
     <string name="settings_version">Version</string>
     <string name="settings_app_id">Application ID</string>

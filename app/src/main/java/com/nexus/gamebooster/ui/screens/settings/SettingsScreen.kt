@@ -27,6 +27,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -34,6 +35,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -49,6 +52,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 import com.nexus.gamebooster.BuildConfig
 import com.nexus.gamebooster.R
 import com.nexus.gamebooster.core.ServiceLocator
@@ -59,7 +63,9 @@ import com.nexus.gamebooster.data.Language
 import com.nexus.gamebooster.data.ThemeMode
 import com.nexus.gamebooster.optimizer.actions.DeviceRestoreExecutor.ItemStatus
 import com.nexus.gamebooster.optimizer.actions.DeviceRestoreExecutor.Reasons
+import com.nexus.gamebooster.optimizer.RootGameModeController
 import com.nexus.gamebooster.shizuku.ShizukuPrivilege
+import com.nexus.gamebooster.ui.components.NgbButton
 import com.nexus.gamebooster.ui.components.NgbOutlinedButton
 import com.nexus.gamebooster.ui.components.NgbPageHeader
 import com.nexus.gamebooster.ui.components.NgbScreenContainer
@@ -73,6 +79,11 @@ fun SettingsScreen() {
     var showResetDialog by rememberSaveable { mutableStateOf(false) }
     var showRestoreDialog by rememberSaveable { mutableStateOf(false) }
     var showForgetDialog by rememberSaveable { mutableStateOf(false) }
+    var rootPackage by rememberSaveable { mutableStateOf("") }
+    var rootStatus by rememberSaveable { mutableStateOf<String?>(null) }
+    var rootBusy by rememberSaveable { mutableStateOf(false) }
+    val rootController = remember { RootGameModeController() }
+    val scope = rememberCoroutineScope()
 
     NgbScreenContainer {
         // Returns from the system "Install unknown apps" page — resume the update
@@ -161,6 +172,74 @@ fun SettingsScreen() {
                 }
                 Switch(checked = state.reduceMotion, onCheckedChange = null)
             }
+        }
+        Spacer(Modifier.height(16.dp))
+
+        SectionCard(
+            title = stringResource(R.string.root_game_mode_title),
+            icon = Icons.Outlined.SettingsBackupRestore,
+        ) {
+            Text(
+                text = stringResource(R.string.root_game_mode_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(10.dp))
+            OutlinedTextField(
+                value = rootPackage,
+                onValueChange = { rootPackage = it.trim() },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text(stringResource(R.string.root_game_package_label)) },
+                placeholder = { Text("com.example.game") },
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                NgbButton(
+                    enabled = !rootBusy,
+                    onClick = {
+                        rootBusy = true
+                        scope.launch {
+                            val result = rootController.checkRoot()
+                            rootStatus = result.message
+                            rootBusy = false
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                ) { Text(stringResource(R.string.root_check_button)) }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                NgbOutlinedButton(
+                    onClick = {
+                        rootBusy = true
+                        scope.launch {
+                            val result = rootController.setPerformanceMode(rootPackage, true)
+                            rootStatus = result.message
+                            rootBusy = false
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                ) { Text(stringResource(R.string.root_performance_button)) }
+                Spacer(Modifier.width(8.dp))
+                NgbOutlinedButton(
+                    onClick = {
+                        rootBusy = true
+                        scope.launch {
+                            val result = rootController.setPerformanceMode(rootPackage, false)
+                            rootStatus = result.message
+                            rootBusy = false
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                ) { Text(stringResource(R.string.root_standard_button)) }
+            }
+            Spacer(Modifier.height(8.dp))
+            if (rootBusy) CircularProgressIndicator(modifier = Modifier.size(20.dp))
+            Text(
+                text = rootStatus ?: stringResource(R.string.root_game_mode_idle),
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
         Spacer(Modifier.height(16.dp))
 

@@ -1,9 +1,8 @@
-Nexus Game Booster 1.1.2 — new version!
+Nexus Game Booster 1.1.3 — new version!
 
 What's new:
-• DNS forwarding is more robust: if you switch to a different DNS server while the tunnel is up, it now restarts with the new server instead of quietly keeping the old one; a repeated start with the same server is harmless.
-• DNS forwarding is safer against broken packets: fragmented IPv4 packets and malformed DNS answers are rejected instead of being passed on.
-• If the DNS tunnel hits a real error it now shuts down cleanly — the app no longer shows a stale "connected" state after a failure.
-• WireGuard: the profile actually running in the tunnel is now tracked separately from the one you selected in the list — you can't accidentally delete the active profile, and stale "connected" metadata repairs itself.
-• One new unit test for the DNS query builder (110 tests total). No new permissions, no API changes.
-• Updating from 1.1.1 (or any 0.11.3+) installs directly — no uninstall needed (same signature).
+• New optional ROOT game mode in Settings: check root access, then set Android's GameManager performance mode for a game package (or restore standard mode).
+• Safety first: root is only requested when YOU tap a button, the package name is strictly validated, only the two fixed GameManager commands are used, and the real output/errors are shown — success is never faked.
+• Honest limits: your ROM must support GameManager mode; no FPS gain is promised. Devices without root are unaffected.
+• One new settings card, localized in English and Persian; 2 new unit tests (112 total). No new permissions.
+• Updating from 1.1.2 (or any 0.11.3+) installs directly — no uninstall needed (same signature).
