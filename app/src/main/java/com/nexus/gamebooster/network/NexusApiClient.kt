@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
  */
 object NexusApiClient {
     /** Production control plane. Kept as a constant: updates ship pre-connected. */
-    const val DEFAULT_BASE_URL = "https://nexus-gamebooster-api.amineshgi-1386.workers.dev"
+    const val DEFAULT_BASE_URL = "https://gameboster.nova-7bc9791a4174.workers.dev"
 
     val sessionInvalid = MutableStateFlow(false)
     private const val PREFS = "nexus_api_session"

@@ -1,8 +1,7 @@
-Nexus Game Booster 1.1.4 — new version!
+Nexus Game Booster 1.1.5 — new version!
 
 What's new:
-• Game-specific tuning tips for PUBG Mobile / BGMI and Call of Duty: Mobile, shown in the boost report only when the boosted game's name or package is recognized (e.g. com.tencent.ig, com.activision.callofduty.shooter).
-• Honest by design: these are manual, in-game setup suggestions — Nexus never changes the game's own settings and never promises FPS gains. Unknown games simply see no extra section.
-• Tips cover the highest stable frame rate, reducing optional effects, the phone maker's Game Mode, and heat management; a clear disclaimer says options vary by device, region, and game version.
-• Localized in English and Persian; 3 new unit tests (115 total). No new permissions.
-• Updating from 1.1.3 (or any 0.11.3+) installs directly — no uninstall needed (same signature).
+• Fixed the built-in API address: the app now talks to the new control-plane Worker (gameboster.nova-7bc9791a4174.workers.dev). The old Worker had gone down (server errors on every request), so activation and sync work again.
+• The new server was live-verified before this release: health check OK, invalid keys are still rejected with the same error, and sync still requires your saved session — nothing about how you sign in changes.
+• Same one-time key activation as before: your existing session, tickets, DNS/WireGuard configs and every other feature keep working exactly as they did.
+• No new permissions; 115 unit tests still green. Updating from any 0.11.3+ version installs directly — no uninstall needed (same signature).

@@ -1,7 +1,7 @@
 # Changelog — v0.11.2-api-connected (versionCode 16)
 
 ## What changed
-- **The app ships pre-connected.** The production control-plane Worker URL is built into the app (`NexusApiClient.DEFAULT_BASE_URL = https://nexus-gamebooster-api.amineshgi-1386.workers.dev`). The license gate now asks for **only the access key**; no server address is required.
+- **The app ships pre-connected.** The production control-plane Worker URL is built into the app (`NexusApiClient.DEFAULT_BASE_URL = https://gameboster.nova-7bc9791a4174.workers.dev`). The license gate now asks for **only the access key**; no server address is required.
 - **Key-only sign-in UI.** The gate shows the server host as a caption and keeps a collapsed "Change server address" option for self-hosted Workers (https-validated, persisted as before). A stored v0.11.1 base keeps working, so existing sessions migrate silently.
 - **Persistent session unchanged.** One activation; every start re-syncs silently; only real revocation (401/403) signs the user out; an unreachable server shows a retry screen and keeps the session.
 
