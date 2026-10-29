@@ -16,6 +16,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -30,10 +31,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,6 +48,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.nexus.gamebooster.ui.arcade.ArcadeDriftBlob
+import com.nexus.gamebooster.ui.arcade.ArcadeFloorGrid
 import com.nexus.gamebooster.ui.motion.LocalNgbMotionEnabled
 import com.nexus.gamebooster.ui.theme.NgbPrimary
 import com.nexus.gamebooster.ui.theme.NgbPrimaryBright
@@ -58,110 +59,59 @@ import com.nexus.gamebooster.ui.theme.neonGlow
 import kotlin.math.sin
 
 // -----------------------------------------------------------------------------
-// "NEON ARENA v2" backdrop + loading kit (Phase 11.5), ported from the user's
-// NexusGameBooster-Neon-Theme.html mockup:
-//  - the page backdrop: three faint radial glows (purple top-left 20%/20%,
-//    green bottom-right 80%/80%, cyan dead-center) over the near-black page,
-//  - the twinkling star field (60 white dots, opacity 0.2→1 sine twinkle,
-//    2–5 s per star, scale 1→1.5 at the twinkle peak),
-//  - the entry loader: rotating neon arc + expanding rings around the gradient
-//    logo chip, gradient wordmark, and the shine progress bar
-//    (.progress-fill: cyan→green gradient sweep).
+// v1.2.1 "ARCADE HUD" page backdrop + loading kit. The backdrop is the exact
+// ambience of the v1.2.1 redesign reference: two drifting radial glow blobs
+// (neon top-end, azure bottom-start) above the retro PERSPECTIVE FLOOR GRID
+// that scrolls forever — the arcade room the app floats in. The Phase-11.5
+// entry loader (rings + arc + wordmark + shine bar) is kept unchanged for the
+// session-check gate.
 //
-// Motion honesty: the star twinkle and every loader animation are gated by
-// [LocalNgbMotionEnabled] — with Reduce motion on (or the system animation
-// scale at 0) the backdrop paints STATIC stars at mid opacity and the loader
-// shows the same layout with no infinite animation. Nothing here fabricates
-// progress: the loader is shown exactly while the gate check runs.
+// Motion honesty: blob drift, floor scroll and every loader animation are
+// gated by [LocalNgbMotionEnabled] — with Reduce motion on (or the system
+// animation scale at 0) the backdrop paints STATIC blobs and a STILL grid.
 // -----------------------------------------------------------------------------
 
-/** One twinkling star from the mockup's #stars field. */
-private data class NgbStar(
-    val xFraction: Float,
-    val yFraction: Float,
-    val phase: Float,
-    val periodMillis: Long,
-    val radiusDp: Float,
-)
-
-private val NgbStarfield: List<NgbStar> = run {
-    val rng = kotlin.random.Random(0x00FF9D) // deterministic field — same sky every launch
-    List(60) {
-        NgbStar(
-            xFraction = rng.nextFloat(),
-            yFraction = rng.nextFloat(),
-            phase = rng.nextFloat(),
-            periodMillis = 2000L + (rng.nextFloat() * 3000f).toLong(),
-            radiusDp = 0.7f + rng.nextFloat() * 0.8f,
-        )
-    }
-}
-
-private fun DrawScope.drawStarfield(
-    densityPxPerDp: Float,
-    frameNanos: Long,
-    motionEnabled: Boolean,
-) {
-    val nowMillis = frameNanos / 1_000_000L
-    NgbStarfield.forEach { star ->
-        val twinkle = if (motionEnabled) {
-            val t = (nowMillis % star.periodMillis).toFloat() / star.periodMillis
-            0.5f + 0.5f * sin(2.0 * Math.PI * (t + star.phase).toDouble()).toFloat()
-        } else {
-            0.55f // static mid-oscillation when motion is off
-        }
-        drawCircle(
-            color = Color.White.copy(alpha = 0.2f + 0.8f * twinkle),
-            radius = star.radiusDp * densityPxPerDp * (1f + 0.5f * twinkle),
-            center = Offset(star.xFraction * size.width, star.yFraction * size.height),
-        )
-    }
-}
-
 /**
- * The full-screen NEON ARENA v2 page backdrop: the three radial glows + the
- * star field. Static glow paint + a draw-phase-only state read for the
- * twinkle, so stars never trigger recomposition — only the draw layer
- * invalidates while the backdrop is on screen.
+ * The full-screen ARCADE HUD page backdrop (v1.2.1): two drifting radial glow
+ * blobs (neon top-end 420 dp @ 22 %, azure bottom-start 380 dp @ 14 %) plus
+ * the perspective floor grid pinned to the bottom 46 % of the screen with a
+ * fade-out mask toward the top — the exact `.bg` + `.floor` of the reference.
+ * All motion is gated by [LocalNgbMotionEnabled] (static paint when off).
  */
 @Composable
 fun NgbNeonBackdrop(modifier: Modifier = Modifier) {
-    val motionEnabled = LocalNgbMotionEnabled.current
-    var frameNanos by remember { mutableLongStateOf(0L) }
-    if (motionEnabled) {
-        LaunchedEffect(Unit) {
-            while (true) withFrameNanos { frameNanos = it }
+    Box(modifier = modifier.fillMaxSize()) {
+        // `.bg::before` — neon blob, top-end.
+        ArcadeDriftBlob(
+            color = com.nexus.gamebooster.ui.arcade.NgbArcadeColors.Neon.copy(alpha = 0.22f),
+            diameter = 420.dp,
+            periodMillis = 14_000,
+            modifier = Modifier.align(Alignment.TopEnd).offset(x = 30.dp, y = (-80).dp),
+        )
+        // `.bg::after` — azure blob, bottom-start.
+        ArcadeDriftBlob(
+            color = com.nexus.gamebooster.ui.arcade.NgbArcadeColors.Azure.copy(alpha = 0.14f),
+            diameter = 380.dp,
+            periodMillis = 18_000,
+            reverse = true,
+            modifier = Modifier.align(Alignment.BottomStart).offset(x = (-80).dp, y = (-30).dp),
+        )
+        // `.floor` — the retro perspective grid, bottom 46 %, faded to the top.
+        Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().fillMaxHeight(0.46f)) {
+            ArcadeFloorGrid(Modifier.fillMaxSize())
+            // Fade mask: opaque page color at the top of the floor fading out.
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .align(Alignment.TopCenter)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(MaterialTheme.colorScheme.background, Color.Transparent),
+                        ),
+                    ),
+            )
         }
-    }
-    val pxPerDp = with(LocalDensity.current) { 1.dp.toPx() }
-    Canvas(modifier = modifier.fillMaxSize()) {
-        // Radial glows (exact mockup body background).
-        drawRect(
-            brush = Brush.radialGradient(
-                colors = listOf(NgbSecondary.copy(alpha = 0.15f), Color.Transparent),
-                center = Offset(size.width * 0.2f, size.height * 0.2f),
-                radius = size.minDimension * 0.75f,
-            ),
-        )
-        drawRect(
-            brush = Brush.radialGradient(
-                colors = listOf(NgbPrimary.copy(alpha = 0.10f), Color.Transparent),
-                center = Offset(size.width * 0.8f, size.height * 0.8f),
-                radius = size.minDimension * 0.75f,
-            ),
-        )
-        drawRect(
-            brush = Brush.radialGradient(
-                colors = listOf(NgbTertiary.copy(alpha = 0.05f), Color.Transparent),
-                center = Offset(size.width * 0.5f, size.height * 0.5f),
-                radius = size.minDimension * 0.9f,
-            ),
-        )
-        drawStarfield(
-            densityPxPerDp = pxPerDp,
-            frameNanos = frameNanos,
-            motionEnabled = motionEnabled,
-        )
     }
 }
 

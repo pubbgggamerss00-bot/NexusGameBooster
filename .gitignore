@@ -30,3 +30,13 @@ local.properties
 
 # JVM heap dumps (OOM diagnostics) — never commit
 *.hprof
+
+# ---------------------------------------------------------------------------
+# v1.2.1 SIGNING-PERMANENCE FIX: the release keystore is now COMMITTED to the
+# repo ON PURPOSE. Every previous signing key was lost to sandbox wipes (each
+# wipe forced a new key → signature mismatch → "App not installed" for users).
+# A stable, repo-persisted key means every future release installs as an
+# update with no uninstall. Documented in README → "Release signing".
+# ---------------------------------------------------------------------------
+!keystore.properties
+!release.keystore

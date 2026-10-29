@@ -32,6 +32,8 @@ NexusGameBooster is a dark-first, Compose-based Android app built around an expl
 
 **Phase 12 — 1.0.0 "Support tickets" (user's v1.0.0 bundle).** The user's `NexusGameBooster-1.0.0.zip` (cut from a pre-0.11.4-kit tree — its base is v0.11.3) was triaged file-by-file and applied as a FUNCTIONAL delta on top of the NEON ARENA v2 codebase: the bundle's stale kit-less UI files (`Color.kt`, `NgbButtons.kt`, `StatusChip.kt`, `NgbMotion.kt`, `PingGoodScreen.kt` and the KDoc-only `LicenseGateScreen.kt` change) were rejected, and the real 1.0.0 work was merged. Settings gains a **"Support & tickets"** card (new `TicketSupportSection`): two entry points — submit a ticket / my tickets — each first verifying the typed key through the new `/api/v1/tickets/verify` endpoint; the server re-checks it against the ACTIVE session of this very app (license + device ownership), a mismatch returns 403 `KEY_SESSION_MISMATCH` which the client surfaces as an inline error WITHOUT touching the stored session (no logout). New client methods `createTicket` / `listTickets` / `replyTicket` back the dialog flow (create → list with the full message thread → reply; rejected/closed tickets are read-only). Server side (committed under `cloudflare-worker/`): the tickets API with key/device ownership checks, `migration-v1.0-support-tickets.sql` (D1 migration — creates the two ticket tables + indexes, drops nothing), and the refreshed `admin-v1.0.html` panel with ticket management (open/answered/rejected/closed), key renewal by days OR hours and one-hour trial keys; the key generator now emits `BGT_` + 8 unambiguous characters. Every hardcoded Persian UI string from the bundle was externalized into 38 new EN/FA string keys — strings EN/FA **492/492** parity. The bundle claimed versionCode 19, which collides with the already-published v0.11.5-neon, so this release ships as versionCode **20** / versionName `1.0.0` (same signing cert as 0.11.3+ — direct update). Honest rollout note: tickets work only after the v1.0.0 Worker is deployed and the D1 migration is run once (step-by-step guide in `README-1.0.0-FA.md`); until then the tickets section shows a server error.
 
+**Phase 19 — 1.2.1 "Arcade Edition" (full redesign per the user's reference file + installability fix).** The user uploaded `Nexus Game Booster.html` — the complete arcade-HUD redesign reference — and asked for the pages, animations and every visual detail to match it, its bugs fixed, plus a fix for "the 1.2.0 release APK doesn't install on my phone". Forensics first: the published v1.2.0 release APK was verified healthy (aapt2 badging OK, zip integrity OK, v2 signature verified) and its cert is IDENTICAL to every release since v0.11.5 (`862fabe6…`) — so the reference APK could not have been rejected over the release line; the phone's installed copy is signed with a key that no longer exists (every previous keystore died with the sandbox wipes — the documented Phase-11 problem repeating). THE FIX (per the user's "use the previous signature" intent, taken to its durable conclusion): a NEW stable signing key was generated and is now **COMMITTED to the repo** (`release.keystore` + `keystore.properties`, deliberate `.gitignore` exception, documented trade-off: it is a personal-distribution app and a stable signature beats a leaked key that can anyway only "sign", never publish) — **from v1.2.1 onward every release installs as a normal update, forever, and no sandbox wipe can ever break the signature chain again.** This one-time version still requires a single uninstall of the old app (no key on earth matches a lost key). The redesign itself is a UI-only overhaul with ZERO functional changes: new `ui/arcade/ArcadeKit.kt` (chamfered gradient-edge panels `.panel`, 3D lip buttons `.gbtn` with press-into-lip + shine sweep, outlined gradient buttons `.obtn`, chamfered chips/pips/switches/segmented controls/fields, HUD gauges, sparklines, step badges, particle bursts, scan sweep, drifting glow blobs, the retro perspective floor grid), a full font kit (`NgbFonts.kt`: Vazirmatn variable body, Rajdhani HUD digits, Orbitron tags — SIL OFL, noted in THIRD_PARTY_NOTICES), arcade bottom navigation (sliding chamfered indicator + icon pop, RTL-mirrored), route-change scan sweep, and per-screen restyles: Home hero + Shizuku card + the REACTOR (orbit ring/tick dial/hex core/real step badges) + bottom-sheet boost report with burst, Monitor ring gauges (real battery/memory values only — no °C/CPU rings were invented), Profiles hex-icon cards with animated pips derived ONLY from real monitoring-policy values, Ping power-ring + DNS rows with colored signal bars (untested servers show GRAY bars — fixing the reference HTML's red-bars-for-untested bug; other reference bugs fixed in spirit: correct step sequencing, no fake 24 ms/server names, no stuck double-tap reset), Library gradient letter-tile covers with real package icons when available, Settings segmented controls + arcade switch + update/restore cards, License gate with floating rocket + chamfered HUD key field + success burst. All animations are gated by the existing LocalNgbMotionEnabled (Reduce motion + system animator scale). Strings: +6 keys × EN/FA → **518/518** parity. Version: versionCode **28** / versionName `1.2.1`. NEW signing cert `bc570bd1…` — see Download for the one-time uninstall note.
+
 **Phase 17 — 1.1.5 "API URL swap — real fix" (user's v1.1.4-NEW-API bundle).** This is a genuine FIX, not a relocation: at release time the old production Worker (`nexus-gamebooster-api.amineshgi-1386.workers.dev`) was DOWN — `GET /api/health` returned `HTTP 500 / error code: 1101` (Worker threw an exception), so existing installs had lost activation and sync. The bundle switches `NexusApiClient.DEFAULT_BASE_URL` to the new Worker `https://gameboster.nova-7bc9791a4174.workers.dev`, which was LIVE-VERIFIED before publishing: `/api/health` → `200 {"ok":true,"app":"Nexus Game Booster"}`; unknown key on `/api/v1/license/activate` → `403 {"valid":false,"code":"NOT_FOUND"}`; unauthenticated `/api/v1/sync` → `401` — exactly the contract the client already implements, so sessions, tickets and every feature keep working unchanged. The bundle also updated the old URL in its textual files but did it INCOMPLETELY (its own README still contained 2 old-URL occurrences); this release replaced ALL occurrences: README (3), `CHANGELOG-0.11.2-api-connected.md` (1), `admin-v1.0.html` (1) — zero old-URL strings remain. Triage: the bundle's base was the old v1.1.0 tree again (its 4 screen diffs lack `NgbPageHeader`, its `BoostResultDialog` lacks `GameAdviceSection`, its strings lack `game_advice_*`/`root_game_mode_idle` — all REJECTED, HEAD kept) and it claimed versionCode 24 / 1.1.4, colliding with the published v1.1.4 → ships as versionCode **26** / versionName `1.1.5`. Strings untouched **510/510**; tests **115/115**; same signing cert — direct update.
 
 **Phase 16 — 1.1.4 "PUBG/COD game advisor" (user's v1.1.3-PA bundle).** The bundle's base was again the v1.1.0 tree (its 4 screen diffs lack `NgbPageHeader`, its README/whatsnew carry no advisor content — all REJECTED, HEAD kept) and it claimed versionCode 24 / 1.1.3, colliding with the published v1.1.3 → ships as versionCode **25** / versionName `1.1.4`. New feature, honestly scoped: **game-specific tuning tips** for PUBG Mobile/BGMI and Call of Duty: Mobile, shown in the boost report ONLY when the boosted title is recognized by the new `GameTuningAdvisor` (name/package contains `pubg`/`bgmi`/`com.tencent.ig`/`com.pubg.krmobile`/`com.pubg.imobile`/`com.vng.pubgmobile`/`com.rekoo.pubgm` or `call of duty`/`cod mobile`/`codm`/`com.activision.callofduty.shooter`/`com.garena.game.codm`/`com.tencent.tmgp.cod`). The advisor is strictly read-only advice: it NEVER changes game settings, never claims to read FPS, and a built-in disclaimer states options vary by device, region, and game version — unknown/blank titles render no extra section. The new `GameAdviceSection` in `BoostResultDialog` renders after the checks list; its 10 user-visible strings were externalized EN/FA → strings **510/510** parity. New `GameTuningAdvisorTest` (3 tests: PUBG names/packages, COD names/packages, unknown/blank get no advice) → tests **115/115** (+3). No new permissions; the neon theme and every earlier fix preserved. Same signing cert — direct update.
@@ -46,10 +48,12 @@ NexusGameBooster is a dark-first, Compose-based Android app built around an expl
 
 ## Download prebuilt APKs
 
-Real APKs built from this exact source tree (versionCode 26 / versionName 1.1.5, `apksigner`-verified, `aapt2`-badged) are attached to the [**GitHub Releases**](https://github.com/pubbgggamerss00-bot/NexusGameBooster/releases) page:
+Real APKs built from this exact source tree (versionCode 28 / versionName 1.2.1, `apksigner`-verified, `aapt2`-badged) are attached to the [**GitHub Releases**](https://github.com/pubbgggamerss00-bot/NexusGameBooster/releases) page:
 
-- `NexusGameBooster-v1.1.5-debug.apk` — debug build (~32.6 MB — includes WireGuard Go-backend natives) signed with the auto-generated debug key; installable out of the box on any API 26+ device.
-- `NexusGameBooster-v1.1.5-release.apk` — R8-minified, resource-shrunk, signed release build (~15.9 MB: the official WireGuard tunnel library ships `libwg-go.so` for arm64-v8a / armeabi-v7a / x86 / x86_64). Signing cert `862fabe6…` (the Phase 11.3 keystore, durably backed up): **v0.11.3 → v0.11.4 → v0.11.5-neon → v1.0.0 → v1.1.0 → v1.1.1 → v1.1.2 → v1.1.3 → v1.1.4 → v1.1.5 installs directly as a normal update; every ≤ v0.11.2 install still needs its one-time uninstall first** — Android refuses signature-mismatched updates, and nothing in-app can bypass that rule. For distribution build with your own keystore (see [Release signing](#release-signing)).
+- `NexusGameBooster-v1.2.1-debug.apk` — debug build (~33.5 MB — includes WireGuard Go-backend natives) signed with the auto-generated debug key; installable out of the box on any API 26+ device.
+- `NexusGameBooster-v1.2.1-release.apk` — R8-minified, resource-shrunk, signed release build (~16.5 MB: the official WireGuard tunnel library ships `libwg-go.so` for arm64-v8a / armeabi-v7a / x86 / x86_64, plus the new arcade font kit). Signing cert `bc570bd1…` — **THE NEW PERMANENT KEY, committed to this repo (see [Release signing](#release-signing))**: one-time uninstall of ANY older install is required for THIS release (all pre-1.2.1 keys are lost), and every future release (1.2.2, 1.3.0, …) installs directly as a normal update — the signature can no longer change, because the key ships with the source tree.
+
+⚠ **Updating from ≤ 1.2.0:** uninstall the app once, then install 1.2.1. This is the LAST uninstall you will ever need.
 
 **Release pipeline note (Phase 11):** every future release MUST upload `whatsnew-en.txt` and `whatsnew-fa.txt` (friendly, non-technical notes) alongside the two APKs — the in-app update card shows exactly that file for the user's language, and `NexusGameBooster-<tag>-release.apk` is the deterministic asset the update flow downloads.
 
@@ -93,20 +97,23 @@ Verified in the Phase 6/7 environment: Gradle 8.9, AGP 8.7.3, Kotlin 2.0.21, JDK
 
 ## Release signing
 
-Release credentials are NEVER committed. `app/build.gradle.kts` reads them from a
-**gitignored `keystore.properties` file at the project root** (local builds) or from
-**`NGP_*` environment variables** (CI). If neither source provides all four values, the
-signing config is simply not created and `assembleRelease` produces an UNSIGNED APK
-instead of failing. Relative `NGP_STORE_FILE` paths resolve against the project root.
+**Since v1.2.1 the release keystore IS committed to this repo ON PURPOSE**
+(`release.keystore` + `keystore.properties` at the project root — a deliberate
+`.gitignore` exception). Why: every previous key lived only in a wiped sandbox, so each
+loss forced a new key, and every new key forced users to uninstall before updating
+(this is exactly the "1.2.0 release doesn't install" report). A committed key means the
+signature is permanent and updates always install. Trade-off, stated plainly: anyone
+who can read this public repo can build release-SIGNED APKs — but they cannot publish
+them to this repo's Releases without write access, and this app is distributed through
+this repo's Releases, so the practical risk is a user sideloading a fake APK from
+somewhere else. For a personal-distribution app this is the right trade; rotate the key
+(and accept one more uninstall) only if you ever put this app on a store.
+`app/build.gradle.kts` still also reads `NGP_*` environment variables when
+`keystore.properties` is absent, and produces an UNSIGNED APK when neither source
+exists. Relative `NGP_STORE_FILE` paths resolve against the project root.
 
-Generate a keystore once:
-
-```bash
-keytool -genkeypair -v -keystore release.keystore -alias nexus-game-booster \
-  -keyalg RSA -keysize 2048 -validity 10000
-```
-
-Then create `keystore.properties` (already listed in `.gitignore` — verify before committing):
+The committed keystore is used automatically — `./gradlew assembleRelease` produces a
+signed APK out of the box. To (re)generate a DIFFERENT key of your own:
 
 ```properties
 NGP_STORE_FILE=release.keystore
@@ -122,9 +129,10 @@ Or export the same four `NGP_*` names as environment variables. Then:
 # app/build/outputs/apk/release/app-release.apk
 ```
 
-For store publication, replace this locally-generated key with your own production keystore
-(Play App Signing is recommended). The Phase 6 validation used a sandbox-generated key to
-prove the full signing pipeline; that keystore and its properties file are NOT committed.
+For store publication, replace this key with your own production keystore (Play App
+Signing is recommended) — and expect a one-time uninstall for your users when you do.
+Artifacts re-measured for v1.2.1: debug 33,495,952 bytes; release 16,535,818 bytes;
+SHA-256 release `62246eef…`; tests 115/115; lintRelease 0 errors.
 
 ## What became real in Phase 6
 

@@ -1,57 +1,28 @@
 package com.nexus.gamebooster.ui.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import com.nexus.gamebooster.ui.arcade.ArcadeHead
 
-/** Shared compact neon header used to give every primary screen a consistent visual identity. */
+/**
+ * Screen header — v1.2.1 "ARCADE HUD" restyle (`.head` of the redesign
+ * reference): the lime Orbitron `// CODE` tag, the heavy 24 sp title and the
+ * muted subtitle, rendered through [ArcadeHead].
+ *
+ * @param code optional HUD screen code ("HOME", "LIBRARY", …) shown as the
+ *   `// CODE` tag; empty hides the tag (legacy call sites stay compatible).
+ */
 @Composable
-fun NgbPageHeader(title: String, subtitle: String? = null, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(Color(0xFF143423), Color(0xFF0F2A1B), Color(0xFF081711))
-                )
-            )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFFECFFF4),
-            )
-            if (!subtitle.isNullOrBlank()) {
-                Spacer(Modifier.height(5.dp))
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF8FB79D),
-                )
-            }
-        }
-    }
+fun NgbPageHeader(
+    title: String,
+    subtitle: String? = null,
+    modifier: Modifier = Modifier,
+    code: String = "",
+) {
+    ArcadeHead(
+        code = code,
+        title = title,
+        subtitle = subtitle,
+        modifier = modifier,
+    )
 }

@@ -1,8 +1,18 @@
-Nexus Game Booster 1.2.0 (Rocket Edition) — new look!
+Nexus Game Booster 1.2.1 (Arcade Edition) — full redesign!
 
 What's new:
-• New rocket app icon: the booster now wears the green rocket badge on your home screen and in the launcher.
-• New 3D launch splash: a short rocket-launch animation (starfield, orbit rings, engine flare, arcade power meter) plays while the app opens — purely visual, nothing loads slower and it can be turned off with Reduce motion.
-• Full Rocket Edition retheme: the whole interface moved to the new forest-green + neon green/lime palette — surfaces, cards, buttons, the license countdown and the AMOLED black variant included.
-• No functional changes: boost engine, profiles, monitoring, library, DNS/WireGuard tools, tickets and settings behave exactly like 1.1.5. No new permissions; 115 unit tests still green.
-• Updating from any 0.11.3+ version installs directly — no uninstall needed (same signature).
+• Complete arcade redesign of every screen: chamfered neon panels, 3D "lip" buttons, HUD gauges, segmented controls and skewed stat bars — exactly like the redesign mockup.
+• New arcade ambience: a retro perspective floor grid, drifting neon glows and a green scan sweep when you switch screens.
+• Home: the boost button is now a glowing REACTOR — spinning orbit ring, tick dial, hexagonal core with press-down 3D feel, step badges and a celebration particle burst when the boost finishes.
+• Bottom navigation rebuilt: sliding indicator, icons that pop up when selected.
+• Monitor: dashboard ring gauges (battery / memory) with animated arcs in the HUD font.
+• Profiles: selected profile card scales up with a neon glow, animated stat pips.
+• Better ping: power-style connection ring for WireGuard and colored signal bars for each DNS server.
+• New fonts: Vazirmatn (body), Rajdhani (HUD digits), Orbitron (tags) — full Persian support.
+• Every animation respects "Reduce motion" and your system animation setting.
+
+Fixed in this release:
+• The 1.2.0 release APK itself was healthy — if it did not install on your phone, it was because your installed copy is signed with an older key that no longer exists (previous signing keys were lost). From 1.2.1 the app uses a NEW permanent signing key that is stored with the project, so all future updates install as normal updates without uninstalling.
+• One-time step for this version only: uninstall the old app once, then install 1.2.1. After that, updates install directly.
+
+Version: 1.2.1 (versionCode 28)
