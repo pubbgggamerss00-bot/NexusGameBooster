@@ -425,6 +425,13 @@
 
     <!-- Network tools: WireGuard + DNS Changer -->
     <string name="nav_ping">Ping tools</string>
+    <!-- v1.2.1 arcade Ping screen -->
+    <string name="ping_power_hint">Tap the ring to connect or disconnect the tunnel</string>
+    <string name="ping_kv_profile">Profile</string>
+    <string name="ping_kv_protocol">Protocol</string>
+    <string name="dns_best_chip">Best</string>
+    <string name="dns_row_select">Select</string>
+    <string name="dns_row_active">Active</string>
     <string name="ping_title">Better ping</string>
     <string name="ping_subtitle">Real network tools</string>
     <string name="ping_tab_wireguard">WireGuard</string>

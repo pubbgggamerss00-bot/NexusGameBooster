@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,7 +28,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.nexus.gamebooster.monitoring.UnavailableReasons
 import com.nexus.gamebooster.ui.motion.LocalNgbMotionEnabled
-import com.nexus.gamebooster.ui.theme.NgbChamferShape
 import com.nexus.gamebooster.ui.theme.NgbErrorSoft
 import com.nexus.gamebooster.ui.theme.NgbPrimaryBright
 import com.nexus.gamebooster.ui.theme.NgbWarningSoft
@@ -97,8 +97,7 @@ fun StatusChip(
         dotAlpha = 1f
     }
 
-    // v1.2.2 arcade theme: the reference's chamfered tag silhouette (`.tag`).
-    val chipShape = NgbChamferShape(6.dp)
+    val chipShape = RoundedCornerShape(percent = 50)
     val base = if (style.glow && motion) {
         modifier.neonGlow(
             glowColor = NgbPrimary,
@@ -119,7 +118,7 @@ fun StatusChip(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .border(1.dp, style.border, NgbChamferShape(6.dp))
+                .border(1.dp, style.border, RoundedCornerShape(percent = 50))
                 .padding(horizontal = 10.dp, vertical = 4.dp),
         ) {
             Box(

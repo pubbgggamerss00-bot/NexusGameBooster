@@ -100,9 +100,7 @@ data class BoostStepUi(
 @Composable
 fun BoostCard(
     label: String,
-    // v1.2.2 theme-only port: optional decorative HUD code — v1.2.0 callers don't
-    // pass it, so it defaults to blank and renders nothing.
-    tagline: String = "",
+    tagline: String,
     accentColor: Color,
     enabled: Boolean,
     onBoostClick: () -> Unit,
@@ -379,16 +377,14 @@ private fun HexCore(
                 textAlign = TextAlign.Center,
                 maxLines = 2,
             )
-            if (tagline.isNotBlank()) {
-                Text(
-                    text = tagline,
-                    color = ArcadeInkText,
-                    fontFamily = NgbTagFont,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 10.sp,
-                    letterSpacing = 2.sp,
-                )
-            }
+            Text(
+                text = tagline,
+                color = ArcadeInkText,
+                fontFamily = NgbTagFont,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 10.sp,
+                letterSpacing = 2.sp,
+            )
         }
     }
 }

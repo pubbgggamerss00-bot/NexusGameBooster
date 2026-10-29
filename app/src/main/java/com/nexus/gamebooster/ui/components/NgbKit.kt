@@ -21,7 +21,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nexus.gamebooster.ui.theme.NgbChamferShape
 import com.nexus.gamebooster.ui.theme.neonGlow
 import com.nexus.gamebooster.ui.theme.NgbPrimary
 import com.nexus.gamebooster.ui.theme.NgbSecondary
@@ -52,9 +51,8 @@ fun NgbSectionHeader(
 }
 
 /**
- * The kit's mini tag (`.mini`): a 6 dp chamfered lime tag with the dot — used
- * for the sync-card counts (DNS / configs). v1.2.2: re-cut to the arcade
- * chamfer silhouette from the redesign reference.
+ * The kit's mini tag (`.mini`): a 6 dp-radius violet pill with the diamond
+ * dot — used for the sync-card counts (DNS / configs).
  */
 @Composable
 fun NgbMiniChip(
@@ -65,9 +63,9 @@ fun NgbMiniChip(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .height(24.dp)
-            .clip(NgbChamferShape(6.dp))
+            .clip(RoundedCornerShape(6.dp))
             .background(NgbSecondary.copy(alpha = 0.14f))
-            .border(1.dp, NgbSecondary.copy(alpha = 0.45f), NgbChamferShape(6.dp))
+            .border(1.dp, NgbSecondary.copy(alpha = 0.45f), RoundedCornerShape(6.dp))
             .padding(horizontal = 9.dp),
     ) {
         Box(Modifier.size(7.dp).clip(RoundedCornerShape(50)).background(NgbPurpleSoft))
