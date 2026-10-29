@@ -89,9 +89,7 @@ fun NexusBoosterTheme(
             ThemeMode.DARK_NAVY -> NgbColorScheme
             ThemeMode.AMOLED_BLACK -> AmoledColorScheme
         },
-        // v1.2.1: the arcade type kit — Vazirmatn as the default family on every
-        // Material style (NgbFonts.kt), HUD/tag fonts read directly by components.
-        typography = ngbTypographyWithFonts(NgbTypography),
+        typography = NgbTypography,
         shapes = NgbShapes,
         content = content,
     )

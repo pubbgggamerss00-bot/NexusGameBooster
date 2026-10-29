@@ -13,6 +13,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -25,11 +28,15 @@ import com.nexus.gamebooster.core.thermalStatusLabel
 import com.nexus.gamebooster.core.unavailableReasonLabel
 import com.nexus.gamebooster.monitoring.MetricRowKeys
 import com.nexus.gamebooster.monitoring.MetricRowUi
+import com.nexus.gamebooster.ui.theme.NgbOutline
 
 /**
  * One labeled metric line: leading icon + label (+ optional supporting note) and a
  * trailing real value OR a status chip. Exactly one of [value] / ([statusVariant] +
  * [statusText]) is rendered — the UI never shows both or invents a value.
+ *
+ * v1.2.1 re-skin: rows wear the mockup `.kv` dashed hairline at the bottom
+ * (`border-bottom:1px dashed var(--line)`) so metric lists read as ledger rows.
  */
 @Composable
 fun MetricRow(
@@ -45,6 +52,16 @@ fun MetricRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
+            .drawBehind {
+                // Mockup `.kv` dashed bottom hairline (var(--line) #1E3A2A).
+                drawLine(
+                    color = NgbOutline,
+                    start = Offset(0f, size.height - 1f),
+                    end = Offset(size.width, size.height - 1f),
+                    strokeWidth = 1.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())),
+                )
+            }
             .padding(vertical = 8.dp),
     ) {
         Icon(

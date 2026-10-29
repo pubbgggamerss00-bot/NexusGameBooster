@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,10 +18,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.nexus.gamebooster.ui.theme.NgbChamferShape
 
 /**
- * Friendly empty state: icon circle + title + body + optional action slot.
+ * Friendly empty state: icon tile + title + body + optional action slot.
  * Used for "no games yet", "no search matches", "no activity", "custom profiles".
+ * v1.2.1 re-skin: the icon holder is the kit's chamfered tile (was a circle).
  */
 @Composable
 fun EmptyState(
@@ -42,7 +43,7 @@ fun EmptyState(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(64.dp)
-                .clip(CircleShape)
+                .clip(NgbChamferShape(16.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
         ) {
             Icon(

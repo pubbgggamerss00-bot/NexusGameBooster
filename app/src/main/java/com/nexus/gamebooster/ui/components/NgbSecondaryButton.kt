@@ -1,5 +1,7 @@
 package com.nexus.gamebooster.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
@@ -8,7 +10,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -19,28 +20,24 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
-import com.nexus.gamebooster.ui.motion.ngbPressScale
+import com.nexus.gamebooster.ui.motion.LocalNgbMotionEnabled
 import com.nexus.gamebooster.ui.theme.NgbChamferShape
-import com.nexus.gamebooster.ui.theme.NgbPrimaryBright
-import com.nexus.gamebooster.ui.theme.ngbCornerTicks
-import com.nexus.gamebooster.ui.theme.NgbVioletDeep
-import com.nexus.gamebooster.ui.theme.NgbSurfaceContainerLowest
+import com.nexus.gamebooster.ui.theme.NgbInkSoft
 import com.nexus.gamebooster.ui.theme.NgbPrimary
+import com.nexus.gamebooster.ui.theme.NgbPrimaryBright
 
 /**
- * The kit's secondary button (`.b2`): a chamfered button wrapped in a 1.5 dp
- * animated-gradient border (green → violet → green), dark inner surface,
- * green corner ticks and the exact "press" behavior (scale .975 + the inner
- * surface darkens toward the kit's pressed tone).
+ * The kit's secondary button — the HTML prototype's `.obtn` (v1.2.1 re-skin):
+ * a 10 dp chamfered button wrapped in the mockup's exact 135° ring gradient
+ * `linear-gradient(135deg, var(--c), transparent 40%, var(--c))`, the dark
+ * `--ink2` inner fill (1.5 dp inset), and the accent-colored label.
  *
- * The border gradient sweeps at 120° over a 200% band; the mockup animates
- * the sweep on hover, which does not exist on touch — here it is STATIC at the
- * kit's resting position (a deliberate, documented deviation; the glow shift
- * on press comes from the inner-surface change instead).
- *
- * Same accessibility contract as [NgbButton]: 48 dp minimum height.
+ * Press feedback is the mockup's `.obtn:active{transform:scale(.96)}` — an
+ * animated 96% scale, motion-gated (Reduce motion renders a static button).
+ * The old NEON ARENA corner ticks are retired by this re-skin; the same
+ * accessibility contract as [NgbButton] (48 dp minimum height) is kept.
  */
 @Composable
 fun NgbSecondaryButton(
@@ -51,9 +48,20 @@ fun NgbSecondaryButton(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
+    val motion = LocalNgbMotionEnabled.current
 
+    // .obtn:active{transform:scale(.96)} — animated, motion-gated.
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed && motion) 0.96f else 1f,
+        animationSpec = tween(durationMillis = 100),
+        label = "obtnPressScale",
+    )
+
+    // The 135° accent ring: accent → transparent at 40% → accent.
     val borderBrush = Brush.linearGradient(
-        listOf(NgbPrimary, NgbVioletDeep, NgbPrimary),
+        0f to NgbPrimary,
+        0.40f to Color.Transparent,
+        1f to NgbPrimary,
         start = Offset.Zero,
         end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY),
     )
@@ -62,14 +70,17 @@ fun NgbSecondaryButton(
         onClick = onClick,
         enabled = enabled,
         interactionSource = interaction,
-        shape = NgbChamferShape(11.dp),
+        shape = NgbChamferShape(10.dp),
         color = Color.Transparent,
         contentColor = if (enabled) NgbPrimaryBright else MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier
             .heightIn(min = 48.dp)
-            .ngbPressScale(interaction)
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
             .drawBehind {
-                // The 1.5 dp gradient border = the kit's wrapper padding.
+                // The ring gradient = the mockup's wrapper background.
                 drawRect(brush = borderBrush)
             },
     ) {
@@ -77,15 +88,10 @@ fun NgbSecondaryButton(
             Modifier
                 .fillMaxSize()
                 .padding(1.5.dp)
-                .clip(NgbChamferShape(10.dp))
+                .clip(NgbChamferShape(9.dp))
                 .drawBehind {
-                    drawRect(if (pressed) Color(0xFF06231A) else NgbSurfaceContainerLowest)
-                    if (enabled) {
-                        ngbCornerTicks(
-                            color = NgbPrimary.copy(alpha = 0.85f),
-                            tick = 7.dp, inset = 5.dp, stroke = 1.5.dp,
-                        )
-                    }
+                    // var(--ink2) inner fill, no other decoration.
+                    drawRect(NgbInkSoft)
                 }
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             contentAlignment = Alignment.Center,

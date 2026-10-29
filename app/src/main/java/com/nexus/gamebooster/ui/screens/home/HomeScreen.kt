@@ -1,12 +1,5 @@
 package com.nexus.gamebooster.ui.screens.home
 
-import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -33,6 +26,7 @@ import androidx.compose.material.icons.outlined.DeviceThermostat
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Memory
+import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.Tune
@@ -46,7 +40,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -54,29 +47,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nexus.gamebooster.R
 import com.nexus.gamebooster.core.ServiceLocator
 import com.nexus.gamebooster.core.VmFactory
 import com.nexus.gamebooster.core.availabilityLabel
-import com.nexus.gamebooster.core.boostActionLabel
-import com.nexus.gamebooster.core.boostCheckLabel
 import com.nexus.gamebooster.core.pluggedLabel
 import com.nexus.gamebooster.monitoring.BatterySnapshot
 import com.nexus.gamebooster.monitoring.CpuSnapshot
@@ -86,21 +69,11 @@ import com.nexus.gamebooster.monitoring.MetricRowKeys
 import com.nexus.gamebooster.monitoring.ThermalHeadroomSnapshot
 import com.nexus.gamebooster.monitoring.ThermalSnapshot
 import com.nexus.gamebooster.monitoring.thermalRows
-import com.nexus.gamebooster.optimizer.BoostActionOutcome
 import com.nexus.gamebooster.optimizer.BoostReport
 import com.nexus.gamebooster.optimizer.BoostStatus
 import com.nexus.gamebooster.profiles.PerformanceProfile
 import com.nexus.gamebooster.shizuku.ShizukuPrivilege
-import com.nexus.gamebooster.ui.arcade.ArcadeButton
-import com.nexus.gamebooster.ui.arcade.ArcadeChip
-import com.nexus.gamebooster.ui.arcade.ArcadePanel
-import com.nexus.gamebooster.ui.arcade.ArcadePanelVariant
-import com.nexus.gamebooster.ui.arcade.ArcadeStatusDot
-import com.nexus.gamebooster.ui.arcade.ArcadeTint
-import com.nexus.gamebooster.ui.arcade.NgbArcadeColors
-import com.nexus.gamebooster.ui.arcade.OrbitSpeed
 import com.nexus.gamebooster.ui.components.BoostCard
-import com.nexus.gamebooster.ui.components.BoostStepUi
 import com.nexus.gamebooster.ui.components.MapperMetricRow
 import com.nexus.gamebooster.ui.components.LicenseCountdownCard
 import com.nexus.gamebooster.ui.components.MetricRow
@@ -111,7 +84,10 @@ import com.nexus.gamebooster.ui.components.profileIcon
 import com.nexus.gamebooster.ui.motion.LocalNgbMotionEnabled
 import com.nexus.gamebooster.ui.motion.ngbPressScale
 import com.nexus.gamebooster.ui.theme.NgbChamferShape
-import com.nexus.gamebooster.ui.theme.NgbTagFont
+import com.nexus.gamebooster.ui.theme.NgbPrimary
+import com.nexus.gamebooster.ui.theme.NgbSecondary
+import com.nexus.gamebooster.ui.theme.NgbSurface
+import com.nexus.gamebooster.ui.theme.NgbTertiary
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
@@ -119,132 +95,97 @@ import java.util.Locale
 private const val BYTES_PER_GB = 1073741824.0 // 1024^3
 
 /**
- * ARCADE HUD hero (reference `.panel.hot.hero`): the existing generated key art inside
- * a HOT chamfered panel at the reference's 158 dp height, floating ±8 dp over 5 s
- * (motion-gated), under the reference's scanline overlay and a bottom scrim. The
- * top-end badge chip and the Orbitron "NEXUS BOOSTER" brand line (a logo — decorative,
- * hardcoded like the reference, with the neon half glowing) finish the header. The
- * image stays decorative (contentDescription = null); the visible localized texts
- * carry the meaning for screen readers.
+ * Phase 8 neon-showcase hero: the generated key art with the app name and tagline
+ * overlaid on a bottom scrim — the Home header from the showcase art. The image is
+ * decorative (contentDescription = null); the visible localized texts carry the
+ * meaning for screen readers.
+ *
+ * v1.2.1 "ROCKET EDITION" re-skin: the hero wears the kit `.panel.hot` look —
+ * the chamfered 20 dp two-corner silhouette with the neon→azure→lime ring and
+ * the dark card fill under the art, and the status chip is the kit's chamfered
+ * `.chip` instead of a stadium pill. Scrim/text colors still come from the
+ * theme so both dark variants stay readable.
  */
 @Composable
 private fun NgbHero() {
-    val motion = LocalNgbMotionEnabled.current
-    val float = rememberInfiniteTransition(label = "heroFloat")
-    val floatY by float.animateFloat(
-        initialValue = -8f,
-        targetValue = 8f,
-        animationSpec = infiniteRepeatable(
-            tween(5000, easing = CubicBezierEasing(0.45f, 0f, 0.55f, 1f)),
-            RepeatMode.Reverse,
-        ),
-        label = "heroFloatY",
-    )
-    ArcadePanel(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(158.dp),
-        variant = ArcadePanelVariant.HOT,
-        cut = 20.dp,
-        contentPadding = 0.dp,
+            .heightIn(min = 176.dp)
+            .clip(NgbChamferShape(20.dp)),
     ) {
-        Box(modifier = Modifier.fillMaxWidth().height(158.dp)) {
-            // The art layer (inset by the panel's 1.25 dp edge): floating image + scanlines + scrim.
+        // Kit `.panel.hot` ring + dark fill (the art covers the fill; the ring
+        // stays visible as the frame edge).
+        Box(
+            Modifier
+                .matchParentSize()
+                .background(
+                    Brush.linearGradient(
+                        listOf(NgbPrimary, NgbTertiary, NgbSecondary),
+                        start = Offset.Zero,
+                        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY),
+                    ),
+                ),
+        )
+        // Art + scrim live inside the 1 dp ring inset so the frame stays visible.
+        Box(Modifier.matchParentSize().padding(1.dp).clip(NgbChamferShape(19.dp))) {
+            Image(
+                painter = painterResource(R.drawable.ngb_hero),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize(),
+            )
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(158.dp)
-                    .clip(NgbChamferShape(17.dp)),
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.ngb_hero),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .matchParentSize()
-                        // Slight overscale so the ±8 dp float never reveals panel edges.
-                        .graphicsLayer {
-                            translationY = (if (motion) floatY else 0f) * density
-                            scaleX = 1.12f
-                            scaleY = 1.12f
-                        },
-                )
-                // Scanlines: 1 px dark line every 3 dp — the reference's multiply overlay.
-                Canvas(modifier = Modifier.matchParentSize()) {
-                    val lineH = 1.dp.toPx()
-                    val gap = 3.dp.toPx()
-                    var y = 0f
-                    while (y < size.height) {
-                        drawRect(
-                            color = Color.Black.copy(alpha = 0.18f),
-                            topLeft = Offset(0f, y),
-                            size = Size(size.width, lineH),
-                        )
-                        y += gap
-                    }
-                }
-                // Bottom scrim so the title/subtitle stay readable on both themes.
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(
-                            Brush.verticalGradient(
-                                0f to Color.Transparent,
-                                0.45f to Color.Transparent,
-                                1f to NgbArcadeColors.Ink.copy(alpha = 0.92f),
-                            ),
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to MaterialTheme.colorScheme.background.copy(alpha = 0.16f),
+                            0.42f to Color.Transparent,
+                            1f to MaterialTheme.colorScheme.background.copy(alpha = 0.94f),
                         ),
-                )
-            }
-            ArcadeChip(
-                text = stringResource(R.string.home_hero_badge),
-                tint = NgbArcadeColors.Neon,
-                leading = { ArcadeStatusDot(color = NgbArcadeColors.Neon) },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(12.dp),
+                    ),
             )
-            Column(
+        }
+        // Compact, high-contrast brand chip makes the hero read like a game dashboard
+        // — now the kit `.chip` chamfered silhouette.
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(14.dp)
+                .clip(NgbChamferShape(6.dp))
+                .background(NgbSurface.copy(alpha = 0.86f))
+                .padding(horizontal = 11.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, bottom = 13.dp),
-            ) {
-                // The brand line is an LTR logo, not translatable copy.
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                    Row {
-                        Text(
-                            text = "NEXUS ",
-                            fontFamily = NgbTagFont,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 22.sp,
-                            letterSpacing = 0.7.sp,
-                            color = MaterialTheme.colorScheme.onBackground,
-                        )
-                        Text(
-                            text = "BOOSTER",
-                            fontFamily = NgbTagFont,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 22.sp,
-                            letterSpacing = 0.7.sp,
-                            color = NgbArcadeColors.Neon,
-                            style = TextStyle(
-                                shadow = Shadow(
-                                    color = NgbArcadeColors.Neon.copy(alpha = 0.75f),
-                                    offset = Offset.Zero,
-                                    blurRadius = 14f,
-                                ),
-                            ),
-                        )
-                    }
-                }
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = stringResource(R.string.home_subtitle),
-                    fontSize = 12.sp,
-                    color = NgbArcadeColors.Muted,
-                )
-            }
+                    .size(7.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+            )
+            Spacer(Modifier.width(7.dp))
+            Text(
+                text = stringResource(R.string.home_hero_badge),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .padding(16.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.app_name),
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            Text(
+                text = stringResource(R.string.home_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -293,19 +234,13 @@ fun HomeScreen(onOpenLibrary: () -> Unit = {}) {
             onRequestPermission = { vm.activateShizuku(context) },
         )
         Spacer(Modifier.height(20.dp))
-        val reactor = reactorLook(boostState)
-        val boostInProgress = boostState.phase == BoostPhase.CHECKING ||
-            boostState.phase == BoostPhase.RUNNING
         BoostCard(
             label = boostButtonLabel(boostState),
-            tagline = reactor.tagline,
-            accentColor = reactor.accent,
-            orbitSpeed = reactor.speed,
+            accentColor = boostButtonColor(boostState),
             enabled = boostState.phase == BoostPhase.IDLE ||
                 (boostState.phase == BoostPhase.FINISHED && !boostState.isRunning),
-            inProgress = boostInProgress,
-            steps = boostStepList(boostState),
-            onCancel = if (boostInProgress) boostVm::cancelBoost else null,
+            inProgress = boostState.phase == BoostPhase.CHECKING ||
+                boostState.phase == BoostPhase.RUNNING,
             onBoostClick = {
                 vm.onBoostPressed()
                 boostVm.startBoost()
@@ -352,59 +287,18 @@ private fun boostButtonLabel(state: BoostUiState): String = when (state.phase) {
         ?: stringResource(R.string.boost_button_label)
 }
 
-/**
- * Reactor look per boost phase (the reference's `.reactor` states): IDLE neon +
- * "TAP TO BOOST", CHECKING azure + "CHECKING" (fast orbit), RUNNING lime + "BOOSTING",
- * FINISHED neon + "READY". The taglines are the reference's decorative HUD codes
- * (brand-style English-only, like "NEXUS BOOSTER") — not translatable copy. The label
- * next to them stays the honest localized [boostButtonLabel].
- */
-private fun reactorLook(state: BoostUiState): ReactorLook = when (state.phase) {
-    BoostPhase.IDLE -> ReactorLook(NgbArcadeColors.Neon, OrbitSpeed.IDLE, "TAP TO BOOST")
-    BoostPhase.CHECKING -> ReactorLook(NgbArcadeColors.Azure, OrbitSpeed.CHECKING, "CHECKING")
-    BoostPhase.RUNNING -> ReactorLook(NgbArcadeColors.Lime, OrbitSpeed.RUNNING, "BOOSTING")
-    BoostPhase.FINISHED -> ReactorLook(NgbArcadeColors.Neon, OrbitSpeed.IDLE, "READY")
-}
-
-/** Accent color + orbit speed + decorative HUD tagline for one reactor phase. */
-private data class ReactorLook(val accent: Color, val speed: OrbitSpeed, val tagline: String)
-
-/**
- * The reactor's step rows, mapped from REAL state only (the reference's fake
- * `.steps` list is never fabricated here):
- *  - while checking: one blinking active row (the honest "Checking…" state);
- *  - the captured pre-checks (each a done row — they exist when listed);
- *  - when finished: every recorded action outcome (done only when actually
- *    applied/already-applied; skipped/unsupported/failed stay muted — the report
- *    dialog carries the full typed outcome).
- */
+/** Status-colored accent for the finished state; neon otherwise. */
 @Composable
-private fun boostStepList(state: BoostUiState): List<BoostStepUi> {
-    val steps = mutableListOf<BoostStepUi>()
-    if (state.phase == BoostPhase.CHECKING) {
-        steps.add(
-            BoostStepUi(label = stringResource(R.string.boost_checking), done = false, active = true),
-        )
-    }
-    state.checks.forEach { check ->
-        steps.add(BoostStepUi(label = boostCheckLabel(check.labelKey), done = true, active = false))
-    }
-    if (state.phase == BoostPhase.FINISHED) {
-        state.report?.actions?.forEach { record ->
-            val applied = record.outcome is BoostActionOutcome.Applied ||
-                record.outcome is BoostActionOutcome.AlreadyApplied
-            steps.add(
-                BoostStepUi(label = boostActionLabel(record.actionId), done = applied, active = false),
-            )
-        }
-    }
-    return steps
+private fun boostButtonColor(state: BoostUiState) = when (state.status) {
+    BoostStatus.COMPLETED -> MaterialTheme.colorScheme.primary
+    BoostStatus.PARTIAL_SUCCESS -> MaterialTheme.colorScheme.secondary
+    BoostStatus.CANCELLED -> MaterialTheme.colorScheme.onSurfaceVariant
+    BoostStatus.FAILED -> MaterialTheme.colorScheme.error
+    null -> MaterialTheme.colorScheme.primary
 }
 
 /**
- * Phase 9 → ARCADE HUD: Shizuku status card — PLAIN/WARN/BAD panel with the kit's
- * pulsing status dot (neon/warn/danger) and one small 3D-lip action button when not
- * ready (danger to activate, lime to grant permission). READY stays quiet.
+ * Phase 9: Shizuku status card — single Activate button when not ready.
  */
 @Composable
 private fun ShizukuStatusCard(
@@ -412,64 +306,46 @@ private fun ShizukuStatusCard(
     onActivate: () -> Unit,
     onRequestPermission: () -> Unit,
 ) {
-    val variant: ArcadePanelVariant
-    val dotColor: Color
-    val guideRes: Int
-    val buttonRes: Int?
-    val buttonTint: ArcadeTint?
-    val buttonAction: (() -> Unit)?
-    when (status) {
-        ShizukuPrivilege.Status.READY -> {
-            variant = ArcadePanelVariant.PLAIN
-            dotColor = NgbArcadeColors.Neon
-            guideRes = R.string.shizuku_status_ready
-            buttonRes = null
-            buttonTint = null
-            buttonAction = null
+    // READY → quiet success only. Otherwise guide text + one action button.
+    if (status == ShizukuPrivilege.Status.READY) {
+        SectionCard(
+            title = stringResource(R.string.shizuku_card_title),
+            icon = Icons.Outlined.Security,
+        ) {
+            Text(
+                text = stringResource(R.string.shizuku_status_ready),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
-        ShizukuPrivilege.Status.PERMISSION_REQUIRED -> {
-            variant = ArcadePanelVariant.WARN
-            dotColor = NgbArcadeColors.Warn
-            guideRes = R.string.shizuku_guide_permission
-            buttonRes = R.string.shizuku_request_permission
-            buttonTint = ArcadeTint.LIME
-            buttonAction = onRequestPermission
-        }
-        else -> {
-            variant = ArcadePanelVariant.BAD
-            dotColor = NgbArcadeColors.Danger
-            guideRes = R.string.shizuku_guide_inactive
-            buttonRes = R.string.shizuku_activate
-            buttonTint = ArcadeTint.DANGER
-            buttonAction = onActivate
-        }
+        return
     }
-    ArcadePanel(variant = variant, modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            ArcadeStatusDot(color = dotColor)
-            Spacer(Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.shizuku_card_title),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                )
-                Text(
-                    text = stringResource(guideRes),
-                    fontSize = 12.sp,
-                    color = NgbArcadeColors.Muted,
-                )
-            }
-            if (buttonAction != null && buttonTint != null && buttonRes != null) {
-                ArcadeButton(onClick = buttonAction, tint = buttonTint, small = true) {
-                    Text(
-                        text = stringResource(buttonRes),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                    )
-                }
-            }
+
+    val guideRes = when (status) {
+        ShizukuPrivilege.Status.PERMISSION_REQUIRED -> R.string.shizuku_guide_permission
+        else -> R.string.shizuku_guide_inactive  // not running (installed or not — activate handles both)
+    }
+    val buttonRes = when (status) {
+        ShizukuPrivilege.Status.PERMISSION_REQUIRED -> R.string.shizuku_request_permission
+        else -> R.string.shizuku_activate
+    }
+    val buttonAction = when (status) {
+        ShizukuPrivilege.Status.PERMISSION_REQUIRED -> onRequestPermission
+        else -> onActivate
+    }
+
+    SectionCard(
+        title = stringResource(R.string.shizuku_card_title),
+        icon = Icons.Outlined.Security,
+    ) {
+        Text(
+            text = stringResource(guideRes),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(8.dp))
+        TextButton(onClick = buttonAction) {
+            Text(stringResource(buttonRes))
         }
     }
 }
@@ -811,7 +687,7 @@ private fun ProfileSelectRow(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(NgbChamferShape(12.dp))
             .ngbPressScale(interactionSource, motionEnabled)
             .selectable(
                 selected = selected,
@@ -947,7 +823,7 @@ private fun BoostHistoryRow(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(NgbChamferShape(12.dp))
             .ngbPressScale(interactionSource, motionEnabled)
             .clickable(
                 interactionSource = interactionSource,

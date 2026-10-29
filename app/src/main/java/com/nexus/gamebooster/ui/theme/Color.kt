@@ -77,3 +77,18 @@ val AmoledSurfaceBright = Color(0xFF14391F)
 val AmoledInverseSurface = Color(0xFF14391F)
 val AmoledInverseOnSurface = Color(0xFFECFFF4)
 val AmoledOutline = Color(0xFF1E3A2A)
+
+// -----------------------------------------------------------------------------
+// "ROCKET EDITION" kit tokens (v1.2.1 re-skin from the HTML prototype) — the
+// accent ramps the prototype's `.gbtn` / `.obtn` / `.panel` CSS reads directly:
+//   --ink2:  #071A10  (obtn inner fill, seg/field wells)
+//   --azure deep: #1D7F9F (gbtn.azure --d)
+//   --lime  deep: #86A81C (gbtn.lime --d)
+//   --danger deep: #A3203A (gbtn.danger --d)
+// These are ADDITIVE tokens — existing roles above are untouched.
+// -----------------------------------------------------------------------------
+val NgbInkSoft = Color(0xFF071A10)
+val NgbAzureDeep = Color(0xFF1D7F9F)
+val NgbLimeDeep = Color(0xFF86A81C)
+val NgbDangerDeep = Color(0xFFA3203A)
+val NgbOnRedCtaDeep = Color(0xFF5A0014)

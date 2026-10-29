@@ -4,53 +4,37 @@ import android.provider.Settings
 import android.view.View
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -64,8 +48,6 @@ import com.nexus.gamebooster.core.AppLocale
 import com.nexus.gamebooster.core.ServiceLocator
 import com.nexus.gamebooster.core.withAppLocale
 import com.nexus.gamebooster.data.AppSettings
-import com.nexus.gamebooster.ui.arcade.ArcadeScanSweep
-import com.nexus.gamebooster.ui.arcade.NgbArcadeColors
 import com.nexus.gamebooster.ui.components.NgbNeonBackdrop
 import com.nexus.gamebooster.ui.components.NgbNeonLoader
 import com.nexus.gamebooster.ui.components.RocketSplashOverlay
@@ -78,9 +60,10 @@ import com.nexus.gamebooster.ui.screens.network.LicenseGateScreen
 import com.nexus.gamebooster.network.NexusApiClient
 import com.nexus.gamebooster.ui.screens.profiles.ProfilesScreen
 import com.nexus.gamebooster.ui.screens.settings.SettingsScreen
-import com.nexus.gamebooster.ui.theme.NgbChamferShape
+import com.nexus.gamebooster.ui.theme.NgbOutline
+import com.nexus.gamebooster.ui.theme.NgbPrimary
+import com.nexus.gamebooster.ui.theme.NgbPrimaryContainer
 import com.nexus.gamebooster.ui.theme.NexusBoosterTheme
-import com.nexus.gamebooster.ui.theme.neonGlow
 
 /**
  * App shell. Persisted settings drive everything global, so changes apply immediately:
@@ -91,9 +74,8 @@ import com.nexus.gamebooster.ui.theme.neonGlow
  *  - THEME: NexusBoosterTheme (two dark variants only).
  *  - MOTION: [LocalNgbMotionEnabled] combines the in-app "Reduce motion" setting with
  *    the system's animator duration scale.
- * Below that: the v1.2.1 ARCADE bottom navigation (sliding indicator + icon pop)
- * and a NavHost with restrained, direction-neutral transitions, plus the
- * route-change neon scan sweep from the redesign reference.
+ * Below that: bottom navigation + NavHost with restrained, direction-neutral
+ * transitions (fade + tiny scale, no directional slides — RTL-safe by construction).
  */
 @Composable
 fun NgbApp() {
@@ -162,7 +144,8 @@ private fun NgbRoot() {
     }
     Box(Modifier.fillMaxSize()) {
         when (gateState) {
-            // Session re-sync loader (rings + rotating arc — kept from Phase 11.5).
+            // App entry: the NEON ARENA v2 loader (rings + rotating arc + star field)
+            // while the saved session is re-synced — replaces the plain spinner.
             0 -> NgbNeonLoader(
                 statusText = stringResource(R.string.app_loading_subtitle),
                 loadingContentDescription = stringResource(R.string.loader_content_description),
@@ -188,212 +171,116 @@ private fun NgbMainContent() {
     val currentRoute = backStackEntry?.destination?.route
     val motionEnabled = LocalNgbMotionEnabled.current
 
-    // The reference's `.scan.go` — a neon band sweeps the screen on every route change.
-    var scanSweepKey by rememberSaveable { mutableIntStateOf(0) }
-    LaunchedEffect(currentRoute) { scanSweepKey++ }
-
     Scaffold(
-        // The arcade floor/backdrop lives behind the shell (NgbRoot gate 2), so the
-        // scaffold stays transparent and screens draw over the arcade room.
+        // The star-field backdrop lives behind the shell (NgbRoot gate 2), so the
+        // scaffold stays transparent and screens draw over the neon sky.
         containerColor = Color.Transparent,
         bottomBar = {
-            ArcadeNavBar(currentRoute = currentRoute) { destination ->
-                navController.navigate(destination.route) {
-                    launchSingleTop = true
-                    restoreState = true
-                    popUpTo(navController.graph.findStartDestination().id) {
-                        saveState = true
+            // v1.2.1 re-skin — the mockup `.nav`: near-black vertical gradient bar
+            // (`linear-gradient(0deg,#020805,rgba(4,17,10,.92))`), the hairline top
+            // border plus the glowing green sweep line (`::before`), and the
+            // green-tinted active indicator. Item behavior is unchanged M3
+            // NavigationBar — only the paint is new.
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .drawBehind {
+                        val h = size.height
+                        // Bar gradient: rgba(4,17,10,.92) → #020805 (top → bottom).
+                        drawRect(
+                            Brush.verticalGradient(
+                                listOf(Color(0xEB04110A), Color(0xFF020805)),
+                                startY = 0f,
+                                endY = h,
+                            ),
+                        )
+                        // border-top: 1px solid var(--line) #1E3A2A.
+                        drawLine(NgbOutline, Offset(0f, 0.5f), Offset(size.width, 0.5f), 1.dp.toPx())
+                        // `.nav::before` — the neon hairline sweep across the top edge.
+                        drawRect(
+                            Brush.horizontalGradient(
+                                listOf(Color.Transparent, NgbPrimary.copy(alpha = 0.60f), Color.Transparent),
+                                startX = 0f,
+                                endX = size.width,
+                            ),
+                            topLeft = Offset(0f, 0f),
+                            size = androidx.compose.ui.geometry.Size(size.width, 2.dp.toPx()),
+                        )
+                    },
+            ) {
+                NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp) {
+                    NgbDestination.entries.forEach { destination ->
+                        val selected = currentRoute == destination.route
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = {
+                                navController.navigate(destination.route) {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                }
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = if (selected) destination.filledIcon else destination.outlinedIcon,
+                                    contentDescription = null,
+                                )
+                            },
+                            label = { Text(stringResource(destination.labelRes)) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = NgbPrimary,
+                                selectedTextColor = NgbPrimary,
+                                unselectedIconColor = Color(0xFF8FB79D),
+                                unselectedTextColor = Color(0xFF8FB79D),
+                                indicatorColor = NgbPrimaryContainer,
+                            ),
+                        )
                     }
                 }
             }
         },
     ) { innerPadding ->
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
-            NavHost(
-                navController = navController,
-                startDestination = NgbDestination.Home.route,
-                enterTransition = {
-                    if (motionEnabled) {
-                        fadeIn(tween(200)) + scaleIn(initialScale = 0.98f, animationSpec = tween(200))
-                    } else {
-                        EnterTransition.None
-                    }
-                },
-                exitTransition = {
-                    if (motionEnabled) fadeOut(tween(150)) else ExitTransition.None
-                },
-                popEnterTransition = {
-                    if (motionEnabled) {
-                        fadeIn(tween(200)) + scaleIn(initialScale = 0.98f, animationSpec = tween(200))
-                    } else {
-                        EnterTransition.None
-                    }
-                },
-                popExitTransition = {
-                    if (motionEnabled) fadeOut(tween(150)) else ExitTransition.None
-                },
-            ) {
-                composable(NgbDestination.Home.route) {
-                    HomeScreen(
-                        onOpenLibrary = {
-                            navController.navigate(NgbDestination.Library.route) {
-                                launchSingleTop = true
-                            }
-                        },
-                    )
+        NavHost(
+            navController = navController,
+            startDestination = NgbDestination.Home.route,
+            modifier = Modifier.padding(innerPadding),
+            enterTransition = {
+                if (motionEnabled) {
+                    fadeIn(tween(200)) + scaleIn(initialScale = 0.98f, animationSpec = tween(200))
+                } else {
+                    EnterTransition.None
                 }
-                composable(NgbDestination.Library.route) { LibraryScreen() }
-                composable(NgbDestination.Monitor.route) { MonitorScreen() }
-                composable(NgbDestination.Profiles.route) { ProfilesScreen() }
-                composable(NgbDestination.Ping.route) { PingGoodScreen() }
-                composable(NgbDestination.Settings.route) { SettingsScreen() }
-            }
-            // Route-change scan sweep (the reference's `.scan` layer, above content).
-            ArcadeScanSweep(
-                sweepKey = scanSweepKey,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-    }
-}
-
-/**
- * The v1.2.1 arcade bottom navigation — the reference's `.nav`: six equal
- * columns over the near-black gradient with a neon top hairline, a sliding
- * chamfered indicator box behind the active item, and the selected icon's
- * pop (lift −3 dp, scale 1.15, glow). RTL-aware: the indicator order flips
- * with the layout direction, exactly like a mirrored design board.
- */
-@Composable
-private fun ArcadeNavBar(currentRoute: String?, onSelect: (NgbDestination) -> Unit) {
-    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-    val entries = NgbDestination.entries
-    val selectedIndex = entries.indexOfFirst { it.route == currentRoute }.coerceAtLeast(0)
-
-    // Sliding indicator (the reference's `.ind`, 450 ms slight overshoot).
-    val indicatorPos by animateFloatAsState(
-        targetValue = (if (rtl) entries.size - 1 - selectedIndex else selectedIndex).toFloat(),
-        animationSpec = spring(dampingRatio = 0.8f, stiffness = 380f),
-        label = "navIndicator",
-    )
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .background(Brush.verticalGradient(listOf(Color(0xEB04110A), Color(0xFF020805)))),
-    ) {
-        // Top neon hairline (the reference's `.nav::before`).
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .drawBehind {
-                    drawRect(
-                        Brush.horizontalGradient(
-                            listOf(
-                                Color.Transparent,
-                                NgbArcadeColors.Neon.copy(alpha = 0.6f),
-                                Color.Transparent,
-                            ),
-                        ),
-                    )
-                },
-        )
-        var rowWidthPx by remember { mutableStateOf(0f) }
-        val density = LocalDensity.current
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(64.dp)
-                .onGloballyPositioned { rowWidthPx = it.size.width.toFloat() },
+            },
+            exitTransition = {
+                if (motionEnabled) fadeOut(tween(150)) else ExitTransition.None
+            },
+            popEnterTransition = {
+                if (motionEnabled) {
+                    fadeIn(tween(200)) + scaleIn(initialScale = 0.98f, animationSpec = tween(200))
+                } else {
+                    EnterTransition.None
+                }
+            },
+            popExitTransition = {
+                if (motionEnabled) fadeOut(tween(150)) else ExitTransition.None
+            },
         ) {
-            if (rowWidthPx > 0f) {
-                val columnWidth = rowWidthPx / entries.size
-                val indicatorWidth = with(density) { 56.dp.toPx() }
-                val x = indicatorPos * columnWidth + (columnWidth - indicatorWidth) / 2f
-                Box(
-                    Modifier
-                        .align(Alignment.CenterStart)
-                        .size(width = 56.dp, height = 44.dp)
-                        .graphicsLayer { translationX = x }
-                        .clip(NgbChamferShape(8.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    NgbArcadeColors.Neon.copy(alpha = 0.20f),
-                                    NgbArcadeColors.Neon.copy(alpha = 0.04f),
-                                ),
-                            ),
-                        )
-                        .drawBehind {
-                            // Bottom neon border of the indicator box.
-                            drawRect(
-                                Brush.verticalGradient(
-                                    0f to Color.Transparent,
-                                    0.92f to Color.Transparent,
-                                    1f to NgbArcadeColors.Neon,
-                                ),
-                            )
-                        },
+            composable(NgbDestination.Home.route) {
+                HomeScreen(
+                    onOpenLibrary = {
+                        navController.navigate(NgbDestination.Library.route) {
+                            launchSingleTop = true
+                        }
+                    },
                 )
             }
-            Row(Modifier.fillMaxSize()) {
-                entries.forEach { destination ->
-                    val selected = currentRoute == destination.route
-                    val pop by animateFloatAsState(
-                        targetValue = if (selected) 1f else 0f,
-                        animationSpec = spring(dampingRatio = 0.55f, stiffness = 640f),
-                        label = "navPop",
-                    )
-                    val tint = if (selected) NgbArcadeColors.Neon else NgbArcadeColors.Muted
-                    val iconGlow = if (selected && pop > 0.5f) {
-                        Modifier.neonGlow(
-                            glowColor = NgbArcadeColors.Neon,
-                            shape = NgbChamferShape(4.dp),
-                            blurRadius = 6.dp,
-                            glowAlpha = 0.8f,
-                        )
-                    } else {
-                        Modifier
-                    }
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxSize()
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
-                                onClick = { onSelect(destination) },
-                            ),
-                    ) {
-                        Icon(
-                            imageVector = if (selected) destination.filledIcon else destination.outlinedIcon,
-                            contentDescription = destination.name,
-                            tint = tint,
-                            modifier = Modifier
-                                .size(22.dp)
-                                .graphicsLayer {
-                                    translationY = -3.dp.toPx() * pop
-                                    scaleX = 1f + 0.15f * pop
-                                    scaleY = 1f + 0.15f * pop
-                                }
-                                .then(iconGlow),
-                        )
-                        Spacer(Modifier.size(2.dp))
-                        Text(
-                            text = stringResource(destination.labelRes),
-                            color = tint,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                        )
-                    }
-                }
-            }
+            composable(NgbDestination.Library.route) { LibraryScreen() }
+            composable(NgbDestination.Monitor.route) { MonitorScreen() }
+            composable(NgbDestination.Profiles.route) { ProfilesScreen() }
+            composable(NgbDestination.Ping.route) { PingGoodScreen() }
+            composable(NgbDestination.Settings.route) { SettingsScreen() }
         }
     }
 }

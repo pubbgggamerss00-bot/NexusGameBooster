@@ -23,8 +23,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -50,7 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import com.nexus.gamebooster.R
 import com.nexus.gamebooster.network.NexusApiClient
-import com.nexus.gamebooster.ui.theme.ngbNeonHalo
+import com.nexus.gamebooster.ui.theme.NgbChamferShape
 import com.nexus.gamebooster.ui.theme.NgbError
 import com.nexus.gamebooster.ui.theme.NgbPrimary
 import com.nexus.gamebooster.ui.theme.NgbSecondary
@@ -91,19 +89,19 @@ fun LicenseCountdownCard(modifier: Modifier = Modifier) {
     val pulse = rememberInfiniteTransition(label = "licenseTimerPulse")
     val pulseScale by pulse.animateFloat(0.985f, 1.015f, animationSpec = infiniteRepeatable(tween(1_250, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "licenseTimerPulseScale")
 
-    Card(
-        modifier = modifier.fillMaxWidth().ngbNeonHalo(cornerRadius = 22.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(22.dp),
+    // v1.2.1 re-skin: the kit `.panel` (chamfered gradient ring) — Warn/Bad ring
+    // variants mirror the mockup's amber/red panels when expiry nears / passes.
+    NgbPanel(
+        modifier = modifier.fillMaxWidth(),
+        cut = 16.dp,
+        ring = when {
+            expired -> NgbPanelRing.Bad
+            warning -> NgbPanelRing.Warn
+            else -> NgbPanelRing.Default
+        },
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(22.dp))
-                .background(Brush.linearGradient(listOf(Color(0xFF0A2015), Color(0xFF071A0F), Color(0xFF0F301C))))
-                .border(1.dp, Brush.sweepGradient(listOf(accent.copy(alpha = 0.85f), NgbTertiary, NgbSecondary, accent.copy(alpha = 0.85f))), RoundedCornerShape(22.dp))
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(modifier = Modifier.size(116.dp).scale(pulseScale), contentAlignment = Alignment.Center) {
@@ -165,7 +163,7 @@ fun LicenseCountdownCard(modifier: Modifier = Modifier) {
 @Composable
 private fun TimeUnitBox(value: String, label: String, accent: Color, modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier.clip(RoundedCornerShape(10.dp)).background(Color(0xFF04110A).copy(alpha = 0.9f)).border(1.dp, accent.copy(alpha = 0.22f), RoundedCornerShape(10.dp)).padding(vertical = 7.dp, horizontal = 3.dp),
+        modifier = modifier.clip(NgbChamferShape(7.dp)).background(Color(0xFF04110A).copy(alpha = 0.9f)).border(1.dp, accent.copy(alpha = 0.22f), NgbChamferShape(7.dp)).padding(vertical = 7.dp, horizontal = 3.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(value, color = accent, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, lineHeight = 21.sp)

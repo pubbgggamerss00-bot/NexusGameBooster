@@ -17,17 +17,17 @@ android {
         applicationId = "com.nexus.gamebooster"
         minSdk = 26
         targetSdk = 35
-        versionCode = 30
-        versionName = "2.0.0"
+        versionCode = 31
+        versionName = "2.1.0"
     }
 
     // ---------------------------------------------------------------------------
     // Release signing (v1.2.1 SIGNING-PERMANENCE FIX): the keystore IS committed
     // to the repo (`release.keystore` + `keystore.properties` at the project root,
-    // deliberate .gitignore exceptions — see README → "Release signing" for the
-    // trade-off). NGP_* env vars still override for rotation/CI scenarios. If
-    // neither source provides all four values, the release signing config is
-    // simply not created and `assembleRelease` produces an unsigned APK.
+    // deliberate .gitignore exceptions — see README → "Release signing"). NGP_*
+    // env vars still override for rotation/CI scenarios. If neither source
+    // provides all four values, the release signing config is simply not created
+    // and `assembleRelease` produces an unsigned APK.
     // ---------------------------------------------------------------------------
     val keystoreProperties = Properties().apply {
         val f = rootProject.file("keystore.properties")

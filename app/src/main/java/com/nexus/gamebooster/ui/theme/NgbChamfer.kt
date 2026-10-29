@@ -12,14 +12,17 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 
 /**
- * "NEON ARENA" kit geometry (Phase 11.4): the mockup's signature cut-corner
- * ("گوشه‌براکتی") silhouette, exported as a real [Shape].
+ * "ROCKET EDITION" kit geometry (v1.2.1 re-skin from the HTML prototype's
+ * `.panel` / `.gbtn` / `.obtn` clip-path): the signature cut-corner silhouette
+ * with TWO OPPOSITE corners cut — top-start and bottom-end.
  *
- * The kit's clip-path cuts TWO opposite corners — top-left and bottom-right in
- * the mockup's coordinates. Because every screen of this app is laid out in
- * Persian first (RTL), the cut corners mirror with the layout direction:
- * in RTL they land on top-right / bottom-left, exactly as a mirrored design
- * board would. LTR layouts keep the mockup's original corners.
+ * The prototype's clip-path is
+ *   polygon(cut 0, 100% 0, 100% calc(100% - cut), calc(100% - cut) 100%, 0 100%, 0 cut)
+ * which cuts the top-left and bottom-right corners in the mockup's own (LTR)
+ * coordinates. Because every screen of this app is laid out in Persian first
+ * (RTL), the cuts mirror with the layout direction: in RTL they land on
+ * top-right / bottom-left, exactly as a mirrored design board would. LTR
+ * layouts keep the mockup's original corners.
  *
  * No blur, no bitmap — one Path per outline request, cached by Compose.
  */
@@ -29,16 +32,21 @@ class NgbChamferShape(private val cut: Dp) : Shape {
         val c = with(density) { cut.toPx() }
         val w = size.width
         val h = size.height
-        // Amount cut from the left/right edge; mirrored in RTL.
-        val leftCut = if (layoutDirection == LayoutDirection.Rtl) 0f else c
-        val rightCut = if (layoutDirection == LayoutDirection.Rtl) c else 0f
+        // Corner cut amounts. LTR: top-left + bottom-right (the mockup's own
+        // corners). RTL: mirrored — top-right + bottom-left.
+        val tl = if (layoutDirection == LayoutDirection.Rtl) 0f else c
+        val tr = if (layoutDirection == LayoutDirection.Rtl) c else 0f
+        val br = tl
+        val bl = tr
         val path = Path().apply {
-            moveTo(leftCut, 0f)
-            lineTo(w, 0f)
-            lineTo(w, h - rightCut)
-            lineTo(w - rightCut, h)
-            lineTo(0f, h)
-            lineTo(0f, leftCut)
+            moveTo(tl, 0f)
+            lineTo(w - tr, 0f)
+            if (tr > 0f) lineTo(w, tr)
+            lineTo(w, h - br)
+            if (br > 0f) lineTo(w - br, h)
+            lineTo(bl, h)
+            if (bl > 0f) lineTo(0f, h - bl)
+            lineTo(0f, tl)
             close()
         }
         return Outline.Generic(path)

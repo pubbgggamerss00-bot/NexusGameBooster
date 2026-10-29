@@ -1,21 +1,8 @@
-Nexus Game Booster 2.0.0 — Arcade UI on the 1.2.0 base
+Nexus Game Booster 2.1.0 (Rocket Edition UI on 1.2.0) — new look!
 
-Built exactly as requested: the source and behavior are precisely the 1.2.0 codebase; only the theme, UI and animations come from the reference design (Nexus Game Booster.html). No feature was added or removed — every screen, button and flow matches 1.2.0.
-
-What's new (visuals & motion only):
-• Every screen fully restyled in the reference's arcade look: chamfered neon panels with gradient edges, 3D lip buttons with sweeping shine, HUD gauges, segmented keys and skewed stat bars.
-• Arcade font kit: Vazirmatn (body), Rajdhani (HUD numbers), Orbitron (tags) — full Persian support.
-• Home: floating rocket hero, license-key countdown card with ticking seconds, Shizuku status card, and the REACTOR boost button — orbiting ring, tick dial, hex core with 3D press feel, boost step badges and a particle burst on completion.
-• Boost result: bottom sheet with a score ring and live count-up of freed megabytes.
-• Library: segmented tabs, arcade search field, skewed colored covers with shine sweep and staggered card entrance.
-• Monitor: ring gauges (RAM/battery/temp/cores), live trend charts and a LIVE badge.
-• Profiles: selected card scales up with a neon halo and staggered animated stat bars.
-• Better ping: ring-style power button for WireGuard, colored signal bars per DNS and a stepped test-result reveal.
-• Settings: segmented language & appearance keys (navy/AMOLED), reduce-motion switch and arcade buttons.
-• License gate: floating rocket, focus-glow key field and full-width arcade button.
-• Bottom nav: sliding chamfered indicator, icons that pop on selection, plus the route-change scan sweep.
-• All animations respect the in-app "reduce motion" setting and the system animation scale.
-
-Install: signed with the same permanent key as previous releases — 2.0.0 installs as a normal update over 1.2.2 (and 1.2.1).
-
-Version: 2.0.0 (versionCode 30)
+What's new:
+• New rocket app icon: the booster now wears the green rocket badge on your home screen and in the launcher.
+• New 3D launch splash: a short rocket-launch animation (starfield, orbit rings, engine flare, arcade power meter) plays while the app opens — purely visual, nothing loads slower and it can be turned off with Reduce motion.
+• Full Rocket Edition retheme: the whole interface moved to the new forest-green + neon green/lime palette — surfaces, cards, buttons, the license countdown and the AMOLED black variant included.
+• No functional changes: boost engine, profiles, monitoring, library, DNS/WireGuard tools, tickets and settings behave exactly like 1.2.0. No new permissions; 115 unit tests still green.
+• Updating from 2.0.0 and any older version installs directly — no uninstall needed (same signature).

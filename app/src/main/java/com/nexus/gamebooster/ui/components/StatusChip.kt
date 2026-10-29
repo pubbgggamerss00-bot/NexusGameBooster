@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.nexus.gamebooster.monitoring.UnavailableReasons
 import com.nexus.gamebooster.ui.motion.LocalNgbMotionEnabled
+import com.nexus.gamebooster.ui.theme.NgbChamferShape
 import com.nexus.gamebooster.ui.theme.NgbErrorSoft
 import com.nexus.gamebooster.ui.theme.NgbPrimaryBright
 import com.nexus.gamebooster.ui.theme.NgbWarningSoft
@@ -54,10 +55,11 @@ enum class StatusChipVariant { OK, OK_MUTED, OK_GLOW, PENDING, ALERT, OFFLINE, U
 private data class ChipStyle(val container: Color, val content: Color, val border: Color, val blink: Boolean, val glow: Boolean)
 
 /**
- * Small pill with a colored dot + label, restyled to the kit: every variant
- * carries a 1 dp tinted border, and the kit's active/pending chips get the
- * glowing/blinking dot (both animations respect [LocalNgbMotionEnabled] —
- * reduced motion renders the same chips fully static).
+ * Small chip with a colored dot + label, restyled to the kit: the v1.2.1
+ * "ROCKET EDITION" re-skin gives every variant the mockup `.chip` silhouette
+ * (6 dp two-corner chamfer, 1 dp tinted border), and the kit's active/pending
+ * chips keep the glowing/blinking dot (both animations respect
+ * [LocalNgbMotionEnabled] — reduced motion renders the same chips fully static).
  */
 @Composable
 fun StatusChip(
@@ -97,7 +99,8 @@ fun StatusChip(
         dotAlpha = 1f
     }
 
-    val chipShape = RoundedCornerShape(percent = 50)
+    // Mockup `.chip` clip-path: 6px two-corner chamfer (was a rounded pill).
+    val chipShape = NgbChamferShape(6.dp)
     val base = if (style.glow && motion) {
         modifier.neonGlow(
             glowColor = NgbPrimary,
@@ -118,7 +121,7 @@ fun StatusChip(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .border(1.dp, style.border, RoundedCornerShape(percent = 50))
+                .border(1.dp, style.border, chipShape)
                 .padding(horizontal = 10.dp, vertical = 4.dp),
         ) {
             Box(

@@ -80,7 +80,8 @@ import com.nexus.gamebooster.ui.theme.NgbPrimary
  */
 enum class NgbConnectState { LOCKED, READY, CONNECTING, CONNECTED }
 
-private val ConnectShape = NgbChamferShape(14.dp)
+// v1.2.1: kit-exact 12 dp two-corner chamfer (the mockup `.gbtn` cut).
+private val ConnectShape = NgbChamferShape(12.dp)
 private val ConnectHexShape = NgbChamferShape(8.dp)
 
 /** Kit CTA vertical gradients, one per state (straight from the mockup CSS). */

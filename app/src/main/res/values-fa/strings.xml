@@ -424,14 +424,14 @@
     <string name="reason_action_disabled_for_safety">برای حفظ ایمنی غیرفعال است؛ تا زمانی که صفحهٔ بررسی و تأیید جداگانهٔ برنامه‌ها اضافه شود.</string>
 
     <!-- Network tools: WireGuard + DNS Changer -->
-    <string name="nav_ping">پینگ خوب</string>
-    <!-- v1.2.1 arcade Ping screen -->
+    <!-- v1.2.1 arcade Ping screen (strings kept: no longer referenced by the Rocket UI, retained for completeness) -->
     <string name="ping_power_hint">برای اتصال یا قطع تونل روی حلقه بزنید</string>
     <string name="ping_kv_profile">پروفایل</string>
     <string name="ping_kv_protocol">پروتکل</string>
     <string name="dns_best_chip">بهترین</string>
     <string name="dns_row_select">انتخاب</string>
     <string name="dns_row_active">فعال</string>
+    <string name="nav_ping">پینگ خوب</string>
     <string name="ping_title">پینگ خوب</string>
     <string name="ping_subtitle">ابزارهای واقعی اتصال شبکه</string>
     <string name="ping_tab_wireguard">وایرگارد</string>
