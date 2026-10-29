@@ -91,7 +91,7 @@ import com.nexus.gamebooster.ui.theme.neonGlow
  *  - THEME: NexusBoosterTheme (two dark variants only).
  *  - MOTION: [LocalNgbMotionEnabled] combines the in-app "Reduce motion" setting with
  *    the system's animator duration scale.
- * Below that: the v1.2.1 ARCADE bottom navigation (sliding indicator + icon pop)
+ * Below that: the v1.2.2 ARCADE bottom navigation (theme-only port) (sliding indicator + icon pop)
  * and a NavHost with restrained, direction-neutral transitions, plus the
  * route-change neon scan sweep from the redesign reference.
  */

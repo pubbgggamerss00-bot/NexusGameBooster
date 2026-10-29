@@ -17,17 +17,17 @@ android {
         applicationId = "com.nexus.gamebooster"
         minSdk = 26
         targetSdk = 35
-        versionCode = 28
-        versionName = "1.2.1"
+        versionCode = 29
+        versionName = "1.2.2"
     }
 
     // ---------------------------------------------------------------------------
-    // Release signing (Phase 6): credentials are NEVER committed. They are read
-    // either from a gitignored `keystore.properties` file at the project root
-    // (local builds) or from NGP_* environment variables (CI). If neither source
-    // provides all four values, the release signing config is simply not created
-    // and `assembleRelease` produces an unsigned APK instead of failing.
-    // See README.md → "Release signing" for keystore generation instructions.
+    // Release signing (v1.2.1 SIGNING-PERMANENCE FIX): the keystore IS committed
+    // to the repo (`release.keystore` + `keystore.properties` at the project root,
+    // deliberate .gitignore exceptions — see README → "Release signing" for the
+    // trade-off). NGP_* env vars still override for rotation/CI scenarios. If
+    // neither source provides all four values, the release signing config is
+    // simply not created and `assembleRelease` produces an unsigned APK.
     // ---------------------------------------------------------------------------
     val keystoreProperties = Properties().apply {
         val f = rootProject.file("keystore.properties")

@@ -1,18 +1,20 @@
-Nexus Game Booster 1.2.1 (Arcade Edition) — full redesign!
+Nexus Game Booster 1.2.2 — arcade theme on the exact 1.2.0 base
+
+As requested: the app's base is EXACTLY v1.2.0 and only the theme, visuals and buttons from the arcade reference design were applied — zero functional changes.
 
 What's new:
-• Complete arcade redesign of every screen: chamfered neon panels, 3D "lip" buttons, HUD gauges, segmented controls and skewed stat bars — exactly like the redesign mockup.
-• New arcade ambience: a retro perspective floor grid, drifting neon glows and a green scan sweep when you switch screens.
-• Home: the boost button is now a glowing REACTOR — spinning orbit ring, tick dial, hexagonal core with press-down 3D feel, step badges and a celebration particle burst when the boost finishes.
-• Bottom navigation rebuilt: sliding indicator, icons that pop up when selected.
-• Monitor: dashboard ring gauges (battery / memory) with animated arcs in the HUD font.
-• Profiles: selected profile card scales up with a neon glow, animated stat pips.
-• Better ping: power-style connection ring for WireGuard and colored signal bars for each DNS server.
-• New fonts: Vazirmatn (body), Rajdhani (HUD digits), Orbitron (tags) — full Persian support.
-• Every animation respects "Reduce motion" and your system animation setting.
+• Arcade theme from the reference: neon chamfered panels with gradient edges, skewed tags and the arcade fonts (Vazirmatn, Rajdhani, Orbitron) with full Persian support.
+• New buttons: the main boost button is now the reference's REACTOR (orbiting ring, tick dial, hex core, physical 3D press with a shine sweep); secondary buttons were rebuilt in the same 3D style.
+• Arcade backdrop: retro perspective floor grid + drifting neon glow blobs (replacing the old star field).
+• Arcade bottom bar: sliding chamfered indicator + icons that pop when selected + a green scan sweep on every screen change.
+• All animations respect the system "remove animations" setting.
 
-Fixed in this release:
-• The 1.2.0 release APK itself was healthy — if it did not install on your phone, it was because your installed copy is signed with an older key that no longer exists (previous signing keys were lost). From 1.2.1 the app uses a NEW permanent signing key that is stored with the project, so all future updates install as normal updates without uninstalling.
-• One-time step for this version only: uninstall the old app once, then install 1.2.1. After that, updates install directly.
+Unchanged:
+• Screens, menus and flows are exactly v1.2.0.
+• No feature added, nothing removed.
 
-Version: 1.2.1 (versionCode 28)
+Install:
+• Coming from 1.2.1? This installs as a normal update.
+• Still on 1.2.0 or older? As previously explained: uninstall once, then install this build.
+
+Version: 1.2.2 (versionCode 29)

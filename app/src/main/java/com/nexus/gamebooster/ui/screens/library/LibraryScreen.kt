@@ -20,6 +20,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.outlined.Add
@@ -27,21 +30,25 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Sort
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -54,18 +61,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDirection
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nexus.gamebooster.R
@@ -75,77 +75,18 @@ import com.nexus.gamebooster.core.uiMessageText
 import com.nexus.gamebooster.games.Game
 import com.nexus.gamebooster.games.GameSort
 import com.nexus.gamebooster.games.InstalledApp
-import com.nexus.gamebooster.ui.arcade.ArcadeButton
-import com.nexus.gamebooster.ui.arcade.ArcadeChip
-import com.nexus.gamebooster.ui.arcade.ArcadeField
-import com.nexus.gamebooster.ui.arcade.ArcadeHead
-import com.nexus.gamebooster.ui.arcade.ArcadeOutlineButton
-import com.nexus.gamebooster.ui.arcade.ArcadePanel
-import com.nexus.gamebooster.ui.arcade.ArcadePanelVariant
-import com.nexus.gamebooster.ui.arcade.ArcadeSegment
-import com.nexus.gamebooster.ui.arcade.ArcadeSegmented
-import com.nexus.gamebooster.ui.arcade.ArcadeTint
-import com.nexus.gamebooster.ui.arcade.NgbArcadeColors
+import com.nexus.gamebooster.ui.components.EmptyState
+import com.nexus.gamebooster.ui.components.NgbPageHeader
 import com.nexus.gamebooster.ui.components.NgbButton
 import com.nexus.gamebooster.ui.components.NgbOutlinedButton
 import com.nexus.gamebooster.ui.motion.LocalNgbMotionEnabled
 import com.nexus.gamebooster.ui.motion.ngbPressScale
-import com.nexus.gamebooster.ui.theme.NgbChamferShape
-import com.nexus.gamebooster.ui.theme.NgbHudFont
-import com.nexus.gamebooster.ui.theme.NgbTagFont
-
-
-/**
- * LIBRARY screen — v1.2.1 "ARCADE HUD" restyle (the `renderLibrary` view of the
- * reference: `head` → `.seg.tabs` → `.field.srch` → `.panel`/`.gcard` rows →
- * full-width `.obtn`). Every screen behavior is unchanged: search + sort, the
- * my-games/discover tabs, the discover GAMES/ALL_APPS filter, manual add dialog,
- * remove confirm, details, launch, the real scan flow and all empty states.
- *
- * Only the presentation moved to the arcade kit: [ArcadeHead], [ArcadeSegmented],
- * [ArcadeField], [ArcadePanel] cards with the chamfered `.cover` tile, and the
- * 3D-lip / outlined arcade buttons. Data still comes only from [LibraryViewModel].
- */
 
 /** Horizontal and vertical page padding — matches NgbScreenContainer's geometry. */
 private val LibraryScreenPadding = 16.dp
 
 /** Maximum content width on tablets / landscape — matches NgbScreenContainer. */
 private val LibraryMaxContentWidth = 640.dp
-
-/** Stable segment ids for the arcade segmented controls (UI-local only). */
-private const val SEGMENT_MY_GAMES = "my_games"
-private const val SEGMENT_DISCOVER = "discover"
-private const val SEGMENT_GAMES = "games"
-private const val SEGMENT_ALL_APPS = "all_apps"
-
-/** The `.cover` tile geometry of the reference: 62 px with a 10 px chamfer. */
-private val CoverTileSize = 62.dp
-
-/**
- * Arcade family hues the cover gradients are seeded from (the task's palette:
- * Neon/Lime/Azure/Warn/Danger — one bright hue plus one hue mixed deep toward
- * the kit ink, so every tile reads "bright → dark" on the dark theme).
- */
-private val CoverHues = listOf(
-    NgbArcadeColors.Neon,
-    NgbArcadeColors.Lime,
-    NgbArcadeColors.Azure,
-    NgbArcadeColors.Warn,
-    NgbArcadeColors.Danger,
-)
-
-/**
- * The `.cover::after` hover shine sweep, frozen as a static diagonal band
- * (transparent 40% → white 25% at 50% → transparent 60%) — no animation.
- */
-private val CoverShineBrush = Brush.linearGradient(
-    0f to Color.Transparent,
-    0.40f to Color.Transparent,
-    0.50f to Color.White.copy(alpha = 0.25f),
-    0.60f to Color.Transparent,
-    1f to Color.Transparent,
-)
 
 @Composable
 fun LibraryScreen() {
@@ -180,82 +121,67 @@ fun LibraryScreen() {
                     .fillMaxWidth()
                     .widthIn(max = LibraryMaxContentWidth),
             ) {
-                ArcadeHead(
-                    code = "LIBRARY",
+                NgbPageHeader(
                     title = stringResource(R.string.library_headline),
                     subtitle = stringResource(R.string.library_subtitle),
                 )
                 Spacer(Modifier.height(12.dp))
 
-                // The reference's `.seg.tabs` — same two tabs, same tab state.
-                ArcadeSegmented(
-                    options = listOf(
-                        ArcadeSegment(id = SEGMENT_MY_GAMES, label = stringResource(R.string.library_tab_my_games)),
-                        ArcadeSegment(id = SEGMENT_DISCOVER, label = stringResource(R.string.library_tab_discover)),
-                    ),
-                    selected = if (state.tab == LibraryTab.MY_GAMES) SEGMENT_MY_GAMES else SEGMENT_DISCOVER,
-                    onSelect = { id ->
-                        vm.selectTab(
-                            if (id == SEGMENT_MY_GAMES) LibraryTab.MY_GAMES else LibraryTab.DISCOVER
-                        )
+                OutlinedTextField(
+                    value = state.searchQuery,
+                    onValueChange = vm::onSearchQueryChange,
+                    singleLine = true,
+                    placeholder = { Text(stringResource(R.string.library_search_hint)) },
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Outlined.Search, contentDescription = null)
                     },
-                )
-                Spacer(Modifier.height(10.dp))
-
-                // `.field.srch` with the clear action beside it (appears only when
-                // there is something to clear, exactly like the old trailing icon).
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    ArcadeField(
-                        value = state.searchQuery,
-                        onValueChange = vm::onSearchQueryChange,
-                        modifier = Modifier.weight(1f),
-                        hint = stringResource(R.string.library_search_hint),
-                        isSearch = true,
-                    )
-                    if (state.searchQuery.isNotEmpty()) {
-                        ArcadeOutlineButton(
-                            onClick = { vm.onSearchQueryChange("") },
-                            tint = ArcadeTint.AZURE,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Close,
-                                contentDescription = stringResource(R.string.library_search_clear),
-                                modifier = Modifier.size(18.dp),
-                            )
+                    trailingIcon = {
+                        if (state.searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { vm.onSearchQueryChange("") }) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Close,
+                                    contentDescription = stringResource(R.string.library_search_clear),
+                                )
+                            }
                         }
-                    }
-                }
-                Spacer(Modifier.height(6.dp))
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
 
-                // Sort trigger (outlined, per the reference `.obtn`) + the real scan
-                // refresh. Refresh is disabled while a scan is running.
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     SortMenu(sort = state.sort, onSelect = vm::setSort)
-                    ArcadeOutlineButton(
-                        onClick = vm::refresh,
-                        enabled = !state.isRefreshing,
-                        tint = ArcadeTint.LIME,
-                    ) {
+                    Spacer(Modifier.width(4.dp))
+                    IconButton(onClick = vm::refresh, enabled = !state.isRefreshing) {
                         Icon(
                             imageVector = Icons.Outlined.Refresh,
                             contentDescription = stringResource(R.string.refresh),
-                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                    Spacer(Modifier.weight(1f))
+                    NgbOutlinedButton(onClick = vm::showAddDialog) {
+                        Icon(imageVector = Icons.Outlined.Add, contentDescription = null)
+                        Spacer(Modifier.width(4.dp))
+                        Text(stringResource(R.string.library_add_manual))
                     }
                 }
 
                 if (state.isRefreshing) {
-                    Spacer(Modifier.height(8.dp))
-                    LinearProgressIndicator(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = NgbArcadeColors.Neon,
-                        trackColor = NgbArcadeColors.Line,
+                    LinearProgressIndicator(Modifier.fillMaxWidth())
+                }
+                Spacer(Modifier.height(8.dp))
+
+                TabRow(selectedTabIndex = state.tab.ordinal) {
+                    Tab(
+                        selected = state.tab == LibraryTab.MY_GAMES,
+                        onClick = { vm.selectTab(LibraryTab.MY_GAMES) },
+                        text = { Text(stringResource(R.string.library_tab_my_games)) },
+                    )
+                    Tab(
+                        selected = state.tab == LibraryTab.DISCOVER,
+                        onClick = { vm.selectTab(LibraryTab.DISCOVER) },
+                        text = { Text(stringResource(R.string.library_tab_discover)) },
                     )
                 }
                 Spacer(Modifier.height(12.dp))
@@ -263,26 +189,6 @@ fun LibraryScreen() {
                 when (state.tab) {
                     LibraryTab.MY_GAMES -> MyLibraryContent(vm = vm, state = state)
                     LibraryTab.DISCOVER -> DiscoverContent(vm = vm, state = state)
-                }
-
-                // The reference's full-width trailing `.obtn` — manual add.
-                Spacer(Modifier.height(12.dp))
-                ArcadeOutlineButton(
-                    onClick = vm::showAddDialog,
-                    modifier = Modifier.fillMaxWidth(),
-                    tint = ArcadeTint.NEON,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.library_add_manual),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                    )
                 }
             }
         }
@@ -327,37 +233,31 @@ fun LibraryScreen() {
 @Composable
 private fun MyLibraryContent(vm: LibraryViewModel, state: LibraryUiState) {
     when {
-        state.myGames.isEmpty() && state.searchQuery.isBlank() -> ArcadeEmptyPanel(
+        state.myGames.isEmpty() && state.searchQuery.isBlank() -> EmptyState(
             icon = Icons.Outlined.SportsEsports,
             title = stringResource(R.string.library_empty_title),
             body = stringResource(R.string.my_games_empty_body),
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                ArcadeButton(onClick = { vm.selectTab(LibraryTab.DISCOVER) }) {
-                    Text(
-                        text = stringResource(R.string.library_tab_discover),
-                        fontWeight = FontWeight.ExtraBold,
-                    )
+            action = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    NgbButton(onClick = { vm.selectTab(LibraryTab.DISCOVER) }) {
+                        Text(stringResource(R.string.library_tab_discover))
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    NgbOutlinedButton(onClick = vm::showAddDialog) {
+                        Text(stringResource(R.string.library_add_manual))
+                    }
                 }
-                Spacer(Modifier.height(8.dp))
-                ArcadeOutlineButton(onClick = vm::showAddDialog, tint = ArcadeTint.AZURE) {
-                    Text(
-                        text = stringResource(R.string.library_add_manual),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                    )
-                }
-            }
-        }
+            },
+        )
 
-        state.myGames.isEmpty() -> ArcadeEmptyPanel(
+        state.myGames.isEmpty() -> EmptyState(
             icon = Icons.Outlined.Search,
             title = stringResource(R.string.library_no_match_title),
             body = stringResource(R.string.library_no_match_body, state.searchQuery),
         )
 
         else -> LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(state.myGames, key = { it.id }) { game ->
                 MyGameRow(
@@ -373,11 +273,10 @@ private fun MyLibraryContent(vm: LibraryViewModel, state: LibraryUiState) {
 }
 
 /**
- * One library game card: an arcade `.panel` wrapping the reference's `.gcard`
- * (chamfered cover tile + HUD name + meta + actions). The row is a single press
- * target with the shared restrained press scale and an explicit "open details"
- * click label; the launch/remove buttons stay their own accessibility nodes (a
- * merged parent never swallows interactive descendants).
+ * One library game card. The row is a single press target with the shared
+ * restrained press scale and an explicit "open details" click label; the inner
+ * launch/remove icon buttons stay their own accessibility nodes (a merged parent
+ * never swallows interactive descendants).
  */
 @Composable
 private fun MyGameRow(
@@ -388,69 +287,52 @@ private fun MyGameRow(
     motionEnabled: Boolean,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    ArcadePanel(
-        modifier = Modifier.fillMaxWidth(),
-        variant = ArcadePanelVariant.PLAIN,
-        contentPadding = 10.dp,
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = CoverTileSize)
+                .heightIn(min = 48.dp)
+                .clip(RoundedCornerShape(12.dp))
                 .ngbPressScale(interactionSource, motionEnabled)
                 .clickable(
                     interactionSource = interactionSource,
                     indication = LocalIndication.current,
                     onClickLabel = stringResource(R.string.a11y_open_game_details),
                     onClick = onClick,
-                ),
+                )
+                .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
-            GameCover(vm = vm, packageName = game.packageName, name = game.name)
+            GameAppIcon(vm = vm, packageName = game.packageName)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                GameNameText(name = game.name)
-                GameMetaText(text = game.packageName ?: stringResource(R.string.details_package_none))
+                Text(text = game.name, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    text = game.packageName ?: stringResource(R.string.details_package_none),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-            Spacer(Modifier.width(8.dp))
-            // The reference stacks the row's actions vertically (flex-direction:column).
-            Column(
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                // Launch only makes sense with a real package behind the entry.
-                if (game.packageName != null) {
-                    ArcadeButton(
-                        onClick = { vm.launch(game) },
-                        small = true,
-                        tint = ArcadeTint.NEON,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.PlayArrow,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            text = stringResource(R.string.library_launch),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                        )
-                    }
-                }
-                ArcadeOutlineButton(onClick = onRemove, tint = ArcadeTint.DANGER) {
+            // Launch only makes sense with a real package behind the entry.
+            if (game.packageName != null) {
+                IconButton(onClick = { vm.launch(game) }) {
                     Icon(
-                        imageVector = Icons.Outlined.Delete,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.remove_confirm),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.ExtraBold,
+                        imageVector = Icons.Outlined.PlayArrow,
+                        contentDescription = stringResource(R.string.library_launch),
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                 }
+            }
+            IconButton(onClick = onRemove) {
+                Icon(
+                    imageVector = Icons.Outlined.Delete,
+                    contentDescription = stringResource(R.string.remove_confirm),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
@@ -461,74 +343,52 @@ private fun MyGameRow(
 @Composable
 private fun DiscoverContent(vm: LibraryViewModel, state: LibraryUiState) {
     Column {
-        ArcadeSegmented(
-            options = listOf(
-                ArcadeSegment(id = SEGMENT_GAMES, label = stringResource(R.string.discover_filter_games)),
-                ArcadeSegment(id = SEGMENT_ALL_APPS, label = stringResource(R.string.discover_filter_all_apps)),
-            ),
-            selected = if (state.discoverFilter == DiscoverFilter.GAMES) SEGMENT_GAMES else SEGMENT_ALL_APPS,
-            onSelect = { id ->
-                vm.setDiscoverFilter(
-                    if (id == SEGMENT_GAMES) DiscoverFilter.GAMES else DiscoverFilter.ALL_APPS
-                )
-            },
-        )
-        Spacer(Modifier.height(8.dp))
-
-        // The honesty note, restyled as the reference's `.panel.warn`.
-        ArcadePanel(variant = ArcadePanelVariant.WARN, contentPadding = 12.dp) {
-            Row(verticalAlignment = Alignment.Top) {
-                Icon(
-                    imageVector = Icons.Outlined.Info,
-                    contentDescription = null,
-                    tint = NgbArcadeColors.Warn,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.discover_caption),
-                    fontSize = 12.sp,
-                    color = NgbArcadeColors.Muted,
-                )
-            }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterPill(
+                label = stringResource(R.string.discover_filter_games),
+                selected = state.discoverFilter == DiscoverFilter.GAMES,
+                onClick = { vm.setDiscoverFilter(DiscoverFilter.GAMES) },
+            )
+            FilterPill(
+                label = stringResource(R.string.discover_filter_all_apps),
+                selected = state.discoverFilter == DiscoverFilter.ALL_APPS,
+                onClick = { vm.setDiscoverFilter(DiscoverFilter.ALL_APPS) },
+            )
         }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.discover_caption),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Spacer(Modifier.height(8.dp))
 
         when {
             state.isRefreshing && !state.hasScannedOnce -> Text(
                 text = stringResource(R.string.library_scanning),
-                fontSize = 12.sp,
-                color = NgbArcadeColors.Muted,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            state.scanFailedReason != null && state.installedApps.isEmpty() -> ArcadeEmptyPanel(
+            state.scanFailedReason != null && state.installedApps.isEmpty() -> EmptyState(
                 icon = Icons.Outlined.CloudOff,
                 title = stringResource(R.string.library_scan_failed_title),
                 body = stringResource(R.string.library_scan_failed_body),
-            ) {
-                ArcadeOutlineButton(onClick = vm::refresh, tint = ArcadeTint.NEON) {
-                    Icon(
-                        imageVector = Icons.Outlined.Refresh,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.action_retry),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                    )
-                }
-            }
+                action = {
+                    NgbOutlinedButton(onClick = vm::refresh) {
+                        Text(stringResource(R.string.action_retry))
+                    }
+                },
+            )
 
-            state.discoverApps.isEmpty() -> ArcadeEmptyPanel(
+            state.discoverApps.isEmpty() -> EmptyState(
                 icon = Icons.Outlined.Search,
                 title = stringResource(R.string.discover_empty_title),
                 body = stringResource(R.string.discover_empty_body),
             )
 
             else -> LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(state.discoverApps, key = { it.packageName }) { app ->
                     DiscoverRow(
@@ -544,57 +404,83 @@ private fun DiscoverContent(vm: LibraryViewModel, state: LibraryUiState) {
 
 @Composable
 private fun DiscoverRow(app: InstalledApp, added: Boolean, vm: LibraryViewModel) {
-    ArcadePanel(
-        modifier = Modifier.fillMaxWidth(),
-        variant = ArcadePanelVariant.PLAIN,
-        contentPadding = 10.dp,
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        ),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = CoverTileSize),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
-            GameCover(vm = vm, packageName = app.packageName, name = app.label)
+            GameAppIcon(vm = vm, packageName = app.packageName)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                GameNameText(name = app.label)
-                GameMetaText(text = app.packageName)
+                Text(text = app.label, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    text = app.packageName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-            Spacer(Modifier.width(8.dp))
-            if (added) {
-                ArcadeChip(
-                    text = stringResource(R.string.discover_added_cd),
-                    tint = NgbArcadeColors.Lime,
-                    leading = {
-                        Icon(
-                            imageVector = Icons.Outlined.Check,
-                            contentDescription = null,
-                            tint = NgbArcadeColors.Lime,
-                            modifier = Modifier.size(13.dp),
-                        )
+            IconButton(onClick = { vm.addInstalled(app.packageName) }, enabled = !added) {
+                Icon(
+                    imageVector = if (added) Icons.Outlined.Check else Icons.Outlined.Add,
+                    contentDescription = stringResource(
+                        if (added) R.string.discover_added_cd else R.string.discover_add_cd
+                    ),
+                    tint = if (added) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
                     },
                 )
-            } else {
-                ArcadeButton(
-                    onClick = { vm.addInstalled(app.packageName) },
-                    small = true,
-                    tint = ArcadeTint.AZURE,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.add_dialog_confirm),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                    )
-                }
             }
         }
+    }
+}
+
+/**
+ * Text-only filter pill built from stable foundation APIs (no experimental chip APIs).
+ * Exposed as a radio in a two-option group so TalkBack announces the selected state,
+ * with the 48 dp minimum height and the shared restrained press scale.
+ */
+@Composable
+private fun FilterPill(label: String, selected: Boolean, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(percent = 50))
+            .background(
+                if (selected) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerHigh
+                }
+            )
+            .ngbPressScale(interactionSource, LocalNgbMotionEnabled.current)
+            .selectable(
+                selected = selected,
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                role = Role.RadioButton,
+                onClick = onClick,
+            )
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = if (selected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        )
     }
 }
 
@@ -602,17 +488,11 @@ private fun DiscoverRow(app: InstalledApp, added: Boolean, vm: LibraryViewModel)
 private fun SortMenu(sort: GameSort, onSelect: (GameSort) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        ArcadeOutlineButton(onClick = { expanded = true }, tint = ArcadeTint.NEON) {
+        IconButton(onClick = { expanded = true }) {
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.Sort,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                text = stringResource(R.string.sort_label),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.ExtraBold,
+                contentDescription = stringResource(R.string.sort_label),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -641,154 +521,52 @@ private fun SortMenu(sort: GameSort, onSelect: (GameSort) -> Unit) {
     }
 }
 
-// ------------------------------------------------------------------ cover tile
+// ----------------------------------------------------------------------- icons
 
 /**
- * Deterministic `.cover` gradient pair, seeded by the package name: one bright
- * arcade hue plus a second arcade hue mixed deep toward the kit ink. The same
- * game always paints the same tile (String.hashCode is stable); nothing random.
- */
-private fun coverGradientColors(seedKey: String): Pair<Color, Color> {
-    val seed = seedKey.hashCode()
-    val firstIndex = Math.floorMod(seed, CoverHues.size)
-    var secondIndex = Math.floorMod(seed / CoverHues.size + 2, CoverHues.size)
-    if (secondIndex == firstIndex) {
-        secondIndex = (firstIndex + 1) % CoverHues.size
-    }
-    val bright = CoverHues[firstIndex]
-    val deep = lerp(CoverHues[secondIndex], NgbArcadeColors.Ink, 0.72f)
-    return bright to deep
-}
-
-/**
- * The reference's `.cover`: a 62 dp tile clipped to the 10 dp chamfer, filled
- * with the deterministic diagonal gradient. A REAL app icon is shown when the
- * ViewModel's PackageManager cache has one; otherwise the tile falls back to
- * the game's first letter in Orbitron ExtraBold. The static shine band always
- * rides on top (the hover sweep, frozen — no animation).
+ * Real app icon with an honest placeholder: the bitmap is loaded asynchronously from
+ * PackageManager via the ViewModel cache; null (unknown package / load failure) renders
+ * a neutral tinted circle — never a fabricated icon.
  */
 @Composable
-private fun GameCover(vm: LibraryViewModel, packageName: String?, name: String) {
-    var bitmap by remember(packageName) {
-        mutableStateOf(if (packageName != null) vm.cachedIcon(packageName) else null)
+private fun GameAppIcon(vm: LibraryViewModel, packageName: String?, size: Int = 40) {
+    if (packageName == null) {
+        IconPlaceholder(size = size)
+        return
     }
-    if (packageName != null) {
-        LaunchedEffect(packageName) {
-            bitmap = vm.iconFor(packageName)
-        }
+    var bitmap by remember(packageName) { mutableStateOf(vm.cachedIcon(packageName)) }
+    LaunchedEffect(packageName) {
+        bitmap = vm.iconFor(packageName)
     }
-    val (hueBright, hueDeep) = coverGradientColors(seedKey = packageName ?: name)
+    val loaded: ImageBitmap? = bitmap
+    if (loaded != null) {
+        Image(
+            bitmap = loaded,
+            contentDescription = null,
+            modifier = Modifier
+                .size(size.dp)
+                .clip(RoundedCornerShape(8.dp)),
+        )
+    } else {
+        IconPlaceholder(size = size)
+    }
+}
+
+@Composable
+private fun IconPlaceholder(size: Int) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(CoverTileSize)
-            .clip(NgbChamferShape(10.dp))
-            .background(Brush.linearGradient(listOf(hueBright, hueDeep))),
+            .size(size.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
-        val loaded: ImageBitmap? = bitmap
-        if (loaded != null) {
-            Image(
-                bitmap = loaded,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-            )
-        } else {
-            Text(
-                text = name.firstOrNull()?.uppercase().orEmpty(),
-                fontFamily = NgbTagFont,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 24.sp,
-                color = Color.White.copy(alpha = 0.92f),
-            )
-        }
-        Box(modifier = Modifier.matchParentSize().background(CoverShineBrush))
-    }
-}
-
-// -------------------------------------------------------------- shared row text
-
-/**
- * Game title in the reference's `.gcard h3` style: HUD (Rajdhani) bold 17 sp,
- * forced LTR paragraph direction with start alignment (game names are Latin).
- */
-@Composable
-private fun GameNameText(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = name,
-        modifier = modifier,
-        style = LocalTextStyle.current.copy(textDirection = TextDirection.Ltr),
-        fontFamily = NgbHudFont,
-        fontWeight = FontWeight.Bold,
-        fontSize = 17.sp,
-        textAlign = TextAlign.Start,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-    )
-}
-
-/** Muted 12 sp meta line under the title (package / source info). */
-@Composable
-private fun GameMetaText(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text,
-        modifier = modifier,
-        fontSize = 12.sp,
-        color = NgbArcadeColors.Muted,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-    )
-}
-
-// ----------------------------------------------------------------- empty state
-
-/**
- * Empty / no-match state restyled as the reference's `.panel.flat`, centered:
- * icon, heavy title, muted body and an optional CTA slot.
- */
-@Composable
-private fun ArcadeEmptyPanel(
-    icon: ImageVector,
-    title: String,
-    body: String,
-    modifier: Modifier = Modifier,
-    action: (@Composable () -> Unit)? = null,
-) {
-    ArcadePanel(
-        modifier = modifier.fillMaxWidth(),
-        variant = ArcadePanelVariant.FLAT,
-        contentPadding = 18.dp,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 10.dp),
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = NgbArcadeColors.Neon,
-                modifier = Modifier.size(30.dp),
-            )
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = title,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.ExtraBold,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = body,
-                fontSize = 12.sp,
-                color = NgbArcadeColors.Muted,
-                textAlign = TextAlign.Center,
-            )
-            if (action != null) {
-                Spacer(Modifier.height(14.dp))
-                action()
-            }
-        }
+        Icon(
+            imageVector = Icons.Outlined.SportsEsports,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size((size / 2).dp),
+        )
     }
 }
 
