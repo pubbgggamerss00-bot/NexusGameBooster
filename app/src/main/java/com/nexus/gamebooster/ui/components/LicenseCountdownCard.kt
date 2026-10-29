@@ -101,7 +101,7 @@ fun LicenseCountdownCard(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
-                .background(Brush.linearGradient(listOf(Color(0xFF140F26), Color(0xFF100C20), Color(0xFF1A1333))))
+                .background(Brush.linearGradient(listOf(Color(0xFF0A2015), Color(0xFF071A0F), Color(0xFF0F301C))))
                 .border(1.dp, Brush.sweepGradient(listOf(accent.copy(alpha = 0.85f), NgbTertiary, NgbSecondary, accent.copy(alpha = 0.85f))), RoundedCornerShape(22.dp))
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -109,7 +109,7 @@ fun LicenseCountdownCard(modifier: Modifier = Modifier) {
             Box(modifier = Modifier.size(116.dp).scale(pulseScale), contentAlignment = Alignment.Center) {
                 Canvas(Modifier.size(108.dp)) {
                     val stroke = size.minDimension * 0.085f
-                    drawArc(Color(0xFF322658), -90f, 360f, false, style = Stroke(stroke, cap = StrokeCap.Round))
+                    drawArc(Color(0xFF1E3A2A), -90f, 360f, false, style = Stroke(stroke, cap = StrokeCap.Round))
                     if (hasExpiry) {
                         drawArc(
                             brush = Brush.sweepGradient(listOf(accent.copy(alpha = 0.45f), accent, NgbTertiary, accent)),
@@ -165,7 +165,7 @@ fun LicenseCountdownCard(modifier: Modifier = Modifier) {
 @Composable
 private fun TimeUnitBox(value: String, label: String, accent: Color, modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier.clip(RoundedCornerShape(10.dp)).background(Color(0xFF0B0817).copy(alpha = 0.9f)).border(1.dp, accent.copy(alpha = 0.22f), RoundedCornerShape(10.dp)).padding(vertical = 7.dp, horizontal = 3.dp),
+        modifier = modifier.clip(RoundedCornerShape(10.dp)).background(Color(0xFF04110A).copy(alpha = 0.9f)).border(1.dp, accent.copy(alpha = 0.22f), RoundedCornerShape(10.dp)).padding(vertical = 7.dp, horizontal = 3.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(value, color = accent, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, textAlign = TextAlign.Center, lineHeight = 21.sp)

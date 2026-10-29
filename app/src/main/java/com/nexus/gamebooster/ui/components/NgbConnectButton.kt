@@ -87,13 +87,13 @@ private val ConnectHexShape = NgbChamferShape(8.dp)
 private fun stateGradient(state: NgbConnectState): Brush = when (state) {
     NgbConnectState.LOCKED -> Brush.verticalGradient(listOf(NgbSurfaceContainerHighest, NgbSurfaceContainerHigh))
     NgbConnectState.READY -> Brush.verticalGradient(listOf(NgbPrimaryBright, NgbPrimary, NgbPrimaryDeep))
-    NgbConnectState.CONNECTING -> Brush.verticalGradient(listOf(Color(0xFF251A52), NgbSurfaceContainer))
+    NgbConnectState.CONNECTING -> Brush.verticalGradient(listOf(Color(0xFF163D24), NgbSurfaceContainer))
     NgbConnectState.CONNECTED -> Brush.verticalGradient(listOf(Color(0xFFFF8CA3), Color(0xFFFF4D6D), Color(0xFFD42A4B)))
 }
 
 private fun stateTextColor(state: NgbConnectState): Color = when (state) {
     NgbConnectState.LOCKED -> NgbTextMuted
-    NgbConnectState.READY -> Color(0xFF03150C)
+    NgbConnectState.READY -> Color(0xFF04110A)
     NgbConnectState.CONNECTING -> NgbOnBackground
     NgbConnectState.CONNECTED -> NgbOnRedCta
 }

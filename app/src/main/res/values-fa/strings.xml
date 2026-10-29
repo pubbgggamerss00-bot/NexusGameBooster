@@ -560,4 +560,8 @@
     <string name="game_advice_common_tip_1">اگر گوشی حالت بازی اختصاصی دارد، آن را فعال کن و در صورت وجود، حالت عملکرد را انتخاب کن.</string>
     <string name="game_advice_common_tip_2">وقتی گوشی خیلی داغ است بازی نکن؛ در صورت افت عملکرد ناشی از گرما، قاب ضخیم را بردار و به گوشی فرصت خنک‌شدن بده.</string>
     <string name="game_advice_disclaimer">این‌ها پیشنهادهای دستی هستند و Nexus آن تنظیمات را خودکار اعمال نمی‌کند. گزینه‌ها با مدل گوشی، منطقه و نسخهٔ بازی فرق دارند.</string>
+
+    <!-- Rocket Edition (v1.2.0): 3D launch splash -->
+    <string name="splash_launching">در حال پرتاب…</string>
+    <string name="rocket_edition_label">ادیشن راکت</string>
 </resources>

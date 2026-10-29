@@ -1,32 +1,137 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Adaptive-icon foreground, 108dp canvas. All artwork stays inside the centered
-  66dp safe zone (x/y from 21 to 87) so it survives every adaptive-icon mask.
+  Adaptive-icon foreground, 108dp canvas (Rocket Edition, v1.2.0).
+  Exact vector replica of the "Green rocket" app icon (see the web prototype's
+  logo.tsx — same geometry and gradient stops, mapped from its 48dp artboard by
+  f(p) = 18 + 1.5p so every element stays inside the centered 66dp safe zone).
 
-  Artwork: dark rounded hexagon outline + green lightning bolt (brand: neon green
-  #00FF9D on near-black #070B14).
+  The rounded forest-green TILE is provided by the adaptive-icon BACKGROUND
+  layer (@color/ngb_launcher_background #123524) and shaped by the launcher
+  mask; this foreground carries only the artwork: the dotted orbit, the neon
+  launch swoosh (soft echo + main stroke), the 45°-climbing white/green rocket
+  with its blue porthole, and the two sparkles.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Hexagon fill (pointy-top, radius 30 around center 54,54) -->
-    <path
-        android:fillColor="#0F1626"
-        android:pathData="M54,24 L80,39 L80,69 L54,84 L28,69 L28,39 Z" />
-
-    <!-- Hexagon rounded outline -->
+    <!-- Dotted orbit (48-space circle c(24,23) r13.5, dash 1.4/3.6 → 17 round dots) -->
     <path
         android:fillColor="#00000000"
-        android:strokeColor="#2E4A78"
-        android:strokeWidth="3"
-        android:strokeLineJoin="round"
-        android:pathData="M54,24 L80,39 L80,69 L54,84 L28,69 L28,39 Z" />
+        android:strokeColor="#47ECFFF4"
+        android:strokeWidth="1.65"
+        android:strokeLineCap="round"
+        android:pathData="M74.22,51.45 A20.25,20.25 0 0 1 74.22,53.55 M73.24,58.83 A20.25,20.25 0 0 1 72.48,60.78 M69.65,65.35 A20.25,20.25 0 0 1 68.24,66.9 M63.95,70.13 A20.25,20.25 0 0 1 62.07,71.07 M56.91,72.54 A20.25,20.25 0 0 1 54.82,72.73 M49.48,72.24 A20.25,20.25 0 0 1 47.46,71.66 M42.65,69.27 A20.25,20.25 0 0 1 40.98,68.01 M37.36,64.04 A20.25,20.25 0 0 1 36.25,62.25 M34.31,57.25 A20.25,20.25 0 0 1 33.93,55.18 M33.93,49.82 A20.25,20.25 0 0 1 34.31,47.75 M36.25,42.75 A20.25,20.25 0 0 1 37.36,40.96 M40.98,36.99 A20.25,20.25 0 0 1 42.65,35.73 M47.46,33.34 A20.25,20.25 0 0 1 49.48,32.76 M54.82,32.27 A20.25,20.25 0 0 1 56.91,32.46 M62.07,33.93 A20.25,20.25 0 0 1 63.95,34.87 M68.24,38.1 A20.25,20.25 0 0 1 69.65,39.65 M72.48,44.22 A20.25,20.25 0 0 1 73.24,46.17" />
 
-    <!-- Lightning bolt (scaled/centered classic flash shape) -->
+    <!-- Neon launch swoosh — soft echo (opacity .28, shifted down 1.4·1.5) -->
+    <group android:translateY="2.1">
+        <path
+            android:fillColor="#00000000"
+            android:strokeAlpha="0.28"
+            android:strokeWidth="5.1"
+            android:strokeLineCap="round"
+            android:pathData="M30.75,59.25 c2.25,11.25 12,18.75 23.25,18.75 s21,-7.5 23.25,-18.75">
+            <aapt:attr name="android:strokeColor">
+                <gradient
+                    android:startX="27" android:startY="54"
+                    android:endX="81" android:endY="81"
+                    android:type="linear">
+                    <item android:offset="0" android:color="#FF57FF8B" />
+                    <item android:offset="0.55" android:color="#FF3DFF7C" />
+                    <item android:offset="1" android:color="#FF8CFF5C" />
+                </gradient>
+            </aapt:attr>
+        </path>
+    </group>
+
+    <!-- Neon launch swoosh — main stroke -->
     <path
-        android:fillColor="#00FF9D"
-        android:pathData="M46,38 L46,55.6 L50.8,55.6 L50.8,70 L62,50.8 L55.6,50.8 L62,38 Z" />
+        android:fillColor="#00000000"
+        android:strokeWidth="3.9"
+        android:strokeLineCap="round"
+        android:pathData="M30.75,59.25 c2.25,11.25 12,18.75 23.25,18.75 s21,-7.5 23.25,-18.75">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="27" android:startY="54"
+                android:endX="81" android:endY="81"
+                android:type="linear">
+                <item android:offset="0" android:color="#FF57FF8B" />
+                <item android:offset="0.55" android:color="#FF3DFF7C" />
+                <item android:offset="1" android:color="#FF8CFF5C" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Rocket: drawn pointing up, then tilted onto its 45° climb (rotate 45 @ 54,51.75) -->
+    <group
+        android:rotation="45"
+        android:pivotX="54"
+        android:pivotY="51.75">
+        <!-- left fin -->
+        <path
+            android:fillColor="#2FBF68"
+            android:pathData="M45,51.75 L36.75,64.5 l8.25,-2.4 Z" />
+        <!-- right fin -->
+        <path
+            android:fillColor="#2FBF68"
+            android:pathData="M63,51.75 L71.25,64.5 L63,62.1 Z" />
+        <!-- exhaust flame -->
+        <path
+            android:fillColor="#C9FF4A"
+            android:pathData="M54,68.4 L50.7,77.25 L54,74.7 l3.3,2.55 Z" />
+        <!-- nozzle -->
+        <path
+            android:fillColor="#12301F"
+            android:pathData="M51,63.6 H57 A1.5,1.5 0 0 1 58.5,65.1 V66 A1.5,1.5 0 0 1 57,67.5 H51 A1.5,1.5 0 0 1 49.5,66 V65.1 A1.5,1.5 0 0 1 51,63.6 Z" />
+        <!-- nose cone -->
+        <path
+            android:fillColor="#35D977"
+            android:pathData="M45,42.75 C45,33.75 50.1,28.5 54,27 c3.9,1.5 9,6.75 9,15.75 Z" />
+        <!-- body (white → pale mint gradient) -->
+        <path
+            android:pathData="M47.4,42.75 H60.6 A2.4,2.4 0 0 1 63,45.15 V61.65 A2.4,2.4 0 0 1 60.6,64.05 H47.4 A2.4,2.4 0 0 1 45,61.65 V45.15 A2.4,2.4 0 0 1 47.4,42.75 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:startX="48" android:startY="30"
+                    android:endX="63" android:endY="69"
+                    android:type="linear">
+                    <item android:offset="0" android:color="#FFFFFFFF" />
+                    <item android:offset="1" android:color="#FFDDF5E6" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <!-- belly stripe -->
+        <path
+            android:fillColor="#35D977"
+            android:pathData="M45,58.8 H63 V64.05 H45 Z" />
+        <!-- porthole: bezel, blue glass, white ring, highlight -->
+        <path
+            android:fillColor="#0F2E1D"
+            android:pathData="M47.1,48.6 a6.9,6.9 0 1 0 13.8,0 a6.9,6.9 0 1 0 -13.8,0 Z" />
+        <path
+            android:fillColor="#1D5FA8"
+            android:pathData="M48.45,48.6 a5.55,5.55 0 1 0 11.1,0 a5.55,5.55 0 1 0 -11.1,0 Z" />
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#FFFFFF"
+            android:strokeAlpha="0.9"
+            android:strokeWidth="1.65"
+            android:pathData="M48.45,48.6 a5.55,5.55 0 1 0 11.1,0 a5.55,5.55 0 1 0 -11.1,0 Z" />
+        <path
+            android:fillColor="#BFE6FF"
+            android:pathData="M50.55,46.8 a1.575,1.575 0 1 0 3.15,0 a1.575,1.575 0 1 0 -3.15,0 Z" />
+    </group>
+
+    <!-- sparkles -->
+    <path
+        android:fillColor="#ECFFF4"
+        android:fillAlpha="0.95"
+        android:pathData="M74.25,29.25 l1.65,4.35 4.35,1.65 -4.35,1.65 -1.65,4.35 -1.65,-4.35 -4.35,-1.65 4.35,-1.65 Z" />
+    <path
+        android:fillColor="#ECFFF4"
+        android:fillAlpha="0.55"
+        android:pathData="M33,39.75 l1.2,3 3,1.2 -3,1.2 -1.2,3 -1.2,-3 -3,-1.2 3,-1.2 Z" />
 </vector>

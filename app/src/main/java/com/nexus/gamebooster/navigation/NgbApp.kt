@@ -43,6 +43,7 @@ import com.nexus.gamebooster.core.withAppLocale
 import com.nexus.gamebooster.data.AppSettings
 import com.nexus.gamebooster.ui.components.NgbNeonBackdrop
 import com.nexus.gamebooster.ui.components.NgbNeonLoader
+import com.nexus.gamebooster.ui.components.RocketSplashOverlay
 import com.nexus.gamebooster.ui.motion.LocalNgbMotionEnabled
 import com.nexus.gamebooster.ui.screens.home.HomeScreen
 import com.nexus.gamebooster.ui.screens.library.LibraryScreen
@@ -131,19 +132,25 @@ private fun NgbRoot() {
             }
         }
     }
-    when (gateState) {
-        // App entry: the NEON ARENA v2 loader (rings + rotating arc + star field)
-        // while the saved session is re-synced — replaces the plain spinner.
-        0 -> NgbNeonLoader(
-            statusText = stringResource(R.string.app_loading_subtitle),
-            loadingContentDescription = stringResource(R.string.loader_content_description),
-        )
-        1 -> LicenseGateScreen(onActivated = { gateState = 2 })
-        2 -> Box(Modifier.fillMaxSize()) {
-            NgbNeonBackdrop(Modifier.fillMaxSize())
-            NgbMainContent()
+    Box(Modifier.fillMaxSize()) {
+        when (gateState) {
+            // App entry: the NEON ARENA v2 loader (rings + rotating arc + star field)
+            // while the saved session is re-synced — replaces the plain spinner.
+            0 -> NgbNeonLoader(
+                statusText = stringResource(R.string.app_loading_subtitle),
+                loadingContentDescription = stringResource(R.string.loader_content_description),
+            )
+            1 -> LicenseGateScreen(onActivated = { gateState = 2 })
+            2 -> Box(Modifier.fillMaxSize()) {
+                NgbNeonBackdrop(Modifier.fillMaxSize())
+                NgbMainContent()
+            }
+            else -> LicenseGateScreen(showRetry = true, onActivated = { gateState = 2 }, onRetry = { checkTick++ })
         }
-        else -> LicenseGateScreen(showRetry = true, onActivated = { gateState = 2 }, onRetry = { checkTick++ })
+        // Rocket Edition (v1.2.0): the 3D launch splash rides on TOP of whatever
+        // gate state is active during boot and fades out after ~2.6 s. Purely
+        // cosmetic — the gate check above already runs underneath from frame one.
+        RocketSplashOverlay()
     }
 }
 
@@ -160,7 +167,7 @@ private fun NgbMainContent() {
         containerColor = Color.Transparent,
         bottomBar = {
             // Mockup .bottom-nav: near-black translucent bar, green hairline top edge.
-            NavigationBar(containerColor = Color(0xEB080612)) {
+            NavigationBar(containerColor = Color(0xEB04110A)) {
                 NgbDestination.entries.forEach { destination ->
                     val selected = currentRoute == destination.route
                     NavigationBarItem(

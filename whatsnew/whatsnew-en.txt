@@ -1,7 +1,8 @@
-Nexus Game Booster 1.1.5 — new version!
+Nexus Game Booster 1.2.0 (Rocket Edition) — new look!
 
 What's new:
-• Fixed the built-in API address: the app now talks to the new control-plane Worker (gameboster.nova-7bc9791a4174.workers.dev). The old Worker had gone down (server errors on every request), so activation and sync work again.
-• The new server was live-verified before this release: health check OK, invalid keys are still rejected with the same error, and sync still requires your saved session — nothing about how you sign in changes.
-• Same one-time key activation as before: your existing session, tickets, DNS/WireGuard configs and every other feature keep working exactly as they did.
-• No new permissions; 115 unit tests still green. Updating from any 0.11.3+ version installs directly — no uninstall needed (same signature).
+• New rocket app icon: the booster now wears the green rocket badge on your home screen and in the launcher.
+• New 3D launch splash: a short rocket-launch animation (starfield, orbit rings, engine flare, arcade power meter) plays while the app opens — purely visual, nothing loads slower and it can be turned off with Reduce motion.
+• Full Rocket Edition retheme: the whole interface moved to the new forest-green + neon green/lime palette — surfaces, cards, buttons, the license countdown and the AMOLED black variant included.
+• No functional changes: boost engine, profiles, monitoring, library, DNS/WireGuard tools, tickets and settings behave exactly like 1.1.5. No new permissions; 115 unit tests still green.
+• Updating from any 0.11.3+ version installs directly — no uninstall needed (same signature).

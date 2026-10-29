@@ -179,7 +179,7 @@ fun NgbLogoChip(modifier: Modifier = Modifier, chipSize: Dp = 56.dp) {
         Icon(
             imageVector = Icons.Filled.Bolt,
             contentDescription = null,
-            tint = Color(0xFF03150C),
+            tint = Color(0xFF04110A),
             modifier = Modifier.size(chipSize * 0.6f),
         )
     }

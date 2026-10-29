@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ngb_launcher_background">#05050C</color>
+    <!-- Rocket Edition (v1.2.0): forest-green tile behind the rocket launcher
+         foreground — the mid stop of the icon tile gradient (#1B4530/#123524/#0A2015).
+         Also the windowBackground in themes.xml, so cold start flashes green, not white. -->
+    <color name="ngb_launcher_background">#123524</color>
 </resources>

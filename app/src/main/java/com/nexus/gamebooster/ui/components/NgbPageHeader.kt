@@ -28,7 +28,7 @@ fun NgbPageHeader(title: String, subtitle: String? = null, modifier: Modifier = 
             .clip(RoundedCornerShape(22.dp))
             .background(
                 Brush.linearGradient(
-                    colors = listOf(Color(0xFF182B35), Color(0xFF171126), Color(0xFF0D0A18))
+                    colors = listOf(Color(0xFF143423), Color(0xFF0F2A1B), Color(0xFF081711))
                 )
             )
     ) {
@@ -42,14 +42,14 @@ fun NgbPageHeader(title: String, subtitle: String? = null, modifier: Modifier = 
                 text = title,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFFF5F7FF),
+                color = Color(0xFFECFFF4),
             )
             if (!subtitle.isNullOrBlank()) {
                 Spacer(Modifier.height(5.dp))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFFB7C8D2),
+                    color = Color(0xFF8FB79D),
                 )
             }
         }

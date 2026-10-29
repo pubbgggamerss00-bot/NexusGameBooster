@@ -560,4 +560,8 @@
     <string name="game_advice_common_tip_1">Use the phone maker’s built-in Game Mode if available and set it to performance.</string>
     <string name="game_advice_common_tip_2">Avoid gaming while the phone is very hot; remove a thick case and pause to cool down if performance drops with heat.</string>
     <string name="game_advice_disclaimer">These are manual suggestions, not settings applied by Nexus. Options vary by device, region, and game version.</string>
+
+    <!-- Rocket Edition (v1.2.0): 3D launch splash -->
+    <string name="splash_launching">Launching…</string>
+    <string name="rocket_edition_label">ROCKET EDITION</string>
 </resources>

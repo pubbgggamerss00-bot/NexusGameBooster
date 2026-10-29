@@ -71,7 +71,7 @@ fun StatusChip(
         StatusChipVariant.OK -> ChipStyle(scheme.primary.copy(alpha = 0.14f), scheme.primary, scheme.primary.copy(alpha = 0.55f), blink = false, glow = false)
         StatusChipVariant.OK_MUTED -> ChipStyle(scheme.primary.copy(alpha = 0.07f), scheme.primary.copy(alpha = 0.55f), scheme.primary.copy(alpha = 0.30f), blink = false, glow = false)
         StatusChipVariant.OK_GLOW -> ChipStyle(NgbPrimary.copy(alpha = 0.12f), NgbPrimaryBright, NgbPrimary.copy(alpha = 0.55f), blink = true, glow = true)
-        StatusChipVariant.PENDING -> ChipStyle(Color(0xFFFFB020).copy(alpha = 0.12f), NgbWarningSoft, Color(0xFFFFB020).copy(alpha = 0.50f), blink = true, glow = false)
+        StatusChipVariant.PENDING -> ChipStyle(Color(0xFFFFC46B).copy(alpha = 0.12f), NgbWarningSoft, Color(0xFFFFC46B).copy(alpha = 0.50f), blink = true, glow = false)
         StatusChipVariant.ALERT -> ChipStyle(Color(0xFFFF4D6D).copy(alpha = 0.12f), NgbErrorSoft, Color(0xFFFF4D6D).copy(alpha = 0.50f), blink = false, glow = false)
         StatusChipVariant.OFFLINE -> ChipStyle(scheme.secondary.copy(alpha = 0.16f), scheme.secondary, scheme.secondary.copy(alpha = 0.50f), blink = false, glow = false)
         StatusChipVariant.UNAVAILABLE -> ChipStyle(scheme.error.copy(alpha = 0.12f), scheme.error, scheme.error.copy(alpha = 0.50f), blink = false, glow = false)
