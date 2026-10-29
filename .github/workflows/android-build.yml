@@ -2,15 +2,16 @@
 #
 # Builds the app on every push/PR to main with the committed Gradle wrapper:
 #   1. assembleDebug       → debug APK uploaded as a workflow artifact
-#   2. testDebugUnitTest   → all 99 JVM unit tests
+#   2. testDebugUnitTest   → all JVM unit tests
 #   3. lintRelease         → Android Lint (release variant)
 #
-# Tag releases (v*) additionally build assembleRelease and attach the APK to
-# the GitHub Release. NOTE: without NGP_* repository secrets that APK is
-# UNSIGNED — see "Release signing" in README.md.
+# Tag releases (v*) additionally build assembleRelease and attach a SIGNED APK
+# named NexusGameBooster-<tag>-release.apk to the GitHub Release.
 #
-# The release signing credentials are never committed; local signed builds use
-# the gitignored keystore.properties file (README → "Release signing").
+# v1.2.1 SIGNING-PERMANENCE FIX: the release keystore IS committed to the repo
+# (release.keystore + keystore.properties, see README → "Release signing"), so
+# Gradle signs every release build with the permanent v1.2.1+ key — no NGP_*
+# repository secrets needed. Update the committed keystore to rotate.
 
 name: Android CI
 
@@ -99,18 +100,25 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # Unsigned unless the NGP_* repository secrets are configured.
+      # Signed with the committed permanent release keystore (v1.2.1+).
       - name: Assemble release APK
         run: ./gradlew assembleRelease --stacktrace
+
+      - name: Rename release APK
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          DEST="NexusGameBooster-${GITHUB_REF_NAME}-release.apk"
+          cp "$APK" "$DEST"
+          echo "Renamed to $DEST"
 
       - name: Upload release APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: NexusGameBooster-release-apk
-          path: app/build/outputs/apk/release/app-release.apk
+          path: NexusGameBooster-*-release.apk
           if-no-files-found: error
 
       - name: Attach APK to the GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/outputs/apk/release/app-release.apk
+          files: NexusGameBooster-*-release.apk
