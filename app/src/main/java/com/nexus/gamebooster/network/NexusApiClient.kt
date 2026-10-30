@@ -22,6 +22,11 @@ object NexusApiClient {
     const val DEFAULT_BASE_URL = "https://gameboster.nova-7bc9791a4174.workers.dev"
 
     val sessionInvalid = MutableStateFlow(false)
+
+    // v1.1.5 account-bound licenses: surfaced to the UI when the Worker reports
+    // that the active key has expired mid-session (typed expiry message per key type).
+    val licenseExpiryNotice = MutableStateFlow("")
+
     private const val PREFS = "nexus_api_session"
     private const val API_BASE = "api_base"
     private const val TOKEN = "session_token"
@@ -29,6 +34,7 @@ object NexusApiClient {
     private const val SYNC = "last_sync_json"
     private const val LICENSE_CREATED_AT = "license_created_at"
     private const val LICENSE_EXPIRES_AT = "license_expires_at"
+    private const val ACCOUNT_CODE = "account_code"
 
     fun token(context: Context) = prefs(context).getString(TOKEN, "").orEmpty()
     fun apiBase(context: Context): String = DEFAULT_BASE_URL
@@ -37,6 +43,22 @@ object NexusApiClient {
     /** License timestamps are Unix epoch seconds supplied by the authoritative API. */
     fun licenseCreatedAt(context: Context): Long = prefs(context).getLong(LICENSE_CREATED_AT, 0L)
     fun licenseExpiresAt(context: Context): Long = prefs(context).getLong(LICENSE_EXPIRES_AT, 0L)
+
+    /** The account number issued for THIS installation ("User-XXXXX"), if any. */
+    fun accountCode(context: Context): String = prefs(context).getString(ACCOUNT_CODE, "").orEmpty()
+
+    /**
+     * v1.1.5 account-bound licenses: issue (or re-fetch) the installation's unique
+     * account number from the Worker. One account per install — the server binds
+     * it to the immutable device hash and never re-issues for a known install.
+     */
+    suspend fun issueAccountCode(context: Context): String = withContext(Dispatchers.IO) {
+        val existing=accountCode(context); if(existing.isNotBlank()) return@withContext existing
+        val result=request(context, "${DEFAULT_BASE_URL}/api/v1/account/issue", "POST", JSONObject().put("deviceId", deviceId(context)), null, deviceId(context))
+        val code=result.optString("accountCode"); require(code.matches(Regex("User-[A-Z0-9]{5}"))) { context.getString(R.string.account_issue_failed) }
+        prefs(context).edit().putString(ACCOUNT_CODE,code).apply(); code
+    }
+
     fun clearSession(context: Context) { prefs(context).edit().remove(TOKEN).remove(SYNC).apply() }
 
     suspend fun activate(context: Context, baseUrl: String, key: String): JSONObject = withContext(Dispatchers.IO) {
@@ -97,6 +119,9 @@ object NexusApiClient {
         val result = try {
             request(context, "$base/api/v1/sync", "GET", null, token, deviceId(context))
         } catch (e: SecurityException) {
+            // v1.1.5: a typed expiry message from the Worker is promoted to the UI
+            // (the gate screen shows it as a dialog) before the session is dropped.
+            if (e.message.orEmpty().contains("به پایان رسیده") || e.message.orEmpty().contains("منقضی")) licenseExpiryNotice.value=e.message.orEmpty()
             clearSession(context)
             sessionInvalid.value = true
             throw e

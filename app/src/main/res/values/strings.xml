@@ -479,6 +479,19 @@
     <string name="dns_vpn_notification_title">Nexus DNS Changer is active</string>
     <string name="dns_vpn_notification_text">Routing DNS requests through the selected resolver.</string>
     <string name="license_subtitle">Sign in with your access key</string>
+    <!-- v2.2.0 account-bound licenses -->
+    <string name="account_section_title">User account number</string>
+    <string name="account_section_desc">This ID is used to issue your personal key and bind it to your account.</string>
+    <string name="account_copy">Copy account number</string>
+    <string name="account_issue">Issue account number</string>
+    <string name="account_issuing">Issuing…</string>
+    <string name="account_yours">Your account number: %1$s</string>
+    <string name="account_issue_gate">Issue dedicated account number</string>
+    <string name="account_issue_progress">Issuing your secure account number…</string>
+    <string name="account_issue_success">Your account number was issued successfully.</string>
+    <string name="account_issue_failed">Account number issuance failed</string>
+    <string name="license_expired_title">Key validity has ended</string>
+    <string name="license_expired_dismiss">Got it</string>
     <string name="license_key_label">Access key</string>
     <string name="license_checking">Checking key and device capacity\u2026</string>
     <string name="license_success">Key verified.</string>

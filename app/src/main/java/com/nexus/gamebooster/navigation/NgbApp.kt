@@ -64,6 +64,7 @@ import com.nexus.gamebooster.ui.theme.NgbOutline
 import com.nexus.gamebooster.ui.theme.NgbPrimary
 import com.nexus.gamebooster.ui.theme.NgbPrimaryContainer
 import com.nexus.gamebooster.ui.theme.NexusBoosterTheme
+import kotlinx.coroutines.delay
 
 /**
  * App shell. Persisted settings drive everything global, so changes apply immediately:
@@ -119,6 +120,8 @@ fun NgbApp() {
 private fun NgbRoot() {
     val context = LocalContext.current
     val sessionInvalid by NexusApiClient.sessionInvalid.collectAsStateWithLifecycle()
+    // v1.1.5 account-bound licenses: typed expiry message surfaced by sync().
+    val expiryNotice by NexusApiClient.licenseExpiryNotice.collectAsStateWithLifecycle()
     // 0=checking, 1=login, 2=app, 3=retry (saved session kept, server unreachable)
     var gateState by remember { mutableIntStateOf(0) }
     var checkTick by remember { mutableIntStateOf(0) }
@@ -142,6 +145,20 @@ private fun NgbRoot() {
             }
         }
     }
+    // v1.1.5 account-bound licenses: while an active session is on screen,
+    // re-validate it every 30 seconds; a server-side expiry (typed message per
+    // key type) drops back to the login gate. Transient network errors never
+    // interrupt an active session.
+    LaunchedEffect(gateState) {
+        if (gateState == 2) {
+            while (true) {
+                delay(30_000L)
+                try { NexusApiClient.sync(context) }
+                catch (_: SecurityException) { gateState = 1; break }
+                catch (_: Exception) { /* transient network errors do not interrupt an active session */ }
+            }
+        }
+    }
     Box(Modifier.fillMaxSize()) {
         when (gateState) {
             // App entry: the NEON ARENA v2 loader (rings + rotating arc + star field)
@@ -150,12 +167,22 @@ private fun NgbRoot() {
                 statusText = stringResource(R.string.app_loading_subtitle),
                 loadingContentDescription = stringResource(R.string.loader_content_description),
             )
-            1 -> LicenseGateScreen(onActivated = { gateState = 2 })
+            1 -> LicenseGateScreen(
+                expiryNotice = expiryNotice,
+                onExpiryNoticeDismiss = { NexusApiClient.licenseExpiryNotice.value = "" },
+                onActivated = { gateState = 2 },
+            )
             2 -> Box(Modifier.fillMaxSize()) {
                 NgbNeonBackdrop(Modifier.fillMaxSize())
                 NgbMainContent()
             }
-            else -> LicenseGateScreen(showRetry = true, onActivated = { gateState = 2 }, onRetry = { checkTick++ })
+            else -> LicenseGateScreen(
+                showRetry = true,
+                expiryNotice = expiryNotice,
+                onExpiryNoticeDismiss = { NexusApiClient.licenseExpiryNotice.value = "" },
+                onActivated = { gateState = 2 },
+                onRetry = { checkTick++ },
+            )
         }
         // Rocket Edition (v1.2.0): the 3D launch splash rides on TOP of whatever
         // gate state is active during boot and fades out after ~2.6 s. Purely

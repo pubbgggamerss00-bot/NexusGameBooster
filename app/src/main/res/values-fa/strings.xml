@@ -479,6 +479,19 @@
     <string name="dns_vpn_notification_title">تغییر DNS در Nexus فعال است</string>
     <string name="dns_vpn_notification_text">درخواست‌های DNS از سرور انتخاب‌شده عبور می‌کنند.</string>
     <string name="license_subtitle">ورود با کلید دسترسی</string>
+    <!-- v2.2.0 account-bound licenses -->
+    <string name="account_section_title">شماره‌حساب کاربری</string>
+    <string name="account_section_desc">این شناسه برای صدور کلید شخصی و اتصال آن به حساب شما استفاده می‌شود.</string>
+    <string name="account_copy">کپی شماره‌حساب</string>
+    <string name="account_issue">صدور شماره‌حساب</string>
+    <string name="account_issuing">در حال صدور…</string>
+    <string name="account_yours">شماره‌حساب شما: %1$s</string>
+    <string name="account_issue_gate">صدور شماره‌حساب اختصاصی</string>
+    <string name="account_issue_progress">در حال صدور شماره‌حساب امن…</string>
+    <string name="account_issue_success">شماره‌حساب شما با موفقیت صادر شد.</string>
+    <string name="account_issue_failed">صدور شماره‌حساب ناموفق بود</string>
+    <string name="license_expired_title">اعتبار کلید به پایان رسید</string>
+    <string name="license_expired_dismiss">متوجه شدم</string>
     <string name="license_key_label">کلید ورود</string>
     <string name="license_checking">در حال بررسی کلید و ظرفیت دستگاه…</string>
     <string name="license_success">کلید تأیید شد.</string>

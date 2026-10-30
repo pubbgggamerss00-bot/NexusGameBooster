@@ -11,6 +11,7 @@ function randomKey() {
   for (const b of bytes) suffix += alphabet[b % alphabet.length];
   return "BGT_" + suffix;
 }
+function accountCode(){const a="23456789ABCDEFGHJKLMNPQRSTUVWXYZ";const b=crypto.getRandomValues(new Uint8Array(5));return "User-"+[...b].map(x=>a[x%a.length]).join("");}
 function cleanText(v, max=200) { return String(v ?? "").replace(/[\u0000-\u001F\u007F]/g, " ").trim().slice(0,max); }
 function validDns(v) { return /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/.test(v) || /^[a-fA-F0-9:]{3,39}$/.test(v); }
 function validWg(v) { return typeof v === "string" && v.length > 0 && v.length <= 128000 && /^\s*\[Interface\]/mi.test(v) && /^\s*\[Peer\]/mi.test(v); }
@@ -26,10 +27,11 @@ async function appSession(req, env) {
  const session=JSON.parse(sessionRow.value), device=cleanText(req.headers.get("X-Device-Id"),200);
  if(!device || await sha256(device)!==session.deviceHash) return {error:json({error:"device_mismatch",message:"این نشست به دستگاه دیگری تعلق دارد"},403)};
  if(session.expiresAt<=now()) return {error:json({error:"session_expired",message:"نشست منقضی شده؛ دوباره وارد شوید"},401)};
- const license=await env.DB.prepare("SELECT id,key_hint,label,active,expires_at,revoked_at FROM license_keys WHERE id=?").bind(session.licenseId).first();
- if(!license||!license.active||license.revoked_at||license.expires_at<=now()) return {error:json({error:"license_invalid",message:"کلید غیرفعال یا منقضی شده است"},403)};
+ const license=await env.DB.prepare("SELECT id,key_hint,label,key_type,active,expires_at,revoked_at FROM license_keys WHERE id=?").bind(session.licenseId).first();
+ if(!license||!license.active||license.revoked_at||license.expires_at<=now()) return {error:json({error:"license_invalid",code:"EXPIRED",keyType:license?.key_type||"public",message:license?.key_type==="private"?"اعتبار کلید شخصی شما به پایان رسیده است.":(license?.key_type==="test"?"مهلت کلید آزمایشی شما به پایان رسیده است.":"اعتبار کلید عمومی شما به پایان رسیده است.")},403)};
  const activation=await env.DB.prepare("SELECT id FROM activations WHERE license_id=? AND device_hash=?").bind(session.licenseId,session.deviceHash).first();
  if(!activation) return {error:json({error:"device_revoked",message:"دسترسی این دستگاه توسط مدیر لغو شده است"},403)};
+ await env.DB.prepare("UPDATE activations SET last_seen_at=? WHERE license_id=? AND device_hash=?").bind(now(),session.licenseId,session.deviceHash).run();
  return {session,license,deviceHash:session.deviceHash};
 }
 async function ticketKeyMatches(env, key, licenseId) {
@@ -50,6 +52,20 @@ export default {
   try {
    if (p === "/api/health" && req.method === "GET") return json({ ok:true, app:env.APP_NAME || "Nexus Game Booster", time:now() });
 
+   // One account code per installation; server binds it to the immutable device hash.
+   if (p === "/api/v1/account/issue" && req.method === "POST") {
+    const b=await body(req), device=cleanText(b.deviceId || req.headers.get("X-Device-Id"),200);
+    if(device.length<8)return json({ok:false,message:"شناسه نصب معتبر نیست"},400);
+    const dh=await sha256(device);
+    let account=await env.DB.prepare("SELECT account_code FROM customer_accounts WHERE device_hash=?").bind(dh).first();
+    if(!account){let code; for(let i=0;i<8;i++){code=accountCode();try{await env.DB.prepare("INSERT INTO customer_accounts(account_code,device_hash,created_at) VALUES(?,?,?)").bind(code,dh,now()).run();break;}catch(e){if(i===7)throw e;}} account={account_code:code};}
+    return json({ok:true,accountCode:account.account_code});
+   }
+   if (p === "/api/v1/account/me" && req.method === "GET") {
+    const device=cleanText(req.headers.get("X-Device-Id"),200); if(device.length<8)return json({ok:false},400);
+    const row=await env.DB.prepare("SELECT account_code FROM customer_accounts WHERE device_hash=?").bind(await sha256(device)).first();
+    return json({ok:!!row,accountCode:row?.account_code||null});
+   }
    // App endpoints
    if (p === "/api/v1/license/activate" && req.method === "POST") {
     const b = await body(req), key = cleanText(b.key,100).toUpperCase(), device = cleanText(b.deviceId || req.headers.get("X-Device-Id"),200);
@@ -57,7 +73,10 @@ export default {
     const kh = await sha256(key), dh = await sha256(device), row = await env.DB.prepare("SELECT * FROM license_keys WHERE key_hash=?").bind(kh).first();
     if (!row) return json({ valid:false, code:"NOT_FOUND", message:"کلید معتبر نیست" },403);
     if (!row.active || row.revoked_at) return json({ valid:false, code:"REVOKED", message:"این کلید غیرفعال شده است" },403);
-    if (row.expires_at <= now()) return json({ valid:false, code:"EXPIRED", message:"اعتبار کلید به پایان رسیده است" },403);
+    if (row.expires_at <= now()) return json({ valid:false, code:"EXPIRED", keyType:row.key_type||"public", message:(row.key_type==="private"?"اعتبار کلید شخصی شما به پایان رسیده است. برای تمدید با پشتیبانی یا مدیر برنامه تماس بگیرید.":(row.key_type==="test"?"مهلت کلید آزمایشی شما به پایان رسیده است. برای ادامه استفاده، کلید معتبر دریافت کنید.":"اعتبار کلید عمومی شما به پایان رسیده است. برای تمدید با مدیر برنامه تماس بگیرید.")) },403);
+    const account=await env.DB.prepare("SELECT account_code FROM customer_accounts WHERE device_hash=?").bind(dh).first();
+    if(!account)return json({valid:false,code:"ACCOUNT_REQUIRED",message:"ابتدا شماره‌حساب اختصاصی خود را صادر کنید."},403);
+    if(row.key_type==="private" && row.account_code!==account.account_code)return json({valid:false,code:"ACCOUNT_MISMATCH",message:"این کلید متعلق به حساب شما نیست. کلید مخصوص شماره‌حساب خود را از مدیر دریافت کنید."},403);
     const existing = await env.DB.prepare("SELECT id FROM activations WHERE license_id=? AND device_hash=?").bind(row.id,dh).first();
     if (!existing) {
      // Single conditional INSERT: D1/SQLite serializes writes, preventing two concurrent
@@ -128,10 +147,11 @@ export default {
     const requestDevice = cleanText(req.headers.get("X-Device-Id"),200);
     if (!requestDevice || await sha256(requestDevice) !== s.deviceHash) return json({error:"device_mismatch",message:"این نشست به دستگاه دیگری تعلق دارد"},403);
     if (s.expiresAt <= now()) { await env.DB.prepare("DELETE FROM app_settings WHERE key=?").bind(`session:${await sha256(token)}`).run(); return json({error:"session_expired",message:"نشست منقضی شده؛ دوباره وارد شوید"},401); }
-    const license = await env.DB.prepare("SELECT active,created_at,expires_at,revoked_at FROM license_keys WHERE id=?").bind(s.licenseId).first();
-    if (!license || !license.active || license.revoked_at || license.expires_at <= now()) return json({error:"license_invalid",message:"کلید غیرفعال یا منقضی شده است"},403);
+    const license = await env.DB.prepare("SELECT active,created_at,expires_at,revoked_at,key_type FROM license_keys WHERE id=?").bind(s.licenseId).first();
+    if (!license || !license.active || license.revoked_at || license.expires_at <= now()) return json({error:"license_invalid",code:"EXPIRED",keyType:license?.key_type||"public",message:license?.key_type==="private"?"اعتبار کلید شخصی شما به پایان رسیده است. برای تمدید با مدیر برنامه تماس بگیرید.":(license?.key_type==="test"?"مهلت کلید آزمایشی شما به پایان رسیده است. برای ادامه استفاده، کلید معتبر دریافت کنید.":"اعتبار کلید عمومی شما به پایان رسیده است. برای تمدید با مدیر برنامه تماس بگیرید.")},403);
     const deviceStillAuthorized = await env.DB.prepare("SELECT id FROM activations WHERE license_id=? AND device_hash=?").bind(s.licenseId,s.deviceHash).first();
     if (!deviceStillAuthorized) return json({error:"device_revoked",message:"دسترسی این دستگاه توسط مدیر لغو شده است"},403);
+    await env.DB.prepare("UPDATE activations SET last_seen_at=? WHERE license_id=? AND device_hash=?").bind(now(),s.licenseId,s.deviceHash).run();
     const dns = await env.DB.prepare("SELECT id,name,address,description,category,updated_at FROM dns_servers WHERE active=1 ORDER BY name").all();
     const wg = await env.DB.prepare("SELECT id,name,description,country,config_text,updated_at FROM wireguard_configs WHERE active=1 ORDER BY name").all();
     const settings = await env.DB.prepare("SELECT key,value FROM app_settings WHERE key IN ('sync_version','ping_page_message')").all();
@@ -141,16 +161,19 @@ export default {
    // Admin endpoints: all protected by ADMIN_TOKEN stored as a Worker secret.
    if (p.startsWith("/api/admin/")) { const denied = await requireAdmin(req,env); if (denied) return denied; }
    if (p === "/api/admin/keys" && req.method === "GET") {
-    const r = await env.DB.prepare("SELECT id,key_hint,label,created_at,expires_at,max_activations,active,revoked_at,(SELECT COUNT(*) FROM activations a WHERE a.license_id=license_keys.id) AS used FROM license_keys ORDER BY created_at DESC LIMIT 500").all(); return json({items:r.results});
+    const r = await env.DB.prepare("SELECT id,key_plain,key_hint,label,key_type,account_code,created_at,expires_at,max_activations,active,revoked_at,(SELECT COUNT(*) FROM activations a WHERE a.license_id=license_keys.id) AS used FROM license_keys ORDER BY created_at DESC LIMIT 500").all(); return json({items:r.results});
    }
    if (p === "/api/admin/keys" && req.method === "POST") {
-    const b = await body(req), hours = Number(b.hours)>0 ? Math.max(1,Math.min(87600,Math.floor(Number(b.hours)))) : null, days = hours ? null : Math.max(1,Math.min(3650,Number(b.days)||30)), duration = hours ? hours*3600 : days*86400, max = Math.max(1,Math.min(10000,Number(b.maxActivations)||1)), label=cleanText(b.label,100), key=randomKey(), keyHash=await sha256(key), rid=id(), t=now();
-    await env.DB.prepare("INSERT INTO license_keys(id,key_hash,key_hint,label,created_at,expires_at,max_activations,active) VALUES(?,?,?,?,?,?,?,1)").bind(rid,keyHash,key.slice(-8),label,t,t+duration,max).run();
+    const b = await body(req), type=b.type==="private"?"private":(b.type==="test"?"test":"public"), accountCode=type==="private"?cleanText(b.accountCode,20):null;
+    if(type==="private" && !/^User-[A-Z0-9]{5}$/.test(accountCode||""))return json({error:"invalid_account",message:"شماره‌حساب معتبر وارد کنید."},400);
+    if(type==="private" && !await env.DB.prepare("SELECT 1 FROM customer_accounts WHERE account_code=?").bind(accountCode).first())return json({error:"account_not_found",message:"این شماره‌حساب در API ثبت نشده است."},404);
+    const hours=Number(b.hours)>0?Math.max(1,Math.min(87600,Math.floor(Number(b.hours)))):null, days=hours?null:Math.max(1,Math.min(3650,Math.floor(Number(b.days)||30))),duration=hours?hours*3600:days*86400,max=type==="private"?1:Math.max(1,Math.min(10000,Number(b.maxActivations)||1)),label=cleanText(b.label,100), suffix=randomKey().slice(4), key=type==="private"?`${accountCode}_${suffix.slice(0,5)}`:randomKey(), keyHash=await sha256(key),rid=id(),t=now();
+    await env.DB.prepare("INSERT INTO license_keys(id,key_hash,key_hint,key_plain,label,key_type,account_code,created_at,expires_at,max_activations,active) VALUES(?,?,?,?,?,?,?,?,?,?,1)").bind(rid,keyHash,key.slice(-8),key,label,type,accountCode,t,t+duration,max).run();
     await audit(env,"create","admin","license",rid,`${hours ? `hours=${hours}` : `days=${days}`};maxActivations=${max}`);
-    return json({item:{id:rid,key,label,createdAt:t,expiresAt:t+duration,maxActivations:max,active:true,used:0,durationHours:hours,durationDays:days}},201);
+    return json({item:{id:rid,key,label,keyType:type,accountCode,createdAt:t,expiresAt:t+duration,maxActivations:max,active:true,used:0,durationHours:hours,durationDays:days}},201);
    }
    const keyMatch=p.match(/^\/api\/admin\/keys\/([\w-]+)$/);
-   if (keyMatch && req.method === "PATCH") { const b=await body(req), rid=keyMatch[1], active=b.active===false?0:1; await env.DB.prepare("UPDATE license_keys SET active=?,revoked_at=? WHERE id=?").bind(active,active?null:now(),rid).run(); await audit(env,active?"enable":"revoke","admin","license",rid); return json({ok:true}); }
+   if (keyMatch && req.method === "PATCH") { const b=await body(req),rid=keyMatch[1],old=await env.DB.prepare("SELECT * FROM license_keys WHERE id=?").bind(rid).first();if(!old)return json({error:"not_found"},404);const active=b.active===undefined?old.active:(b.active?1:0),delta=Number(b.expiryDeltaDays||0)*86400,expires=b.expiresAt?Math.floor(Number(b.expiresAt)):Math.max(now()+60,Number(old.expires_at)+delta),max=b.maxActivations===undefined?old.max_activations:Math.max(1,Math.min(10000,Math.floor(Number(b.maxActivations)||1)));if(max<Number(old.max_activations)){const used=await env.DB.prepare("SELECT COUNT(*) AS n FROM activations WHERE license_id=?").bind(rid).first();if(max<Number(used.n))return json({error:"capacity_below_used",message:"تعداد مجاز نمی‌تواند از تعداد دستگاه‌های فعال کمتر شود."},400);}await env.DB.prepare("UPDATE license_keys SET active=?,revoked_at=?,expires_at=?,max_activations=? WHERE id=?").bind(active,active?null:now(),expires,max,rid).run();await audit(env,"update","admin","license",rid);return json({ok:true,expiresAt:expires,maxActivations:max}); }
    if (keyMatch && req.method === "DELETE") { const rid=keyMatch[1]; const row=await env.DB.prepare("SELECT id,label FROM license_keys WHERE id=?").bind(rid).first(); if(!row)return json({error:"not_found",message:"کلید پیدا نشد"},404); await env.DB.prepare("DELETE FROM activations WHERE license_id=?").bind(rid).run(); await env.DB.prepare("DELETE FROM license_keys WHERE id=?").bind(rid).run(); await audit(env,"delete","admin","license",rid,cleanText(row.label||"",100)); return json({ok:true}); }
    const renewMatch=p.match(/^\/api\/admin\/keys\/([\w-]+)\/renew$/);
    if(renewMatch && req.method==="POST") {
@@ -174,6 +197,10 @@ export default {
     if (!r.meta?.changes) return json({error:"not_found",message:"دستگاه پیدا نشد"},404);
     await audit(env,"revoke_device","admin","activation",deviceDeleteMatch[2]);
     return json({ok:true});
+   }
+   if(p==="/api/admin/public-key-usage" && req.method==="GET"){
+    const r=await env.DB.prepare("SELECT l.id,l.key_plain,l.label,l.expires_at,l.max_activations,l.active,COUNT(a.id) AS used,SUM(CASE WHEN a.last_seen_at>=? THEN 1 ELSE 0 END) AS online,GROUP_CONCAT(c.account_code || ':' || CASE WHEN a.last_seen_at>=? THEN 'online' ELSE 'offline' END) AS accounts FROM license_keys l LEFT JOIN activations a ON a.license_id=l.id LEFT JOIN customer_accounts c ON c.device_hash=a.device_hash WHERE l.key_type='public' GROUP BY l.id ORDER BY l.created_at DESC").bind(now()-300,now()-300).all();
+    return json({items:r.results.map(x=>({...x,online:Number(x.online||0),offline:Math.max(0,Number(x.used||0)-Number(x.online||0)),accounts:(x.accounts||"").split(",").filter(Boolean).map(v=>{const [account,status]=v.split(":");return {account,status};})}))});
    }
    if (p === "/api/admin/dns" && req.method === "GET") { const r=await env.DB.prepare("SELECT * FROM dns_servers ORDER BY updated_at DESC").all(); return json({items:r.results}); }
    if (p === "/api/admin/dns" && req.method === "POST") { const b=await body(req), name=cleanText(b.name,80), address=cleanText(b.address,100); if(!name||!validDns(address)) return json({error:"invalid_dns",message:"نام و آدرس IPv4/IPv6 معتبر وارد کنید"},400); const rid=id(); await env.DB.prepare("INSERT INTO dns_servers(id,name,address,description,category,active,updated_at) VALUES(?,?,?,?,?,?,?)").bind(rid,name,address,cleanText(b.description,300),cleanText(b.category,40)||"عمومی",b.active===false?0:1,now()).run(); await audit(env,"create","admin","dns",rid,name); return json({ok:true,id:rid},201); }

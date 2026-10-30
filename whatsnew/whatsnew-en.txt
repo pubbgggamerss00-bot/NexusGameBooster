@@ -1,8 +1,9 @@
-Nexus Game Booster 2.1.0 (Rocket Edition UI on 1.2.0) — new look!
+Nexus Game Booster 2.2.0 — account numbers & personal keys!
 
 What's new:
-• New rocket app icon: the booster now wears the green rocket badge on your home screen and in the launcher.
-• New 3D launch splash: a short rocket-launch animation (starfield, orbit rings, engine flare, arcade power meter) plays while the app opens — purely visual, nothing loads slower and it can be turned off with Reduce motion.
-• Full Rocket Edition retheme: the whole interface moved to the new forest-green + neon green/lime palette — surfaces, cards, buttons, the license countdown and the AMOLED black variant included.
-• No functional changes: boost engine, profiles, monitoring, library, DNS/WireGuard tools, tickets and settings behave exactly like 1.2.0. No new permissions; 115 unit tests still green.
-• Updating from 2.0.0 and any older version installs directly — no uninstall needed (same signature).
+• A unique User-XXXXX account number for your installation: issue it from the login screen or Settings (once per install) and see it in Settings with a copy button.
+• Personal keys in the User-XXXXX_XXXXX format: they only work on the issuing account; ownership is validated server-side.
+• Separate expiry messages for public/personal/test keys; an in-app notice appears when a key expires mid-use and validity is re-checked every 30 seconds.
+• Admin panel and Worker updated (the D1 migration must be run once — see the deploy guide).
+• Rocket Edition look unchanged; nothing removed and all 115 unit tests stay green.
+• Installs directly over 2.1.0 and any older version — same signature, no uninstall needed.

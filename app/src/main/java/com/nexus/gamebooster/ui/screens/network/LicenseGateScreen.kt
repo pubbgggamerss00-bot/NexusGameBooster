@@ -18,11 +18,13 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -69,7 +71,15 @@ import kotlinx.coroutines.launch
  * the key is only asked for again if the server revokes the session (401/403).
  */
 @Composable
-fun LicenseGateScreen(showRetry: Boolean = false, onActivated: () -> Unit, onRetry: (() -> Unit)? = null) {
+fun LicenseGateScreen(
+    showRetry: Boolean = false,
+    // v2.2.0 account-bound licenses: typed expiry message from the Worker,
+    // shown as a dismissible dialog on top of the gate.
+    expiryNotice: String = "",
+    onExpiryNoticeDismiss: () -> Unit = {},
+    onActivated: () -> Unit,
+    onRetry: (() -> Unit)? = null,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var key by remember { mutableStateOf("") }
@@ -77,6 +87,21 @@ fun LicenseGateScreen(showRetry: Boolean = false, onActivated: () -> Unit, onRet
     var messageIsError by remember { mutableStateOf(false) }
     var messageIsSuccess by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
+    // v2.2.0: this installation's account number ("User-XXXXX"), issued once and
+    // bound to the device on the server.
+    var accountCode by remember { mutableStateOf(NexusApiClient.accountCode(context)) }
+
+    // v2.2.0: mid-session / re-login expiry notice (typed per key type by the Worker).
+    if (expiryNotice.isNotBlank()) {
+        AlertDialog(
+            onDismissRequest = onExpiryNoticeDismiss,
+            title = { Text(stringResource(R.string.license_expired_title)) },
+            text = { Text(expiryNotice) },
+            confirmButton = {
+                TextButton(onClick = onExpiryNoticeDismiss) { Text(stringResource(R.string.license_expired_dismiss)) }
+            },
+        )
+    }
 
     Surface(color = androidx.compose.ui.graphics.Color.Transparent) {
         Box(Modifier.fillMaxSize()) {
@@ -163,6 +188,45 @@ fun LicenseGateScreen(showRetry: Boolean = false, onActivated: () -> Unit, onRet
                             modifier = Modifier.fillMaxWidth(),
                         )
                         Spacer(Modifier.height(14.dp))
+                        // v2.2.0 account-bound licenses: show this installation's
+                        // account number once issued; otherwise offer the one-tap
+                        // issuance. The server binds the account to the device and
+                        // private keys are issued against it.
+                        if (accountCode.isNotBlank()) {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = stringResource(R.string.account_yours, accountCode),
+                                color = NgbTertiary,
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                        } else {
+                            Spacer(Modifier.height(8.dp))
+                            NgbSecondaryButton(
+                                onClick = {
+                                    if (busy) return@NgbSecondaryButton
+                                    busy = true
+                                    message = context.getString(R.string.account_issue_progress)
+                                    messageIsError = false
+                                    messageIsSuccess = false
+                                    scope.launch {
+                                        try {
+                                            accountCode = NexusApiClient.issueAccountCode(context)
+                                            message = context.getString(R.string.account_issue_success)
+                                            messageIsSuccess = true
+                                            messageIsError = false
+                                        } catch (e: Exception) {
+                                            message = e.message ?: context.getString(R.string.account_issue_failed)
+                                            messageIsError = true
+                                            messageIsSuccess = false
+                                        } finally {
+                                            busy = false
+                                        }
+                                    }
+                                },
+                                enabled = !busy,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) { Text(stringResource(R.string.account_issue_gate)) }
+                        }
                         NgbButton(
                             onClick = {
                                 if (busy) return@NgbButton

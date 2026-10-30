@@ -71,10 +71,13 @@ import com.nexus.gamebooster.ui.components.NgbPageHeader
 import com.nexus.gamebooster.ui.components.NgbScreenContainer
 import com.nexus.gamebooster.ui.components.SectionCard
 import com.nexus.gamebooster.ui.theme.NgbChamferShape
+import androidx.compose.ui.platform.LocalContext
+import com.nexus.gamebooster.network.NexusApiClient
 import com.nexus.gamebooster.update.UpdateTools
 
 @Composable
 fun SettingsScreen() {
+    val context = LocalContext.current
     val vm: SettingsViewModel = viewModel(factory = VmFactory { ServiceLocator.settingsViewModel() })
     val state by vm.uiState.collectAsStateWithLifecycle()
     var showResetDialog by rememberSaveable { mutableStateOf(false) }
@@ -85,6 +88,9 @@ fun SettingsScreen() {
     var rootBusy by rememberSaveable { mutableStateOf(false) }
     val rootController = remember { RootGameModeController() }
     val scope = rememberCoroutineScope()
+    // v2.2.0 account-bound licenses: this installation's account number + issue state.
+    var accountCode by remember { mutableStateOf(NexusApiClient.accountCode(context)) }
+    var accountBusy by remember { mutableStateOf(false) }
 
     NgbScreenContainer {
         // Returns from the system "Install unknown apps" page — resume the update
@@ -94,6 +100,46 @@ fun SettingsScreen() {
         }
         NgbPageHeader(title = stringResource(R.string.settings_headline))
         Spacer(Modifier.height(16.dp))
+
+        // v2.2.0 account-bound licenses: the installation's unique account number.
+        // It is issued once per install, bound to the device on the server, and is
+        // what the admin issues private keys against.
+        SectionCard(
+            title = stringResource(R.string.account_section_title),
+            icon = Icons.Outlined.ConfirmationNumber,
+        ) {
+            Text(
+                text = stringResource(R.string.account_section_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            if (accountCode.isNotBlank()) {
+                Text(
+                    text = accountCode,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                TextButton(onClick = {
+                    android.content.ClipData.newPlainText("Nexus account", accountCode).also {
+                        (context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(it)
+                    }
+                }) { Text(stringResource(R.string.account_copy)) }
+            } else {
+                NgbOutlinedButton(
+                    onClick = {
+                        if (accountBusy) return@NgbOutlinedButton
+                        accountBusy = true
+                        scope.launch {
+                            try { accountCode = NexusApiClient.issueAccountCode(context) }
+                            catch (_: Exception) { /* the gate screen surfaces issuance errors with full detail */ }
+                            finally { accountBusy = false }
+                        }
+                    },
+                    enabled = !accountBusy,
+                ) { Text(if (accountBusy) stringResource(R.string.account_issuing) else stringResource(R.string.account_issue)) }
+            }
+        }
 
         SectionCard(
             title = stringResource(R.string.settings_section_language),
