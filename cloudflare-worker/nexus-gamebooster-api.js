@@ -58,7 +58,14 @@ export default {
     if(device.length<8)return json({ok:false,message:"شناسه نصب معتبر نیست"},400);
     const dh=await sha256(device);
     let account=await env.DB.prepare("SELECT account_code FROM customer_accounts WHERE device_hash=?").bind(dh).first();
-    if(!account){let code; for(let i=0;i<8;i++){code=accountCode();try{await env.DB.prepare("INSERT INTO customer_accounts(account_code,device_hash,created_at) VALUES(?,?,?)").bind(code,dh,now()).run();break;}catch(e){if(i===7)throw e;}} account={account_code:code};}
+    // v2.2.1: INSERT OR IGNORE is safe for simultaneous taps/retries — the unique
+    // device_hash constraint guarantees one stable account per installation.
+    for(let i=0;!account && i<32;i++){
+      const code=accountCode();
+      await env.DB.prepare("INSERT OR IGNORE INTO customer_accounts(account_code,device_hash,created_at) VALUES(?,?,?)").bind(code,dh,now()).run();
+      account=await env.DB.prepare("SELECT account_code FROM customer_accounts WHERE device_hash=?").bind(dh).first();
+    }
+    if(!account) throw new Error("account_issue_failed: could not reserve an account code");
     return json({ok:true,accountCode:account.account_code});
    }
    if (p === "/api/v1/account/me" && req.method === "GET") {
@@ -70,7 +77,7 @@ export default {
    if (p === "/api/v1/license/activate" && req.method === "POST") {
     const b = await body(req), key = cleanText(b.key,100).toUpperCase(), device = cleanText(b.deviceId || req.headers.get("X-Device-Id"),200);
     if (!key || device.length < 8) return json({ valid:false, code:"BAD_REQUEST", message:"کلید و شناسه دستگاه لازم است" },400);
-    const kh = await sha256(key), dh = await sha256(device), row = await env.DB.prepare("SELECT * FROM license_keys WHERE key_hash=?").bind(kh).first();
+    const kh = await sha256(key.toUpperCase()), dh = await sha256(device), row = await env.DB.prepare("SELECT * FROM license_keys WHERE key_hash=?").bind(kh).first();
     if (!row) return json({ valid:false, code:"NOT_FOUND", message:"کلید معتبر نیست" },403);
     if (!row.active || row.revoked_at) return json({ valid:false, code:"REVOKED", message:"این کلید غیرفعال شده است" },403);
     if (row.expires_at <= now()) return json({ valid:false, code:"EXPIRED", keyType:row.key_type||"public", message:(row.key_type==="private"?"اعتبار کلید شخصی شما به پایان رسیده است. برای تمدید با پشتیبانی یا مدیر برنامه تماس بگیرید.":(row.key_type==="test"?"مهلت کلید آزمایشی شما به پایان رسیده است. برای ادامه استفاده، کلید معتبر دریافت کنید.":"اعتبار کلید عمومی شما به پایان رسیده است. برای تمدید با مدیر برنامه تماس بگیرید.")) },403);
@@ -164,10 +171,12 @@ export default {
     const r = await env.DB.prepare("SELECT id,key_plain,key_hint,label,key_type,account_code,created_at,expires_at,max_activations,active,revoked_at,(SELECT COUNT(*) FROM activations a WHERE a.license_id=license_keys.id) AS used FROM license_keys ORDER BY created_at DESC LIMIT 500").all(); return json({items:r.results});
    }
    if (p === "/api/admin/keys" && req.method === "POST") {
-    const b = await body(req), type=b.type==="private"?"private":(b.type==="test"?"test":"public"), accountCode=type==="private"?cleanText(b.accountCode,20):null;
-    if(type==="private" && !/^User-[A-Z0-9]{5}$/.test(accountCode||""))return json({error:"invalid_account",message:"شماره‌حساب معتبر وارد کنید."},400);
-    if(type==="private" && !await env.DB.prepare("SELECT 1 FROM customer_accounts WHERE account_code=?").bind(accountCode).first())return json({error:"account_not_found",message:"این شماره‌حساب در API ثبت نشده است."},404);
-    const hours=Number(b.hours)>0?Math.max(1,Math.min(87600,Math.floor(Number(b.hours)))):null, days=hours?null:Math.max(1,Math.min(3650,Math.floor(Number(b.days)||30))),duration=hours?hours*3600:days*86400,max=type==="private"?1:Math.max(1,Math.min(10000,Number(b.maxActivations)||1)),label=cleanText(b.label,100), suffix=randomKey().slice(4), key=type==="private"?`${accountCode}_${suffix.slice(0,5)}`:randomKey(), keyHash=await sha256(key),rid=id(),t=now();
+    const b = await body(req), type=b.type==="private"?"private":(b.type==="test"?"test":"public"), rawAccount=type==="private"?cleanText(b.accountCode,20):null;
+    // v2.2.1: account codes are displayed as User-XXXXX but comparisons are canonicalized (case-insensitive input).
+    const accountCode=rawAccount && /^user-[a-z0-9]{5}$/i.test(rawAccount) ? "User-"+rawAccount.slice(5).toUpperCase() : null;
+    if(type==="private" && !accountCode)return json({error:"invalid_account",message:"شماره‌حساب معتبر وارد کنید؛ نمونه: User-53F87"},400);
+    if(type==="private" && !await env.DB.prepare("SELECT 1 FROM customer_accounts WHERE account_code=?").bind(accountCode).first())return json({error:"account_not_found",message:"این شماره‌حساب در API ثبت نشده است. ابتدا کاربر باید شماره‌حسابش را از داخل برنامه صادر کند."},404);
+    const hours=Number(b.hours)>0?Math.max(1,Math.min(87600,Math.floor(Number(b.hours)))):null, days=hours?null:Math.max(1,Math.min(3650,Math.floor(Number(b.days)||30))),duration=hours?hours*3600:days*86400,max=type==="private"?1:Math.max(1,Math.min(10000,Number(b.maxActivations)||1)),label=cleanText(b.label,100), suffix=randomKey().slice(4), key=type==="private"?`${accountCode}_${suffix.slice(0,5)}`:randomKey(), keyHash=await sha256(key.toUpperCase()),rid=id(),t=now();
     await env.DB.prepare("INSERT INTO license_keys(id,key_hash,key_hint,key_plain,label,key_type,account_code,created_at,expires_at,max_activations,active) VALUES(?,?,?,?,?,?,?,?,?,?,1)").bind(rid,keyHash,key.slice(-8),key,label,type,accountCode,t,t+duration,max).run();
     await audit(env,"create","admin","license",rid,`${hours ? `hours=${hours}` : `days=${days}`};maxActivations=${max}`);
     return json({item:{id:rid,key,label,keyType:type,accountCode,createdAt:t,expiresAt:t+duration,maxActivations:max,active:true,used:0,durationHours:hours,durationDays:days}},201);
@@ -243,6 +252,10 @@ export default {
    if(p==="/api/admin/audit" && req.method==="DELETE"){await env.DB.prepare("DELETE FROM audit_log").run();return json({ok:true});}
    if(p==="/api/admin/sync-version" && req.method==="POST"){const version=String(now());await env.DB.prepare("INSERT INTO app_settings(key,value,updated_at) VALUES('sync_version',?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at").bind(version,now()).run();await audit(env,"publish","admin","settings","sync_version",version);return json({ok:true,version});}
    return json({error:"not_found",message:"مسیر API پیدا نشد"},404);
-  } catch(e) { return json({error:"server_error",message:"خطای سرور رخ داد"},500); }
+  } catch(e) {
+    // v2.2.1: surface a useful diagnostic for D1/schema/deployment faults; never expose bindings or secrets.
+    const detail=cleanText(e?.message||"خطای ناشناخته",240);
+    return json({error:"server_error",message:`خطای سرور: ${detail}`},500);
+  }
  }
 };

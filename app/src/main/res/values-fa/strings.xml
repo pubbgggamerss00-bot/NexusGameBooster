@@ -490,6 +490,8 @@
     <string name="account_issue_progress">در حال صدور شماره‌حساب امن…</string>
     <string name="account_issue_success">شماره‌حساب شما با موفقیت صادر شد.</string>
     <string name="account_issue_failed">صدور شماره‌حساب ناموفق بود</string>
+    <!-- v2.2.1 account fix: visible diagnostic when the Worker/D1 side is not ready -->
+    <string name="account_issue_server_hint">شماره‌حساب از سرور دریافت نشد؛ اتصال API و جدول customer_accounts را بررسی کنید.</string>
     <string name="license_expired_title">اعتبار کلید به پایان رسید</string>
     <string name="license_expired_dismiss">متوجه شدم</string>
     <string name="license_key_label">کلید ورود</string>

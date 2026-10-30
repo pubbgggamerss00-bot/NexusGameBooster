@@ -51,11 +51,25 @@ object NexusApiClient {
      * v1.1.5 account-bound licenses: issue (or re-fetch) the installation's unique
      * account number from the Worker. One account per install — the server binds
      * it to the immutable device hash and never re-issues for a known install.
+     * v2.2.1: reconcile via /account/me FIRST so clearing app data or preferences
+     * never creates a duplicate account for the same installation.
      */
     suspend fun issueAccountCode(context: Context): String = withContext(Dispatchers.IO) {
-        val existing=accountCode(context); if(existing.isNotBlank()) return@withContext existing
-        val result=request(context, "${DEFAULT_BASE_URL}/api/v1/account/issue", "POST", JSONObject().put("deviceId", deviceId(context)), null, deviceId(context))
-        val code=result.optString("accountCode"); require(code.matches(Regex("User-[A-Z0-9]{5}"))) { context.getString(R.string.account_issue_failed) }
+        val device = deviceId(context)
+        // v2.2.1: reconcile with the server first; a network failure here just falls
+        // through to the issue path (runCatching), never blocks account issuance.
+        val restored = runCatching {
+            request(context, "${DEFAULT_BASE_URL}/api/v1/account/me", "GET", null, null, device).optString("accountCode")
+        }.getOrDefault("")
+        if (restored.matches(Regex("User-[A-Z0-9]{5}"))) {
+            prefs(context).edit().putString(ACCOUNT_CODE, restored).apply()
+            return@withContext restored
+        }
+        val result = request(context, "${DEFAULT_BASE_URL}/api/v1/account/issue", "POST", JSONObject().put("deviceId", device), null, device)
+        val code = result.optString("accountCode")
+        require(result.optBoolean("ok") && code.matches(Regex("User-[A-Z0-9]{5}"))) {
+            result.optString("message").ifBlank { context.getString(R.string.account_issue_server_hint) }
+        }
         prefs(context).edit().putString(ACCOUNT_CODE,code).apply(); code
     }
 

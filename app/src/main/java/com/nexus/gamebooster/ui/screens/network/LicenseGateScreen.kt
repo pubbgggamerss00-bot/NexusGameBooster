@@ -26,6 +26,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -90,6 +91,20 @@ fun LicenseGateScreen(
     // v2.2.0: this installation's account number ("User-XXXXX"), issued once and
     // bound to the device on the server.
     var accountCode by remember { mutableStateOf(NexusApiClient.accountCode(context)) }
+
+    // v2.2.1: on first display of the gate, issue the account number automatically
+    // (reconciling with the server first); the visible button remains as the retry
+    // path for when the network was unavailable.
+    LaunchedEffect(Unit) {
+        if (accountCode.isBlank()) {
+            runCatching { NexusApiClient.issueAccountCode(context) }
+                .onSuccess { accountCode = it }
+                .onFailure {
+                    message = it.message ?: context.getString(R.string.account_issue_failed)
+                    messageIsError = true
+                }
+        }
+    }
 
     // v2.2.0: mid-session / re-login expiry notice (typed per key type by the Worker).
     if (expiryNotice.isNotBlank()) {

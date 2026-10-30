@@ -17,8 +17,10 @@ android {
         applicationId = "com.nexus.gamebooster"
         minSdk = 26
         targetSdk = 35
-        versionCode = 32
-        versionName = "2.2.0"
+        // v2.2.1: versionCode adopts the upstream bundle scheme (2.2.1 -> 221); it is
+        // monotonic vs every released build (2.2.0 = 32), so updates install cleanly.
+        versionCode = 221
+        versionName = "2.2.1"
     }
 
     // ---------------------------------------------------------------------------

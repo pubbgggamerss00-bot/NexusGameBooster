@@ -1,9 +1,11 @@
-Nexus Game Booster 2.2.0 — account numbers & personal keys!
+Nexus Game Booster 2.2.1 — account & license system fixes!
 
 What's new:
-• A unique User-XXXXX account number for your installation: issue it from the login screen or Settings (once per install) and see it in Settings with a copy button.
-• Personal keys in the User-XXXXX_XXXXX format: they only work on the issuing account; ownership is validated server-side.
-• Separate expiry messages for public/personal/test keys; an in-app notice appears when a key expires mid-use and validity is re-checked every 30 seconds.
-• Admin panel and Worker updated (the D1 migration must be run once — see the deploy guide).
+• Your account number is now issued automatically the first time the login screen opens; the manual button stays as a retry path when the network was unavailable.
+• Before issuing, the app re-fetches an existing account from the API, so clearing app data no longer creates a duplicate account.
+• Simultaneous issuance requests are safe server-side (atomic INSERT OR IGNORE with re-fetch).
+• The admin panel accepts private-key account numbers case-insensitively and stores them as User-XXXXX.
+• Keys are hashed uppercase at creation and activation, so a personal key stays valid even if the prefix is typed in lowercase.
+• Real Worker/D1 errors are now visible in API responses and panel messages, and the panel loads section by section so one failing part can't hide the others.
 • Rocket Edition look unchanged; nothing removed and all 115 unit tests stay green.
-• Installs directly over 2.1.0 and any older version — same signature, no uninstall needed.
+• Installs directly over 2.2.0, 2.1.0 and any older version — same signature, no uninstall needed.
